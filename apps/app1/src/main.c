@@ -133,6 +133,8 @@ int main(int argc, char *argv[])
 	ecs_fini(world);
 
 	s_context.camera = GetDefaultCamera();
+	s_context.camera.center = (b2Pos){0.0f, 0.0f};
+	s_context.camera.zoom   = 12.0f;
 
 	s_context.debugDraw                     = b2DefaultDebugDraw();
 	s_context.debugDraw.DrawPolygonFcn      = DrawPolygonFcn;
@@ -196,10 +198,15 @@ int main(int argc, char *argv[])
 		int bufferWidth, bufferHeight;
 		glfwGetFramebufferSize(s_context.window, &bufferWidth, &bufferHeight);
 		glViewport(0, 0, bufferWidth, bufferHeight);
+		glClearColor(0.07f, 0.07f, 0.09f, 1.0f);
+		glClear(GL_COLOR_BUFFER_BIT);
 
 		float timeStep = 1.0f / 60.0f;
 		int subStepCount = 4;
 		b2World_Step(worldId, timeStep, subStepCount);
+
+		SetDrawOrigin(s_context.draw, s_context.camera.center);
+		b2World_Draw(worldId, &s_context.debugDraw);
 
 		FlushDraw(s_context.draw, &s_context.camera);
 		glfwSwapBuffers(s_context.window);
