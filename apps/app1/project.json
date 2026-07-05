@@ -1,0 +1,52 @@
+{
+    "id": "app1",
+    "type": "application",
+    "value": {
+        "language": "c",
+        "use": [
+            "flecs",
+			"box2d",
+			"draw",
+			"glad"
+        ],
+        "public": false
+    },
+	"lang.c": {
+		"c-standard": "gnu99",
+		"defines": [
+			"_FORTIFY_SOURCE=2"
+		],
+		"lib": [
+			"flecs",
+			"box2d",
+			"cglm",
+			"draw",
+			"glad",
+			"glfw",
+			"stdc++",
+			"m"
+		],
+		"cflags": [
+			"-Werror",
+			"-Wall",
+			"-Wextra",
+			"-Wno-error=unused-local-typedefs",
+			"-Wno-error=unused-const-variable=",
+			"-Wno-error=unused-variable",
+			"-Wno-error=unused-function",
+			"-ftrapv",
+			"-Werror=format-security",
+			"-Wl,-z,defs",
+			"-fstack-clash-protection",
+			"-fstack-protector-strong",
+			"-fstack-protector",
+			"-fstack-protector-all",
+			"-grecord-gcc-switches",
+			"-pipe",
+			"-Werror=implicit-function-declaration",
+			"-Wl,-z,now",
+			"-Wl,-z,relro",
+			"-Wwrite-strings"
+		]
+	}
+}

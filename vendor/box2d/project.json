@@ -1,0 +1,17 @@
+{
+	"id": "box2d",
+	"type": "package",
+	"value": {
+		"language": "c",
+		"public": true,
+		"use": []
+	},
+	"lang.c": {
+		"c-standard": "c17",
+		"export-symbols": true,
+		"static": true,
+		"defines": [],
+		"cflags": [],
+		"lib": []
+	}
+}
