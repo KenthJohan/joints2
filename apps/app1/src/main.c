@@ -16,11 +16,19 @@ typedef struct SampleContext {
 	Draw       *draw;
 	Camera      camera;
 	b2DebugDraw debugDraw;
+	b2JointId   m_mouseJointId;
+	b2BodyId    m_mouseBodyId;
+
+	b2WorldId m_worldId;
+
+	b2Pos m_mousePoint;
+
+	float m_mouseForceScale;
 } SampleContext;
 
-static char* ReadTextFile(const char* path)
+static char *ReadTextFile(const char *path)
 {
-	FILE* file = fopen(path, "rb");
+	FILE *file = fopen(path, "rb");
 	if (file == NULL) {
 		return NULL;
 	}
@@ -36,7 +44,7 @@ static char* ReadTextFile(const char* path)
 		return NULL;
 	}
 
-	char* text = (char*)malloc((size_t)size + 1);
+	char *text = (char *)malloc((size_t)size + 1);
 	if (text == NULL) {
 		fclose(file);
 		return NULL;
@@ -53,11 +61,11 @@ static char* ReadTextFile(const char* path)
 	return text;
 }
 
-static char* LoadShaderText(const char* fileName)
+static char *LoadShaderText(const char *fileName)
 {
 	char path[256];
 	snprintf(path, sizeof(path), "apps/app1/data/%s", fileName);
-	char* text = ReadTextFile(path);
+	char *text = ReadTextFile(path);
 	if (text != NULL) {
 		return text;
 	}
@@ -66,26 +74,26 @@ static char* LoadShaderText(const char* fileName)
 	return ReadTextFile(path);
 }
 
-static bool BuildDrawCreateInfo(DrawCreateInfo* createInfo)
+static bool BuildDrawCreateInfo(DrawCreateInfo *createInfo)
 {
 	*createInfo = (DrawCreateInfo){0};
 
-	createInfo->shaders[DRAW_SHADER_BACKGROUND_VERTEX] = LoadShaderText("background.vs");
-	createInfo->shaders[DRAW_SHADER_BACKGROUND_FRAGMENT] = LoadShaderText("background.fs");
-	createInfo->shaders[DRAW_SHADER_POINT_VERTEX] = LoadShaderText("point.vs");
-	createInfo->shaders[DRAW_SHADER_POINT_FRAGMENT] = LoadShaderText("point.fs");
-	createInfo->shaders[DRAW_SHADER_LINE_VERTEX] = LoadShaderText("line.vs");
-	createInfo->shaders[DRAW_SHADER_LINE_FRAGMENT] = LoadShaderText("line.fs");
-	createInfo->shaders[DRAW_SHADER_CIRCLE_VERTEX] = LoadShaderText("circle.vs");
-	createInfo->shaders[DRAW_SHADER_CIRCLE_FRAGMENT] = LoadShaderText("circle.fs");
-	createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_VERTEX] = LoadShaderText("solid_circle.vs");
-	createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_FRAGMENT] = LoadShaderText("solid_circle.fs");
-	createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_VERTEX] = LoadShaderText("solid_capsule.vs");
+	createInfo->shaders[DRAW_SHADER_BACKGROUND_VERTEX]      = LoadShaderText("background.vs");
+	createInfo->shaders[DRAW_SHADER_BACKGROUND_FRAGMENT]    = LoadShaderText("background.fs");
+	createInfo->shaders[DRAW_SHADER_POINT_VERTEX]           = LoadShaderText("point.vs");
+	createInfo->shaders[DRAW_SHADER_POINT_FRAGMENT]         = LoadShaderText("point.fs");
+	createInfo->shaders[DRAW_SHADER_LINE_VERTEX]            = LoadShaderText("line.vs");
+	createInfo->shaders[DRAW_SHADER_LINE_FRAGMENT]          = LoadShaderText("line.fs");
+	createInfo->shaders[DRAW_SHADER_CIRCLE_VERTEX]          = LoadShaderText("circle.vs");
+	createInfo->shaders[DRAW_SHADER_CIRCLE_FRAGMENT]        = LoadShaderText("circle.fs");
+	createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_VERTEX]    = LoadShaderText("solid_circle.vs");
+	createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_FRAGMENT]  = LoadShaderText("solid_circle.fs");
+	createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_VERTEX]   = LoadShaderText("solid_capsule.vs");
 	createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_FRAGMENT] = LoadShaderText("solid_capsule.fs");
-	createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_VERTEX] = LoadShaderText("solid_polygon.vs");
+	createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_VERTEX]   = LoadShaderText("solid_polygon.vs");
 	createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_FRAGMENT] = LoadShaderText("solid_polygon.fs");
-	createInfo->shaders[DRAW_SHADER_TEXT_VERTEX] = LoadShaderText("text.vs");
-	createInfo->shaders[DRAW_SHADER_TEXT_FRAGMENT] = LoadShaderText("text.fs");
+	createInfo->shaders[DRAW_SHADER_TEXT_VERTEX]            = LoadShaderText("text.vs");
+	createInfo->shaders[DRAW_SHADER_TEXT_FRAGMENT]          = LoadShaderText("text.fs");
 
 	for (int i = 0; i < DRAW_SHADER_COUNT; ++i) {
 		if (createInfo->shaders[i] == NULL) {
@@ -97,10 +105,10 @@ static bool BuildDrawCreateInfo(DrawCreateInfo* createInfo)
 	return true;
 }
 
-static void FreeDrawCreateInfo(DrawCreateInfo* createInfo)
+static void FreeDrawCreateInfo(DrawCreateInfo *createInfo)
 {
 	for (int i = 0; i < DRAW_SHADER_COUNT; ++i) {
-		free((void*)createInfo->shaders[i]);
+		free((void *)createInfo->shaders[i]);
 	}
 	*createInfo = (DrawCreateInfo){0};
 }
@@ -170,13 +178,39 @@ void DrawBoundsFcn(b2AABB aabb, b2HexColor color, void *context)
 	DrawBounds(sampleContext->draw, aabb, color);
 }
 
-static SampleContext s_context;
-
-b2WorldId test1_create_world()
+typedef struct
 {
-	b2WorldDef worldDef = b2DefaultWorldDef();
-	worldDef.gravity    = (b2Vec2){0.0f, -10.0f};
-	b2WorldId worldId   = b2CreateWorld(&worldDef);
+	b2Pos    point;
+	b2BodyId bodyId;
+} QueryContext;
+
+bool QueryCallback(b2ShapeId shapeId, void *context)
+{
+	QueryContext *queryContext = (QueryContext *)(context);
+
+	b2BodyId   bodyId   = b2Shape_GetBody(shapeId);
+	b2BodyType bodyType = b2Body_GetType(bodyId);
+	if (bodyType != b2_dynamicBody) {
+		// continue query
+		return true;
+	}
+
+	bool overlap = b2Shape_TestPoint(shapeId, queryContext->point);
+	if (overlap) {
+		// found shape
+		queryContext->bodyId = bodyId;
+		return false;
+	}
+
+	return true;
+}
+
+static SampleContext s_context;
+static bool          s_rightMouseDown = false;
+static b2Pos         s_clickPointWS   = b2Pos_zero;
+
+void test1_create_world(b2WorldId worldId)
+{
 
 	b2BodyDef groundBodyDef = b2DefaultBodyDef();
 	groundBodyDef.position  = (b2Vec2){0.0f, -10.0f};
@@ -213,8 +247,122 @@ b2WorldId test1_create_world()
 	    printf("%4.2f %4.2f %4.2f\n", position.x, position.y, b2Rot_GetAngle(rotation));
 	}
 	*/
+}
 
-	return worldId;
+void MouseDown(SampleContext *ctx, b2Pos p, int button, int mod)
+{
+	if (B2_IS_NON_NULL(ctx->m_mouseJointId)) {
+		return;
+	}
+
+	if (button == GLFW_MOUSE_BUTTON_1) {
+		// A tiny box around the click point, exact at any distance with the click as the origin
+		b2Vec2 d   = {0.001f, 0.001f};
+		b2AABB box = {b2Neg(d), d};
+
+		ctx->m_mousePoint = p;
+
+		// Query the world for overlapping shapes.
+		QueryContext queryContext = {p, b2_nullBodyId};
+		b2World_OverlapAABB(ctx->m_worldId, p, box, b2DefaultQueryFilter(), QueryCallback, &queryContext);
+
+		if (B2_IS_NON_NULL(queryContext.bodyId)) {
+			b2BodyDef bodyDef  = b2DefaultBodyDef();
+			bodyDef.type       = b2_kinematicBody;
+			bodyDef.position   = ctx->m_mousePoint;
+			ctx->m_mouseBodyId = b2CreateBody(ctx->m_worldId, &bodyDef);
+
+			b2MotorJointDef jointDef    = b2DefaultMotorJointDef();
+			jointDef.base.bodyIdA       = ctx->m_mouseBodyId;
+			jointDef.base.bodyIdB       = queryContext.bodyId;
+			jointDef.base.localFrameB.p = b2Body_GetLocalPoint(queryContext.bodyId, p);
+			jointDef.linearHertz        = 7.5f;
+			jointDef.linearDampingRatio = 1.0f;
+
+			b2MassData massData = b2Body_GetMassData(queryContext.bodyId);
+			float      g        = b2Length(b2World_GetGravity(ctx->m_worldId));
+			float      mg       = massData.mass * g;
+
+			jointDef.maxSpringForce = ctx->m_mouseForceScale * mg;
+
+			if (massData.mass > 0.0f) {
+				// This acts like angular friction
+				float lever                = sqrtf(massData.rotationalInertia / massData.mass);
+				jointDef.maxVelocityTorque = 0.25f * lever * mg;
+			}
+
+			ctx->m_mouseJointId = b2CreateMotorJoint(ctx->m_worldId, &jointDef);
+		}
+	}
+}
+
+void MouseUp(SampleContext *ctx, b2Pos p, int button)
+{
+	if (B2_IS_NON_NULL(ctx->m_mouseJointId) && button == GLFW_MOUSE_BUTTON_1) {
+		b2DestroyJoint(ctx->m_mouseJointId, true);
+		ctx->m_mouseJointId = b2_nullJointId;
+
+		b2DestroyBody(ctx->m_mouseBodyId);
+		ctx->m_mouseBodyId = b2_nullBodyId;
+	}
+}
+
+void MouseMove(SampleContext *ctx, b2Pos p)
+{
+	if (b2Joint_IsValid(ctx->m_mouseJointId) == false) {
+		// The world or attached body was destroyed.
+		ctx->m_mouseJointId = b2_nullJointId;
+	}
+
+	ctx->m_mousePoint = p;
+
+	/*
+	if (B2_IS_NON_NULL(ctx->m_mouseBodyId) && b2Body_IsValid(ctx->m_mouseBodyId)) {
+	    b2Body_SetTransform(ctx->m_mouseBodyId, p, b2Rot_identity);
+	}
+	*/
+}
+
+static void MouseMotionCallback(GLFWwindow *window, double xd, double yd)
+{
+	b2Vec2 ps = {xd, yd};
+	b2Pos  pw = ConvertScreenToWorld(&s_context.camera, ps);
+	MouseMove(&s_context, pw);
+
+	if (s_rightMouseDown) {
+		b2Vec2 diff = {pw.x - s_clickPointWS.x, pw.y - s_clickPointWS.y};
+		s_context.camera.center.x -= diff.x;
+		s_context.camera.center.y -= diff.y;
+		s_clickPointWS = ConvertScreenToWorld(&s_context.camera, ps);
+	}
+}
+
+static void MouseButtonCallback(GLFWwindow *window, int button, int action, int modifiers)
+{
+	double xd, yd;
+	glfwGetCursorPos(window, &xd, &yd);
+	b2Vec2 ps = {xd, yd};
+
+	// Use the mouse to move things around.
+	if (button == GLFW_MOUSE_BUTTON_1) {
+		b2Pos pw = ConvertScreenToWorld(&s_context.camera, ps);
+		if (action == GLFW_PRESS) {
+			MouseDown(&s_context, pw, button, modifiers);
+		}
+
+		if (action == GLFW_RELEASE) {
+			MouseUp(&s_context, pw, button);
+		}
+	} else if (button == GLFW_MOUSE_BUTTON_2) {
+		if (action == GLFW_PRESS) {
+			s_clickPointWS   = ConvertScreenToWorld(&s_context.camera, ps);
+			s_rightMouseDown = true;
+		}
+
+		if (action == GLFW_RELEASE) {
+			s_rightMouseDown = false;
+		}
+	}
 }
 
 int main(int argc, char *argv[])
@@ -222,9 +370,10 @@ int main(int argc, char *argv[])
 	ecs_world_t *world = ecs_init();
 	ecs_fini(world);
 
-	s_context.camera        = GetDefaultCamera();
-	s_context.camera.center = (b2Pos){0.0f, 0.0f};
-	s_context.camera.zoom   = 12.0f;
+	s_context.camera            = GetDefaultCamera();
+	s_context.camera.center     = (b2Pos){0.0f, 0.0f};
+	s_context.camera.zoom       = 12.0f;
+	s_context.m_mouseForceScale = 500.0f;
 
 	s_context.debugDraw                     = b2DefaultDebugDraw();
 	s_context.debugDraw.DrawPolygonFcn      = DrawPolygonFcn;
@@ -239,8 +388,14 @@ int main(int argc, char *argv[])
 	s_context.debugDraw.DrawBoundsFcn       = DrawBoundsFcn;
 	s_context.debugDraw.context             = &s_context;
 	s_context.debugDraw.drawMass            = true;
+	s_context.debugDraw.drawContacts        = true;
+	s_context.debugDraw.drawContactForces   = true;
+	// s_context.debugDraw.drawContactFeatures = true;
 
-	b2WorldId worldId = test1_create_world();
+	b2WorldDef worldDef = b2DefaultWorldDef();
+	worldDef.gravity    = (b2Vec2){0.0f, -10.0f};
+	s_context.m_worldId = b2CreateWorld(&worldDef);
+	test1_create_world(s_context.m_worldId);
 
 	glfwSetErrorCallback(glfwErrorCallback);
 
@@ -272,6 +427,9 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
+	glfwSetMouseButtonCallback(s_context.window, MouseButtonCallback);
+	glfwSetCursorPosCallback(s_context.window, MouseMotionCallback);
+
 	DrawCreateInfo drawCreateInfo;
 	if (!BuildDrawCreateInfo(&drawCreateInfo)) {
 		glfwTerminate();
@@ -287,6 +445,9 @@ int main(int argc, char *argv[])
 		printf("OpenGL %s, GLSL %s\n", glVersionString, glslVersionString);
 	}
 
+	float timeStep     = 1.0f / 60.0f;
+	int   subStepCount = 4;
+
 	while (!glfwWindowShouldClose(s_context.window)) {
 		int width, height;
 		glfwGetWindowSize(s_context.window, &width, &height);
@@ -299,12 +460,25 @@ int main(int argc, char *argv[])
 		glClearColor(0.07f, 0.07f, 0.09f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		float timeStep     = 1.0f / 60.0f;
-		int   subStepCount = 4;
-		b2World_Step(worldId, timeStep, subStepCount);
+		if (B2_IS_NON_NULL(s_context.m_mouseJointId) && b2Joint_IsValid(s_context.m_mouseJointId) == false) {
+			// The world or attached body was destroyed.
+			s_context.m_mouseJointId = b2_nullJointId;
+
+			if (B2_IS_NON_NULL(s_context.m_mouseBodyId)) {
+				b2DestroyBody(s_context.m_mouseBodyId);
+				s_context.m_mouseBodyId = b2_nullBodyId;
+			}
+		}
+
+		if (B2_IS_NON_NULL(s_context.m_mouseBodyId) && timeStep > 0.0f) {
+			bool wake = true;
+			b2Body_SetTargetTransform(s_context.m_mouseBodyId, (b2WorldTransform){s_context.m_mousePoint, b2Rot_identity}, timeStep, wake);
+		}
+
+		b2World_Step(s_context.m_worldId, timeStep, subStepCount);
 
 		SetDrawOrigin(s_context.draw, s_context.camera.center);
-		b2World_Draw(worldId, &s_context.debugDraw);
+		b2World_Draw(s_context.m_worldId, &s_context.debugDraw);
 
 		FlushDraw(s_context.draw, &s_context.camera);
 		glfwSwapBuffers(s_context.window);
@@ -312,7 +486,7 @@ int main(int argc, char *argv[])
 	}
 	glfwTerminate();
 
-	b2DestroyWorld(worldId);
+	b2DestroyWorld(s_context.m_worldId);
 
 	return 0;
 }
