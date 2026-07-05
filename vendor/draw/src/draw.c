@@ -195,11 +195,12 @@ typedef struct
 	GLint baseColorUniform;
 } Background;
 
-Background CreateBackground( DrawCreateInfo createInfo )
+Background CreateBackground( const DrawCreateInfo* createInfo )
 {
 	Background background = { 0 };
 
-	background.programId = CreateProgramFromStrings( createInfo.backgroundVertexShader, createInfo.backgroundFragmentShader );
+	background.programId = CreateProgramFromStrings( createInfo->shaders[DRAW_SHADER_BACKGROUND_VERTEX],
+											 createInfo->shaders[DRAW_SHADER_BACKGROUND_FRAGMENT] );
 	background.timeUniform = glGetUniformLocation( background.programId, "time" );
 	background.resolutionUniform = glGetUniformLocation( background.programId, "resolution" );
 	background.baseColorUniform = glGetUniformLocation( background.programId, "baseColor" );
@@ -289,11 +290,12 @@ typedef struct
 	GLint projectionUniform;
 } PointRender;
 
-PointRender CreatePointDrawData( DrawCreateInfo createInfo )
+PointRender CreatePointDrawData( const DrawCreateInfo* createInfo )
 {
 	PointRender render = { 0 };
 	render.points = PointDataArray_Create( POINT_BATCH_SIZE );
-	render.programId = CreateProgramFromStrings( createInfo.pointVertexShader, createInfo.pointFragmentShader );
+	render.programId = CreateProgramFromStrings( createInfo->shaders[DRAW_SHADER_POINT_VERTEX],
+									 createInfo->shaders[DRAW_SHADER_POINT_FRAGMENT] );
 	render.projectionUniform = glGetUniformLocation( render.programId, "projectionMatrix" );
 	int vertexAttribute = 0;
 	int sizeAttribute = 1;
@@ -412,11 +414,12 @@ typedef struct
 	GLint projectionUniform;
 } LineRender;
 
-LineRender CreateLineRender( DrawCreateInfo createInfo )
+LineRender CreateLineRender( const DrawCreateInfo* createInfo )
 {
 	LineRender render = { 0 };
 	render.points = VertexDataArray_Create( LINE_BATCH_SIZE );
-	render.programId = CreateProgramFromStrings( createInfo.lineVertexShader, createInfo.lineFragmentShader );
+	render.programId = CreateProgramFromStrings( createInfo->shaders[DRAW_SHADER_LINE_VERTEX],
+									 createInfo->shaders[DRAW_SHADER_LINE_FRAGMENT] );
 	render.projectionUniform = glGetUniformLocation( render.programId, "projectionMatrix" );
 	int vertexAttribute = 0;
 	int colorAttribute = 1;
@@ -543,11 +546,12 @@ typedef struct
 	GLint pixelScaleUniform;
 } CircleRender;
 
-CircleRender CreateCircles( DrawCreateInfo createInfo )
+CircleRender CreateCircles( const DrawCreateInfo* createInfo )
 {
 	CircleRender render = { 0 };
 	render.circles = CircleDataArray_Create( CIRCLE_BATCH_SIZE );
-	render.programId = CreateProgramFromStrings( createInfo.circleVertexShader, createInfo.circleFragmentShader );
+	render.programId = CreateProgramFromStrings( createInfo->shaders[DRAW_SHADER_CIRCLE_VERTEX],
+									 createInfo->shaders[DRAW_SHADER_CIRCLE_FRAGMENT] );
 	render.projectionUniform = glGetUniformLocation( render.programId, "projectionMatrix" );
 	render.pixelScaleUniform = glGetUniformLocation( render.programId, "pixelScale" );
 	int vertexAttribute = 0;
@@ -690,11 +694,12 @@ typedef struct
 	GLint pixelScaleUniform;
 } SolidCircles;
 
-SolidCircles CreateSolidCircles( DrawCreateInfo createInfo )
+SolidCircles CreateSolidCircles( const DrawCreateInfo* createInfo )
 {
 	SolidCircles render = { 0 };
 	render.circles = SolidCircleArray_Create( SOLID_CIRCLE_BATCH_SIZE );
-	render.programId = CreateProgramFromStrings( createInfo.solidCircleVertexShader, createInfo.solidCircleFragmentShader );
+	render.programId = CreateProgramFromStrings( createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_VERTEX],
+									 createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_FRAGMENT] );
 	render.projectionUniform = glGetUniformLocation( render.programId, "projectionMatrix" );
 	render.pixelScaleUniform = glGetUniformLocation( render.programId, "pixelScale" );
 
@@ -837,11 +842,12 @@ typedef struct
 	GLint pixelScaleUniform;
 } Capsules;
 
-Capsules CreateCapsules( DrawCreateInfo createInfo )
+Capsules CreateCapsules( const DrawCreateInfo* createInfo )
 {
 	Capsules render = { 0 };
 	render.capsules = CapsuleArray_Create( CAPSULE_BATCH_SIZE );
-	render.programId = CreateProgramFromStrings( createInfo.solidCapsuleVertexShader, createInfo.solidCapsuleFragmentShader );
+	render.programId = CreateProgramFromStrings( createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_VERTEX],
+									 createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_FRAGMENT] );
 	render.projectionUniform = glGetUniformLocation( render.programId, "projectionMatrix" );
 	render.pixelScaleUniform = glGetUniformLocation( render.programId, "pixelScale" );
 
@@ -1004,11 +1010,12 @@ typedef struct
 	GLint pixelScaleUniform;
 } Polygons;
 
-Polygons CreatePolygons( DrawCreateInfo createInfo )
+Polygons CreatePolygons( const DrawCreateInfo* createInfo )
 {
 	Polygons render = { 0 };
 	render.polygons = PolygonArray_Create( 10 * POLYGON_BATCH_SIZE );
-	render.programId = CreateProgramFromStrings( createInfo.solidPolygonVertexShader, createInfo.solidPolygonFragmentShader );
+	render.programId = CreateProgramFromStrings( createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_VERTEX],
+									 createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_FRAGMENT] );
 	render.projectionUniform = glGetUniformLocation( render.programId, "projectionMatrix" );
 	render.pixelScaleUniform = glGetUniformLocation( render.programId, "pixelScale" );
 
@@ -1171,7 +1178,7 @@ typedef struct Draw
 	b2Pos origin;
 } Draw;
 
-Draw* CreateDraw( DrawCreateInfo createInfo )
+Draw* CreateDraw( const DrawCreateInfo* createInfo )
 {
 	Draw* draw = malloc( sizeof( Draw ) );
 	*draw = (Draw){ 0 };

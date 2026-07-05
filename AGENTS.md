@@ -17,6 +17,7 @@ bake rebuild -r
 ```
 
 - For package/library compile checks only, use `bake rebuild` to quickly verify the library code builds.
+- If public headers (for example `vendor/draw/include/draw.h`) change, run `bake rebuild` so the generated headers under `bake/include/` are refreshed; otherwise stale headers can cause editor/type-check mismatches.
 
 ## Run
 

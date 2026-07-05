@@ -70,30 +70,26 @@ static bool BuildDrawCreateInfo(DrawCreateInfo* createInfo)
 {
 	*createInfo = (DrawCreateInfo){0};
 
-	createInfo->backgroundVertexShader = LoadShaderText("background.vs");
-	createInfo->backgroundFragmentShader = LoadShaderText("background.fs");
-	createInfo->pointVertexShader = LoadShaderText("point.vs");
-	createInfo->pointFragmentShader = LoadShaderText("point.fs");
-	createInfo->lineVertexShader = LoadShaderText("line.vs");
-	createInfo->lineFragmentShader = LoadShaderText("line.fs");
-	createInfo->circleVertexShader = LoadShaderText("circle.vs");
-	createInfo->circleFragmentShader = LoadShaderText("circle.fs");
-	createInfo->solidCircleVertexShader = LoadShaderText("solid_circle.vs");
-	createInfo->solidCircleFragmentShader = LoadShaderText("solid_circle.fs");
-	createInfo->solidCapsuleVertexShader = LoadShaderText("solid_capsule.vs");
-	createInfo->solidCapsuleFragmentShader = LoadShaderText("solid_capsule.fs");
-	createInfo->solidPolygonVertexShader = LoadShaderText("solid_polygon.vs");
-	createInfo->solidPolygonFragmentShader = LoadShaderText("solid_polygon.fs");
+	createInfo->shaders[DRAW_SHADER_BACKGROUND_VERTEX] = LoadShaderText("background.vs");
+	createInfo->shaders[DRAW_SHADER_BACKGROUND_FRAGMENT] = LoadShaderText("background.fs");
+	createInfo->shaders[DRAW_SHADER_POINT_VERTEX] = LoadShaderText("point.vs");
+	createInfo->shaders[DRAW_SHADER_POINT_FRAGMENT] = LoadShaderText("point.fs");
+	createInfo->shaders[DRAW_SHADER_LINE_VERTEX] = LoadShaderText("line.vs");
+	createInfo->shaders[DRAW_SHADER_LINE_FRAGMENT] = LoadShaderText("line.fs");
+	createInfo->shaders[DRAW_SHADER_CIRCLE_VERTEX] = LoadShaderText("circle.vs");
+	createInfo->shaders[DRAW_SHADER_CIRCLE_FRAGMENT] = LoadShaderText("circle.fs");
+	createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_VERTEX] = LoadShaderText("solid_circle.vs");
+	createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_FRAGMENT] = LoadShaderText("solid_circle.fs");
+	createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_VERTEX] = LoadShaderText("solid_capsule.vs");
+	createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_FRAGMENT] = LoadShaderText("solid_capsule.fs");
+	createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_VERTEX] = LoadShaderText("solid_polygon.vs");
+	createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_FRAGMENT] = LoadShaderText("solid_polygon.fs");
 
-	if (createInfo->backgroundVertexShader == NULL || createInfo->backgroundFragmentShader == NULL ||
-		createInfo->pointVertexShader == NULL || createInfo->pointFragmentShader == NULL ||
-		createInfo->lineVertexShader == NULL || createInfo->lineFragmentShader == NULL ||
-		createInfo->circleVertexShader == NULL || createInfo->circleFragmentShader == NULL ||
-		createInfo->solidCircleVertexShader == NULL || createInfo->solidCircleFragmentShader == NULL ||
-		createInfo->solidCapsuleVertexShader == NULL || createInfo->solidCapsuleFragmentShader == NULL ||
-		createInfo->solidPolygonVertexShader == NULL || createInfo->solidPolygonFragmentShader == NULL) {
-		fprintf(stderr, "Failed to load one or more shader files from apps/app1/data or data\n");
-		return false;
+	for (int i = 0; i < DRAW_SHADER_COUNT; ++i) {
+		if (createInfo->shaders[i] == NULL) {
+			fprintf(stderr, "Failed to load one or more shader files from apps/app1/data or data\n");
+			return false;
+		}
 	}
 
 	return true;
@@ -101,20 +97,9 @@ static bool BuildDrawCreateInfo(DrawCreateInfo* createInfo)
 
 static void FreeDrawCreateInfo(DrawCreateInfo* createInfo)
 {
-	free((void*)createInfo->backgroundVertexShader);
-	free((void*)createInfo->backgroundFragmentShader);
-	free((void*)createInfo->pointVertexShader);
-	free((void*)createInfo->pointFragmentShader);
-	free((void*)createInfo->lineVertexShader);
-	free((void*)createInfo->lineFragmentShader);
-	free((void*)createInfo->circleVertexShader);
-	free((void*)createInfo->circleFragmentShader);
-	free((void*)createInfo->solidCircleVertexShader);
-	free((void*)createInfo->solidCircleFragmentShader);
-	free((void*)createInfo->solidCapsuleVertexShader);
-	free((void*)createInfo->solidCapsuleFragmentShader);
-	free((void*)createInfo->solidPolygonVertexShader);
-	free((void*)createInfo->solidPolygonFragmentShader);
+	for (int i = 0; i < DRAW_SHADER_COUNT; ++i) {
+		free((void*)createInfo->shaders[i]);
+	}
 	*createInfo = (DrawCreateInfo){0};
 }
 
@@ -175,7 +160,10 @@ void DrawStringFcn(b2Pos p, const char *s, b2HexColor color, void *context)
 {
 	SampleContext *sampleContext = (SampleContext *)(context);
 	// Implementation of DrawString is not provided in the snippet, but it would typically involve rendering text at position p with the specified color.
-	
+	(void)p;
+	(void)s;
+	(void)color;
+	(void)sampleContext;
 }
 
 void DrawBoundsFcn(b2AABB aabb, b2HexColor color, void *context)
@@ -292,7 +280,7 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	s_context.draw = CreateDraw(drawCreateInfo);
+	s_context.draw = CreateDraw(&drawCreateInfo);
 	FreeDrawCreateInfo(&drawCreateInfo);
 
 	{

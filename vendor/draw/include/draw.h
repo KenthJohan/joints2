@@ -16,22 +16,28 @@ typedef struct Camera
 
 typedef struct Draw Draw;
 
+typedef enum DrawShaderType
+{
+	DRAW_SHADER_BACKGROUND_VERTEX,
+	DRAW_SHADER_BACKGROUND_FRAGMENT,
+	DRAW_SHADER_POINT_VERTEX,
+	DRAW_SHADER_POINT_FRAGMENT,
+	DRAW_SHADER_LINE_VERTEX,
+	DRAW_SHADER_LINE_FRAGMENT,
+	DRAW_SHADER_CIRCLE_VERTEX,
+	DRAW_SHADER_CIRCLE_FRAGMENT,
+	DRAW_SHADER_SOLID_CIRCLE_VERTEX,
+	DRAW_SHADER_SOLID_CIRCLE_FRAGMENT,
+	DRAW_SHADER_SOLID_CAPSULE_VERTEX,
+	DRAW_SHADER_SOLID_CAPSULE_FRAGMENT,
+	DRAW_SHADER_SOLID_POLYGON_VERTEX,
+	DRAW_SHADER_SOLID_POLYGON_FRAGMENT,
+	DRAW_SHADER_COUNT,
+} DrawShaderType;
+
 typedef struct DrawCreateInfo
 {
-	const char* backgroundVertexShader;
-	const char* backgroundFragmentShader;
-	const char* pointVertexShader;
-	const char* pointFragmentShader;
-	const char* lineVertexShader;
-	const char* lineFragmentShader;
-	const char* circleVertexShader;
-	const char* circleFragmentShader;
-	const char* solidCircleVertexShader;
-	const char* solidCircleFragmentShader;
-	const char* solidCapsuleVertexShader;
-	const char* solidCapsuleFragmentShader;
-	const char* solidPolygonVertexShader;
-	const char* solidPolygonFragmentShader;
+	const char* shaders[DRAW_SHADER_COUNT];
 } DrawCreateInfo;
 
 #ifdef __cplusplus
@@ -47,7 +53,7 @@ b2Vec2 ConvertViewToScreen( Camera* camera, b2Vec2 viewPoint );
 b2AABB GetViewBounds( Camera* camera );
 void FocusOnBounds( Camera* camera, b2AABB bounds );
 
-Draw* CreateDraw( DrawCreateInfo createInfo );
+Draw* CreateDraw( const DrawCreateInfo* createInfo );
 void DestroyDraw( Draw* draw );
 
 void DrawScreenString( Draw* draw, float x, float y, b2HexColor color, const char* string, ... );
