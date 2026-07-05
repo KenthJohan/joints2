@@ -84,6 +84,8 @@ static bool BuildDrawCreateInfo(DrawCreateInfo* createInfo)
 	createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_FRAGMENT] = LoadShaderText("solid_capsule.fs");
 	createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_VERTEX] = LoadShaderText("solid_polygon.vs");
 	createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_FRAGMENT] = LoadShaderText("solid_polygon.fs");
+	createInfo->shaders[DRAW_SHADER_TEXT_VERTEX] = LoadShaderText("text.vs");
+	createInfo->shaders[DRAW_SHADER_TEXT_FRAGMENT] = LoadShaderText("text.fs");
 
 	for (int i = 0; i < DRAW_SHADER_COUNT; ++i) {
 		if (createInfo->shaders[i] == NULL) {
@@ -159,11 +161,7 @@ void DrawPointFcn(b2Pos p, float size, b2HexColor color, void *context)
 void DrawStringFcn(b2Pos p, const char *s, b2HexColor color, void *context)
 {
 	SampleContext *sampleContext = (SampleContext *)(context);
-	// Implementation of DrawString is not provided in the snippet, but it would typically involve rendering text at position p with the specified color.
-	(void)p;
-	(void)s;
-	(void)color;
-	(void)sampleContext;
+	DrawString(sampleContext->draw, &sampleContext->camera, p, color, "%s", s);
 }
 
 void DrawBoundsFcn(b2AABB aabb, b2HexColor color, void *context)

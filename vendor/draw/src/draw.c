@@ -18,6 +18,9 @@
 #include <stddef.h>
 #include <stdio.h>
 
+#define STB_TRUETYPE_IMPLEMENTATION
+#include "stb_truetype.h"
+
 #if defined( _MSC_VER )
 #define _CRTDBG_MAP_ALLOC
 #include <crtdbg.h>
@@ -1164,6 +1167,316 @@ void FlushPolygons( Polygons* render, Camera* camera )
 	render->polygons.count = 0;
 }
 
+#define TEXT_BATCH_VERTEX_COUNT ( 6 * 1024 )
+#define TEXT_FIRST_CHAR 32
+#define TEXT_CHAR_COUNT 96
+#define TEXT_ATLAS_WIDTH 512
+#define TEXT_ATLAS_HEIGHT 512
+#define TEXT_FONT_SIZE 22.0f
+
+typedef struct
+{
+	b2Vec2 position;
+	b2Vec2 uv;
+	RGBA8 rgba;
+} TextVertex;
+
+ARRAY_DECLARE( TextVertex );
+ARRAY_INLINE( TextVertex );
+ARRAY_SOURCE( TextVertex );
+
+typedef struct
+{
+	TextVertexArray vertices;
+	stbtt_bakedchar glyphs[TEXT_CHAR_COUNT];
+	GLuint vaoId;
+	GLuint vboId;
+	GLuint textureId;
+	GLuint programId;
+	GLint projectionUniform;
+	GLint textureUniform;
+	float lineHeight;
+	int initialized;
+} TextRender;
+
+static unsigned char* sReadBinaryFile( const char* path, size_t* outSize )
+{
+	FILE* file = fopen( path, "rb" );
+	if ( file == NULL )
+	{
+		return NULL;
+	}
+
+	if ( fseek( file, 0, SEEK_END ) != 0 )
+	{
+		fclose( file );
+		return NULL;
+	}
+
+	long size = ftell( file );
+	if ( size <= 0 || fseek( file, 0, SEEK_SET ) != 0 )
+	{
+		fclose( file );
+		return NULL;
+	}
+
+	unsigned char* bytes = malloc( (size_t)size );
+	if ( bytes == NULL )
+	{
+		fclose( file );
+		return NULL;
+	}
+
+	if ( fread( bytes, 1, (size_t)size, file ) != (size_t)size )
+	{
+		fclose( file );
+		free( bytes );
+		return NULL;
+	}
+
+	fclose( file );
+	*outSize = (size_t)size;
+	return bytes;
+}
+
+static unsigned char* sLoadSystemFont( size_t* outSize )
+{
+	const char* candidates[] = {
+		"/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+		"/usr/share/fonts/TTF/DejaVuSans.ttf",
+		"/usr/share/fonts/dejavu/DejaVuSans.ttf",
+		"C:/Windows/Fonts/arial.ttf",
+		"/System/Library/Fonts/Supplemental/Arial.ttf",
+	};
+
+	for ( int i = 0; i < (int)( sizeof( candidates ) / sizeof( candidates[0] ) ); ++i )
+	{
+		unsigned char* fontData = sReadBinaryFile( candidates[i], outSize );
+		if ( fontData != NULL )
+		{
+			return fontData;
+		}
+	}
+
+	return NULL;
+}
+
+static void BuildScreenProjectionMatrix( Camera* camera, float* m, float zBias )
+{
+	float w = camera->width;
+	float h = camera->height;
+
+	m[0] = 2.0f / w;
+	m[1] = 0.0f;
+	m[2] = 0.0f;
+	m[3] = 0.0f;
+
+	m[4] = 0.0f;
+	m[5] = -2.0f / h;
+	m[6] = 0.0f;
+	m[7] = 0.0f;
+
+	m[8] = 0.0f;
+	m[9] = 0.0f;
+	m[10] = -1.0f;
+	m[11] = 0.0f;
+
+	m[12] = -1.0f;
+	m[13] = 1.0f;
+	m[14] = zBias;
+	m[15] = 1.0f;
+}
+
+static TextRender CreateTextRender( const DrawCreateInfo* createInfo )
+{
+	TextRender render = { 0 };
+	render.vertices = TextVertexArray_Create( TEXT_BATCH_VERTEX_COUNT );
+	render.programId = CreateProgramFromStrings( createInfo->shaders[DRAW_SHADER_TEXT_VERTEX],
+										 createInfo->shaders[DRAW_SHADER_TEXT_FRAGMENT] );
+	render.projectionUniform = glGetUniformLocation( render.programId, "projectionMatrix" );
+	render.textureUniform = glGetUniformLocation( render.programId, "glyphAtlas" );
+	render.lineHeight = TEXT_FONT_SIZE * 1.2f;
+
+	if ( render.programId == 0 )
+	{
+		printf( "WARNING: draw: failed to create text shader program\n" );
+		return render;
+	}
+
+	glGenVertexArrays( 1, &render.vaoId );
+	glGenBuffers( 1, &render.vboId );
+
+	glBindVertexArray( render.vaoId );
+	glBindBuffer( GL_ARRAY_BUFFER, render.vboId );
+	glBufferData( GL_ARRAY_BUFFER, TEXT_BATCH_VERTEX_COUNT * sizeof( TextVertex ), NULL, GL_DYNAMIC_DRAW );
+
+	glEnableVertexAttribArray( 0 );
+	glEnableVertexAttribArray( 1 );
+	glEnableVertexAttribArray( 2 );
+	glVertexAttribPointer( 0, 2, GL_FLOAT, GL_FALSE, sizeof( TextVertex ), (void*)offsetof( TextVertex, position ) );
+	glVertexAttribPointer( 1, 2, GL_FLOAT, GL_FALSE, sizeof( TextVertex ), (void*)offsetof( TextVertex, uv ) );
+	glVertexAttribPointer( 2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof( TextVertex ), (void*)offsetof( TextVertex, rgba ) );
+
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+	glBindVertexArray( 0 );
+
+	size_t fontSize = 0;
+	unsigned char* fontData = sLoadSystemFont( &fontSize );
+	if ( fontData == NULL )
+	{
+		printf( "WARNING: draw: failed to locate a default TrueType font\n" );
+		return render;
+	}
+
+	unsigned char* bitmap = malloc( TEXT_ATLAS_WIDTH * TEXT_ATLAS_HEIGHT );
+	if ( bitmap == NULL )
+	{
+		free( fontData );
+		return render;
+	}
+
+	int rowUsed = stbtt_BakeFontBitmap( fontData, 0, TEXT_FONT_SIZE, bitmap, TEXT_ATLAS_WIDTH, TEXT_ATLAS_HEIGHT,
+									TEXT_FIRST_CHAR, TEXT_CHAR_COUNT, render.glyphs );
+	free( fontData );
+
+	if ( rowUsed <= 0 )
+	{
+		printf( "WARNING: draw: failed to bake text font atlas\n" );
+		free( bitmap );
+		return render;
+	}
+
+	glGenTextures( 1, &render.textureId );
+	glBindTexture( GL_TEXTURE_2D, render.textureId );
+	glPixelStorei( GL_UNPACK_ALIGNMENT, 1 );
+	glTexImage2D( GL_TEXTURE_2D, 0, GL_RED, TEXT_ATLAS_WIDTH, TEXT_ATLAS_HEIGHT, 0, GL_RED, GL_UNSIGNED_BYTE, bitmap );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+	glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+	glBindTexture( GL_TEXTURE_2D, 0 );
+
+	free( bitmap );
+	render.initialized = 1;
+	return render;
+}
+
+static void DestroyTextRender( TextRender* render )
+{
+	if ( render->vaoId )
+	{
+		glDeleteVertexArrays( 1, &render->vaoId );
+		glDeleteBuffers( 1, &render->vboId );
+	}
+
+	if ( render->textureId )
+	{
+		glDeleteTextures( 1, &render->textureId );
+	}
+
+	if ( render->programId )
+	{
+		glDeleteProgram( render->programId );
+	}
+
+	TextVertexArray_Destroy( &render->vertices );
+	*render = (TextRender){ 0 };
+}
+
+static void AddGlyphQuad( TextRender* render, stbtt_aligned_quad q, RGBA8 rgba )
+{
+	TextVertexArray_Push( &render->vertices, (TextVertex){ { q.x0, q.y0 }, { q.s0, q.t0 }, rgba } );
+	TextVertexArray_Push( &render->vertices, (TextVertex){ { q.x1, q.y0 }, { q.s1, q.t0 }, rgba } );
+	TextVertexArray_Push( &render->vertices, (TextVertex){ { q.x1, q.y1 }, { q.s1, q.t1 }, rgba } );
+	TextVertexArray_Push( &render->vertices, (TextVertex){ { q.x0, q.y0 }, { q.s0, q.t0 }, rgba } );
+	TextVertexArray_Push( &render->vertices, (TextVertex){ { q.x1, q.y1 }, { q.s1, q.t1 }, rgba } );
+	TextVertexArray_Push( &render->vertices, (TextVertex){ { q.x0, q.y1 }, { q.s0, q.t1 }, rgba } );
+}
+
+static void AddText( TextRender* render, float x, float y, b2HexColor color, const char* string )
+{
+	if ( render->initialized == 0 || string == NULL )
+	{
+		return;
+	}
+
+	float startX = x;
+	float cursorX = x;
+	float cursorY = y;
+	RGBA8 rgba = MakeRGBA8( color, 1.0f );
+
+	for ( const char* p = string; *p != '\0'; ++p )
+	{
+		int codepoint = (unsigned char)*p;
+		if ( codepoint == '\n' )
+		{
+			cursorX = startX;
+			cursorY += render->lineHeight;
+			continue;
+		}
+
+		if ( codepoint == '\t' )
+		{
+			cursorX += 4.0f * render->lineHeight * 0.5f;
+			continue;
+		}
+
+		if ( codepoint < TEXT_FIRST_CHAR || codepoint >= TEXT_FIRST_CHAR + TEXT_CHAR_COUNT )
+		{
+			codepoint = '?';
+		}
+
+		stbtt_aligned_quad q;
+		stbtt_GetBakedQuad( render->glyphs, TEXT_ATLAS_WIDTH, TEXT_ATLAS_HEIGHT, codepoint - TEXT_FIRST_CHAR, &cursorX,
+								  &cursorY, &q, 1 );
+		AddGlyphQuad( render, q, rgba );
+	}
+}
+
+static void FlushText( TextRender* render, Camera* camera )
+{
+	int count = render->vertices.count;
+	if ( count == 0 || render->initialized == 0 )
+	{
+		return;
+	}
+
+	glEnable( GL_BLEND );
+	glBlendFunc( GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA );
+
+	glUseProgram( render->programId );
+
+	float proj[16] = { 0.0f };
+	BuildScreenProjectionMatrix( camera, proj, 0.0f );
+	glUniformMatrix4fv( render->projectionUniform, 1, GL_FALSE, proj );
+
+	glActiveTexture( GL_TEXTURE0 );
+	glBindTexture( GL_TEXTURE_2D, render->textureId );
+	glUniform1i( render->textureUniform, 0 );
+
+	glBindVertexArray( render->vaoId );
+	glBindBuffer( GL_ARRAY_BUFFER, render->vboId );
+
+	int base = 0;
+	while ( count > 0 )
+	{
+		int batchCount = b2MinInt( count, TEXT_BATCH_VERTEX_COUNT );
+		glBufferSubData( GL_ARRAY_BUFFER, 0, batchCount * sizeof( TextVertex ), render->vertices.data + base );
+		glDrawArrays( GL_TRIANGLES, 0, batchCount );
+
+		count -= TEXT_BATCH_VERTEX_COUNT;
+		base += TEXT_BATCH_VERTEX_COUNT;
+	}
+
+	glBindBuffer( GL_ARRAY_BUFFER, 0 );
+	glBindVertexArray( 0 );
+	glBindTexture( GL_TEXTURE_2D, 0 );
+	glUseProgram( 0 );
+	glDisable( GL_BLEND );
+
+	render->vertices.count = 0;
+}
+
 typedef struct Draw
 {
 	Background background;
@@ -1173,6 +1486,7 @@ typedef struct Draw
 	SolidCircles circles;
 	Capsules capsules;
 	Polygons polygons;
+	TextRender text;
 
 	// Camera center in large world mode, subtracted by the DrawWorld helpers. Zero in float mode.
 	b2Pos origin;
@@ -1189,6 +1503,7 @@ Draw* CreateDraw( const DrawCreateInfo* createInfo )
 	draw->circles = CreateSolidCircles( createInfo );
 	draw->capsules = CreateCapsules( createInfo );
 	draw->polygons = CreatePolygons( createInfo );
+	draw->text = CreateTextRender( createInfo );
 	return draw;
 }
 
@@ -1201,6 +1516,7 @@ void DestroyDraw( Draw* draw )
 	DestroySolidCircles( &draw->circles );
 	DestroyCapsules( &draw->capsules );
 	DestroyPolygons( &draw->polygons );
+	DestroyTextRender( &draw->text );
 	free( draw );
 }
 
@@ -1284,6 +1600,30 @@ void DrawBounds( Draw* draw, b2AABB aabb, b2HexColor color )
 	AddLine( &draw->lines, p4, p1, color );
 }
 
+void DrawScreenString( Draw* draw, float x, float y, b2HexColor color, const char* string, ... )
+{
+	char buffer[2048] = { 0 };
+	va_list args;
+	va_start( args, string );
+	vsnprintf( buffer, sizeof( buffer ), string, args );
+	va_end( args );
+
+	AddText( &draw->text, x, y, color, buffer );
+}
+
+void DrawString( Draw* draw, Camera* camera, b2Pos p, b2HexColor color, const char* string, ... )
+{
+	b2Vec2 ps = ConvertWorldToScreen( camera, p );
+
+	char buffer[2048] = { 0 };
+	va_list args;
+	va_start( args, string );
+	vsnprintf( buffer, sizeof( buffer ), string, args );
+	va_end( args );
+
+	AddText( &draw->text, ps.x, ps.y, color, buffer );
+}
+
 void FlushDraw( Draw* draw, Camera* camera )
 {
 	// order matters
@@ -1293,6 +1633,7 @@ void FlushDraw( Draw* draw, Camera* camera )
 	FlushCircles( &draw->hollowCircles, camera );
 	FlushLines( &draw->lines, camera );
 	FlushPoints( &draw->points, camera );
+	FlushText( &draw->text, camera );
 	CheckOpenGL();
 }
 
