@@ -16,6 +16,24 @@ typedef struct Camera
 
 typedef struct Draw Draw;
 
+typedef struct DrawCreateInfo
+{
+	const char* backgroundVertexShader;
+	const char* backgroundFragmentShader;
+	const char* pointVertexShader;
+	const char* pointFragmentShader;
+	const char* lineVertexShader;
+	const char* lineFragmentShader;
+	const char* circleVertexShader;
+	const char* circleFragmentShader;
+	const char* solidCircleVertexShader;
+	const char* solidCircleFragmentShader;
+	const char* solidCapsuleVertexShader;
+	const char* solidCapsuleFragmentShader;
+	const char* solidPolygonVertexShader;
+	const char* solidPolygonFragmentShader;
+} DrawCreateInfo;
+
 #ifdef __cplusplus
 extern "C"
 {
@@ -29,7 +47,7 @@ b2Vec2 ConvertViewToScreen( Camera* camera, b2Vec2 viewPoint );
 b2AABB GetViewBounds( Camera* camera );
 void FocusOnBounds( Camera* camera, b2AABB bounds );
 
-Draw* CreateDraw( void );
+Draw* CreateDraw( DrawCreateInfo createInfo );
 void DestroyDraw( Draw* draw );
 
 void DrawScreenString( Draw* draw, float x, float y, b2HexColor color, const char* string, ... );

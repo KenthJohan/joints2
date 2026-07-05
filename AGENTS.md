@@ -9,6 +9,15 @@
 bake
 ```
 
+- Rebuild recursively from the repository root with `bake rebuild -r`.
+- Example:
+
+```sh
+bake rebuild -r
+```
+
+- For package/library compile checks only, use `bake rebuild` to quickly verify the library code builds.
+
 ## Run
 
 - Run this project from the repository root with `bake run`.

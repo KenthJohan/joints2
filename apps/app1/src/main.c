@@ -1,6 +1,9 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <assert.h>
+#include <stdbool.h>
+#include <stdlib.h>
+#include <string.h>
 #include <cglm/cglm.h>
 #include <flecs.h>
 #include <box2d/box2d.h>
@@ -14,6 +17,106 @@ typedef struct SampleContext {
 	Camera      camera;
 	b2DebugDraw debugDraw;
 } SampleContext;
+
+static char* ReadTextFile(const char* path)
+{
+	FILE* file = fopen(path, "rb");
+	if (file == NULL) {
+		return NULL;
+	}
+
+	if (fseek(file, 0, SEEK_END) != 0) {
+		fclose(file);
+		return NULL;
+	}
+
+	long size = ftell(file);
+	if (size < 0 || fseek(file, 0, SEEK_SET) != 0) {
+		fclose(file);
+		return NULL;
+	}
+
+	char* text = (char*)malloc((size_t)size + 1);
+	if (text == NULL) {
+		fclose(file);
+		return NULL;
+	}
+
+	if (fread(text, 1, (size_t)size, file) != (size_t)size) {
+		fclose(file);
+		free(text);
+		return NULL;
+	}
+
+	text[size] = '\0';
+	fclose(file);
+	return text;
+}
+
+static char* LoadShaderText(const char* fileName)
+{
+	char path[256];
+	snprintf(path, sizeof(path), "apps/app1/data/%s", fileName);
+	char* text = ReadTextFile(path);
+	if (text != NULL) {
+		return text;
+	}
+
+	snprintf(path, sizeof(path), "data/%s", fileName);
+	return ReadTextFile(path);
+}
+
+static bool BuildDrawCreateInfo(DrawCreateInfo* createInfo)
+{
+	*createInfo = (DrawCreateInfo){0};
+
+	createInfo->backgroundVertexShader = LoadShaderText("background.vs");
+	createInfo->backgroundFragmentShader = LoadShaderText("background.fs");
+	createInfo->pointVertexShader = LoadShaderText("point.vs");
+	createInfo->pointFragmentShader = LoadShaderText("point.fs");
+	createInfo->lineVertexShader = LoadShaderText("line.vs");
+	createInfo->lineFragmentShader = LoadShaderText("line.fs");
+	createInfo->circleVertexShader = LoadShaderText("circle.vs");
+	createInfo->circleFragmentShader = LoadShaderText("circle.fs");
+	createInfo->solidCircleVertexShader = LoadShaderText("solid_circle.vs");
+	createInfo->solidCircleFragmentShader = LoadShaderText("solid_circle.fs");
+	createInfo->solidCapsuleVertexShader = LoadShaderText("solid_capsule.vs");
+	createInfo->solidCapsuleFragmentShader = LoadShaderText("solid_capsule.fs");
+	createInfo->solidPolygonVertexShader = LoadShaderText("solid_polygon.vs");
+	createInfo->solidPolygonFragmentShader = LoadShaderText("solid_polygon.fs");
+
+	if (createInfo->backgroundVertexShader == NULL || createInfo->backgroundFragmentShader == NULL ||
+		createInfo->pointVertexShader == NULL || createInfo->pointFragmentShader == NULL ||
+		createInfo->lineVertexShader == NULL || createInfo->lineFragmentShader == NULL ||
+		createInfo->circleVertexShader == NULL || createInfo->circleFragmentShader == NULL ||
+		createInfo->solidCircleVertexShader == NULL || createInfo->solidCircleFragmentShader == NULL ||
+		createInfo->solidCapsuleVertexShader == NULL || createInfo->solidCapsuleFragmentShader == NULL ||
+		createInfo->solidPolygonVertexShader == NULL || createInfo->solidPolygonFragmentShader == NULL) {
+		fprintf(stderr, "Failed to load one or more shader files from apps/app1/data or data\n");
+		return false;
+	}
+
+	return true;
+}
+
+static void FreeDrawCreateInfo(DrawCreateInfo* createInfo)
+{
+	free((void*)createInfo->backgroundVertexShader);
+	free((void*)createInfo->backgroundFragmentShader);
+	free((void*)createInfo->pointVertexShader);
+	free((void*)createInfo->pointFragmentShader);
+	free((void*)createInfo->lineVertexShader);
+	free((void*)createInfo->lineFragmentShader);
+	free((void*)createInfo->circleVertexShader);
+	free((void*)createInfo->circleFragmentShader);
+	free((void*)createInfo->solidCircleVertexShader);
+	free((void*)createInfo->solidCircleFragmentShader);
+	free((void*)createInfo->solidCapsuleVertexShader);
+	free((void*)createInfo->solidCapsuleFragmentShader);
+	free((void*)createInfo->solidPolygonVertexShader);
+	free((void*)createInfo->solidPolygonFragmentShader);
+	*createInfo = (DrawCreateInfo){0};
+}
 
 void glfwErrorCallback(int error, const char *description)
 {
@@ -71,7 +174,8 @@ void DrawPointFcn(b2Pos p, float size, b2HexColor color, void *context)
 void DrawStringFcn(b2Pos p, const char *s, b2HexColor color, void *context)
 {
 	SampleContext *sampleContext = (SampleContext *)(context);
-	// DrawString(sampleContext->draw, &sampleContext->camera, p, color, "%s", s);
+	// Implementation of DrawString is not provided in the snippet, but it would typically involve rendering text at position p with the specified color.
+	
 }
 
 void DrawBoundsFcn(b2AABB aabb, b2HexColor color, void *context)
@@ -117,10 +221,10 @@ b2WorldId test1_create_world()
 	int subStepCount = 4;
 
 	for (int i = 0; i < 90; ++i) {
-		b2World_Step(worldId, timeStep, subStepCount);
-		b2Vec2 position = b2Body_GetPosition(bodyId);
-		b2Rot  rotation = b2Body_GetRotation(bodyId);
-		printf("%4.2f %4.2f %4.2f\n", position.x, position.y, b2Rot_GetAngle(rotation));
+	    b2World_Step(worldId, timeStep, subStepCount);
+	    b2Vec2 position = b2Body_GetPosition(bodyId);
+	    b2Rot  rotation = b2Body_GetRotation(bodyId);
+	    printf("%4.2f %4.2f %4.2f\n", position.x, position.y, b2Rot_GetAngle(rotation));
 	}
 	*/
 
@@ -132,7 +236,7 @@ int main(int argc, char *argv[])
 	ecs_world_t *world = ecs_init();
 	ecs_fini(world);
 
-	s_context.camera = GetDefaultCamera();
+	s_context.camera        = GetDefaultCamera();
 	s_context.camera.center = (b2Pos){0.0f, 0.0f};
 	s_context.camera.zoom   = 12.0f;
 
@@ -148,6 +252,7 @@ int main(int argc, char *argv[])
 	s_context.debugDraw.DrawStringFcn       = DrawStringFcn;
 	s_context.debugDraw.DrawBoundsFcn       = DrawBoundsFcn;
 	s_context.debugDraw.context             = &s_context;
+	s_context.debugDraw.drawMass            = true;
 
 	b2WorldId worldId = test1_create_world();
 
@@ -181,7 +286,14 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	s_context.draw = CreateDraw();
+	DrawCreateInfo drawCreateInfo;
+	if (!BuildDrawCreateInfo(&drawCreateInfo)) {
+		glfwTerminate();
+		return -1;
+	}
+
+	s_context.draw = CreateDraw(drawCreateInfo);
+	FreeDrawCreateInfo(&drawCreateInfo);
 
 	{
 		const char *glVersionString   = (const char *)glGetString(GL_VERSION);
@@ -201,8 +313,8 @@ int main(int argc, char *argv[])
 		glClearColor(0.07f, 0.07f, 0.09f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
 
-		float timeStep = 1.0f / 60.0f;
-		int subStepCount = 4;
+		float timeStep     = 1.0f / 60.0f;
+		int   subStepCount = 4;
 		b2World_Step(worldId, timeStep, subStepCount);
 
 		SetDrawOrigin(s_context.draw, s_context.camera.center);
@@ -213,7 +325,6 @@ int main(int argc, char *argv[])
 		glfwPollEvents();
 	}
 	glfwTerminate();
-
 
 	b2DestroyWorld(worldId);
 
