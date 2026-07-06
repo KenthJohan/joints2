@@ -11,10 +11,13 @@
 #include <GLFW/glfw3.h>
 #include <draw.h>
 
+#include "canvas.h"
+#include "fs.h"
+#include "b2DebugDraw_init.h"
+
 typedef struct SampleContext {
 	GLFWwindow *window;
-	Draw       *draw;
-	Camera      camera;
+	Canvas      canvas;
 	b2DebugDraw debugDraw;
 	b2JointId   m_mouseJointId;
 	b2BodyId    m_mouseBodyId;
@@ -26,74 +29,26 @@ typedef struct SampleContext {
 	float m_mouseForceScale;
 } SampleContext;
 
-static char *ReadTextFile(const char *path)
-{
-	FILE *file = fopen(path, "rb");
-	if (file == NULL) {
-		return NULL;
-	}
-
-	if (fseek(file, 0, SEEK_END) != 0) {
-		fclose(file);
-		return NULL;
-	}
-
-	long size = ftell(file);
-	if (size < 0 || fseek(file, 0, SEEK_SET) != 0) {
-		fclose(file);
-		return NULL;
-	}
-
-	char *text = (char *)malloc((size_t)size + 1);
-	if (text == NULL) {
-		fclose(file);
-		return NULL;
-	}
-
-	if (fread(text, 1, (size_t)size, file) != (size_t)size) {
-		fclose(file);
-		free(text);
-		return NULL;
-	}
-
-	text[size] = '\0';
-	fclose(file);
-	return text;
-}
-
-static char *LoadShaderText(const char *fileName)
-{
-	char path[256];
-	snprintf(path, sizeof(path), "apps/app1/data/%s", fileName);
-	char *text = ReadTextFile(path);
-	if (text != NULL) {
-		return text;
-	}
-
-	snprintf(path, sizeof(path), "data/%s", fileName);
-	return ReadTextFile(path);
-}
-
 static bool BuildDrawCreateInfo(DrawCreateInfo *createInfo)
 {
 	*createInfo = (DrawCreateInfo){0};
 
-	createInfo->shaders[DRAW_SHADER_BACKGROUND_VERTEX]      = LoadShaderText("background.vs");
-	createInfo->shaders[DRAW_SHADER_BACKGROUND_FRAGMENT]    = LoadShaderText("background.fs");
-	createInfo->shaders[DRAW_SHADER_POINT_VERTEX]           = LoadShaderText("point.vs");
-	createInfo->shaders[DRAW_SHADER_POINT_FRAGMENT]         = LoadShaderText("point.fs");
-	createInfo->shaders[DRAW_SHADER_LINE_VERTEX]            = LoadShaderText("line.vs");
-	createInfo->shaders[DRAW_SHADER_LINE_FRAGMENT]          = LoadShaderText("line.fs");
-	createInfo->shaders[DRAW_SHADER_CIRCLE_VERTEX]          = LoadShaderText("circle.vs");
-	createInfo->shaders[DRAW_SHADER_CIRCLE_FRAGMENT]        = LoadShaderText("circle.fs");
-	createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_VERTEX]    = LoadShaderText("solid_circle.vs");
-	createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_FRAGMENT]  = LoadShaderText("solid_circle.fs");
-	createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_VERTEX]   = LoadShaderText("solid_capsule.vs");
-	createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_FRAGMENT] = LoadShaderText("solid_capsule.fs");
-	createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_VERTEX]   = LoadShaderText("solid_polygon.vs");
-	createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_FRAGMENT] = LoadShaderText("solid_polygon.fs");
-	createInfo->shaders[DRAW_SHADER_TEXT_VERTEX]            = LoadShaderText("text.vs");
-	createInfo->shaders[DRAW_SHADER_TEXT_FRAGMENT]          = LoadShaderText("text.fs");
+	createInfo->shaders[DRAW_SHADER_BACKGROUND_VERTEX]      = fs_read_allocated("data/background.vs");
+	createInfo->shaders[DRAW_SHADER_BACKGROUND_FRAGMENT]    = fs_read_allocated("data/background.fs");
+	createInfo->shaders[DRAW_SHADER_POINT_VERTEX]           = fs_read_allocated("data/point.vs");
+	createInfo->shaders[DRAW_SHADER_POINT_FRAGMENT]         = fs_read_allocated("data/point.fs");
+	createInfo->shaders[DRAW_SHADER_LINE_VERTEX]            = fs_read_allocated("data/line.vs");
+	createInfo->shaders[DRAW_SHADER_LINE_FRAGMENT]          = fs_read_allocated("data/line.fs");
+	createInfo->shaders[DRAW_SHADER_CIRCLE_VERTEX]          = fs_read_allocated("data/circle.vs");
+	createInfo->shaders[DRAW_SHADER_CIRCLE_FRAGMENT]        = fs_read_allocated("data/circle.fs");
+	createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_VERTEX]    = fs_read_allocated("data/solid_circle.vs");
+	createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_FRAGMENT]  = fs_read_allocated("data/solid_circle.fs");
+	createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_VERTEX]   = fs_read_allocated("data/solid_capsule.vs");
+	createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_FRAGMENT] = fs_read_allocated("data/solid_capsule.fs");
+	createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_VERTEX]   = fs_read_allocated("data/solid_polygon.vs");
+	createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_FRAGMENT] = fs_read_allocated("data/solid_polygon.fs");
+	createInfo->shaders[DRAW_SHADER_TEXT_VERTEX]            = fs_read_allocated("data/text.vs");
+	createInfo->shaders[DRAW_SHADER_TEXT_FRAGMENT]          = fs_read_allocated("data/text.fs");
 
 	for (int i = 0; i < DRAW_SHADER_COUNT; ++i) {
 		if (createInfo->shaders[i] == NULL) {
@@ -116,66 +71,6 @@ static void FreeDrawCreateInfo(DrawCreateInfo *createInfo)
 void glfwErrorCallback(int error, const char *description)
 {
 	fprintf(stderr, "GLFW error occurred. Code: %d. Description: %s\n", error, description);
-}
-
-void DrawPolygonFcn(b2WorldTransform transform, const b2Vec2 *vertices, int vertexCount, b2HexColor color, void *context)
-{
-	SampleContext *sampleContext = (SampleContext *)(context);
-	DrawPolygon(sampleContext->draw, transform, vertices, vertexCount, color);
-}
-
-void DrawSolidPolygonFcn(b2WorldTransform transform, const b2Vec2 *vertices, int vertexCount, float radius, b2HexColor color, void *context)
-{
-	SampleContext *sampleContext = (SampleContext *)(context);
-	DrawSolidPolygon(sampleContext->draw, transform, vertices, vertexCount, radius, color);
-}
-
-void DrawCircleFcn(b2Pos center, float radius, b2HexColor color, void *context)
-{
-	SampleContext *sampleContext = (SampleContext *)(context);
-	DrawCircle(sampleContext->draw, center, radius, color);
-}
-
-void DrawSolidCircleFcn(b2WorldTransform transform, b2Vec2 center, float radius, b2HexColor color, void *context)
-{
-	SampleContext *sampleContext = (SampleContext *)(context);
-	DrawSolidCircle(sampleContext->draw, transform, center, radius, color);
-}
-
-void DrawSolidCapsuleFcn(b2Pos p1, b2Pos p2, float radius, b2HexColor color, void *context)
-{
-	SampleContext *sampleContext = (SampleContext *)(context);
-	DrawCapsule(sampleContext->draw, p1, p2, radius, color);
-}
-
-void DrawLineFcn(b2Pos p1, b2Pos p2, b2HexColor color, void *context)
-{
-	SampleContext *sampleContext = (SampleContext *)(context);
-	DrawLine(sampleContext->draw, p1, p2, color);
-}
-
-void DrawTransformFcn(b2WorldTransform transform, void *context)
-{
-	SampleContext *sampleContext = (SampleContext *)(context);
-	DrawTransform(sampleContext->draw, transform, 1.0f);
-}
-
-void DrawPointFcn(b2Pos p, float size, b2HexColor color, void *context)
-{
-	SampleContext *sampleContext = (SampleContext *)(context);
-	DrawPoint(sampleContext->draw, p, size, color);
-}
-
-void DrawStringFcn(b2Pos p, const char *s, b2HexColor color, void *context)
-{
-	SampleContext *sampleContext = (SampleContext *)(context);
-	DrawString(sampleContext->draw, &sampleContext->camera, p, color, "%s", s);
-}
-
-void DrawBoundsFcn(b2AABB aabb, b2HexColor color, void *context)
-{
-	SampleContext *sampleContext = (SampleContext *)(context);
-	DrawBounds(sampleContext->draw, aabb, color);
 }
 
 typedef struct
@@ -326,14 +221,14 @@ void MouseMove(SampleContext *ctx, b2Pos p)
 static void MouseMotionCallback(GLFWwindow *window, double xd, double yd)
 {
 	b2Vec2 ps = {xd, yd};
-	b2Pos  pw = ConvertScreenToWorld(&s_context.camera, ps);
+	b2Pos  pw = ConvertScreenToWorld(&s_context.canvas.camera, ps);
 	MouseMove(&s_context, pw);
 
 	if (s_rightMouseDown) {
 		b2Vec2 diff = {pw.x - s_clickPointWS.x, pw.y - s_clickPointWS.y};
-		s_context.camera.center.x -= diff.x;
-		s_context.camera.center.y -= diff.y;
-		s_clickPointWS = ConvertScreenToWorld(&s_context.camera, ps);
+		s_context.canvas.camera.center.x -= diff.x;
+		s_context.canvas.camera.center.y -= diff.y;
+		s_clickPointWS = ConvertScreenToWorld(&s_context.canvas.camera, ps);
 	}
 }
 
@@ -345,7 +240,7 @@ static void MouseButtonCallback(GLFWwindow *window, int button, int action, int 
 
 	// Use the mouse to move things around.
 	if (button == GLFW_MOUSE_BUTTON_1) {
-		b2Pos pw = ConvertScreenToWorld(&s_context.camera, ps);
+		b2Pos pw = ConvertScreenToWorld(&s_context.canvas.camera, ps);
 		if (action == GLFW_PRESS) {
 			MouseDown(&s_context, pw, button, modifiers);
 		}
@@ -355,7 +250,7 @@ static void MouseButtonCallback(GLFWwindow *window, int button, int action, int 
 		}
 	} else if (button == GLFW_MOUSE_BUTTON_2) {
 		if (action == GLFW_PRESS) {
-			s_clickPointWS   = ConvertScreenToWorld(&s_context.camera, ps);
+			s_clickPointWS   = ConvertScreenToWorld(&s_context.canvas.camera, ps);
 			s_rightMouseDown = true;
 		}
 
@@ -370,27 +265,10 @@ int main(int argc, char *argv[])
 	ecs_world_t *world = ecs_init();
 	ecs_fini(world);
 
-	s_context.camera            = GetDefaultCamera();
-	s_context.camera.center     = (b2Pos){0.0f, 0.0f};
-	s_context.camera.zoom       = 12.0f;
+	s_context.canvas.camera            = GetDefaultCamera();
+	s_context.canvas.camera.center     = (b2Pos){0.0f, 0.0f};
+	s_context.canvas.camera.zoom       = 12.0f;
 	s_context.m_mouseForceScale = 500.0f;
-
-	s_context.debugDraw                     = b2DefaultDebugDraw();
-	s_context.debugDraw.DrawPolygonFcn      = DrawPolygonFcn;
-	s_context.debugDraw.DrawSolidPolygonFcn = DrawSolidPolygonFcn;
-	s_context.debugDraw.DrawCircleFcn       = DrawCircleFcn;
-	s_context.debugDraw.DrawSolidCircleFcn  = DrawSolidCircleFcn;
-	s_context.debugDraw.DrawSolidCapsuleFcn = DrawSolidCapsuleFcn;
-	s_context.debugDraw.DrawLineFcn         = DrawLineFcn;
-	s_context.debugDraw.DrawTransformFcn    = DrawTransformFcn;
-	s_context.debugDraw.DrawPointFcn        = DrawPointFcn;
-	s_context.debugDraw.DrawStringFcn       = DrawStringFcn;
-	s_context.debugDraw.DrawBoundsFcn       = DrawBoundsFcn;
-	s_context.debugDraw.context             = &s_context;
-	s_context.debugDraw.drawMass            = true;
-	s_context.debugDraw.drawContacts        = true;
-	s_context.debugDraw.drawContactForces   = true;
-	// s_context.debugDraw.drawContactFeatures = true;
 
 	b2WorldDef worldDef = b2DefaultWorldDef();
 	worldDef.gravity    = (b2Vec2){0.0f, -10.0f};
@@ -412,7 +290,7 @@ int main(int argc, char *argv[])
 	// MSAA
 	glfwWindowHint(GLFW_SAMPLES, 4);
 
-	s_context.window = glfwCreateWindow(s_context.camera.width, s_context.camera.height, "App1", NULL, NULL);
+	s_context.window = glfwCreateWindow(s_context.canvas.camera.width, s_context.canvas.camera.height, "App1", NULL, NULL);
 	if (s_context.window == NULL) {
 		fprintf(stderr, "Failed to open GLFW window.\n");
 		glfwTerminate();
@@ -436,7 +314,8 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	s_context.draw = CreateDraw(&drawCreateInfo);
+	s_context.canvas.draw = CreateDraw(&drawCreateInfo);
+	b2DebugDraw_init(&s_context.debugDraw, &s_context.canvas);
 	FreeDrawCreateInfo(&drawCreateInfo);
 
 	{
@@ -451,8 +330,8 @@ int main(int argc, char *argv[])
 	while (!glfwWindowShouldClose(s_context.window)) {
 		int width, height;
 		glfwGetWindowSize(s_context.window, &width, &height);
-		s_context.camera.width  = width;
-		s_context.camera.height = height;
+		s_context.canvas.camera.width  = width;
+		s_context.canvas.camera.height = height;
 
 		int bufferWidth, bufferHeight;
 		glfwGetFramebufferSize(s_context.window, &bufferWidth, &bufferHeight);
@@ -477,10 +356,10 @@ int main(int argc, char *argv[])
 
 		b2World_Step(s_context.m_worldId, timeStep, subStepCount);
 
-		SetDrawOrigin(s_context.draw, s_context.camera.center);
+		SetDrawOrigin(s_context.canvas.draw, s_context.canvas.camera.center);
 		b2World_Draw(s_context.m_worldId, &s_context.debugDraw);
 
-		FlushDraw(s_context.draw, &s_context.camera);
+		FlushDraw(s_context.canvas.draw, &s_context.canvas.camera);
 		glfwSwapBuffers(s_context.window);
 		glfwPollEvents();
 	}

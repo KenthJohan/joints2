@@ -9,7 +9,7 @@
 			"type": "cppdbg",
 			"request": "launch",
 			"stopAtEntry": false,
-			"cwd": "${workspaceFolder}",
+			"cwd": "${workspaceFolder}/apps/app1",
 			"environment": [
 				{
 					"name": "LD_LIBRARY_PATH",
