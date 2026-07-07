@@ -10,10 +10,12 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <draw.h>
+#include <EgSpatials.h>
 
 #include "canvas.h"
 #include "fs.h"
 #include "b2DebugDraw_init.h"
+#include "b2.h"
 
 typedef struct SampleContext {
 	GLFWwindow *window;
@@ -104,8 +106,9 @@ static SampleContext s_context;
 static bool          s_rightMouseDown = false;
 static b2Pos         s_clickPointWS   = b2Pos_zero;
 
-void test1_create_world(b2WorldId worldId)
+void test1_create_world(ecs_world_t *world, ecs_entity_t e)
 {
+	b2WorldId worldId = ecs_get(world, e, EgB2World)->id;
 
 	b2BodyDef groundBodyDef = b2DefaultBodyDef();
 	groundBodyDef.position  = (b2Vec2){0.0f, -10.0f};
@@ -113,7 +116,6 @@ void test1_create_world(b2WorldId worldId)
 	b2BodyId groundId = b2CreateBody(worldId, &groundBodyDef);
 
 	b2Polygon groundBox = b2MakeBox(50.0f, 10.0f);
-
 	b2ShapeDef groundShapeDef = b2DefaultShapeDef();
 	b2CreatePolygonShape(groundId, &groundShapeDef, &groundBox);
 
@@ -263,17 +265,34 @@ static void MouseButtonCallback(GLFWwindow *window, int button, int action, int 
 int main(int argc, char *argv[])
 {
 	ecs_world_t *world = ecs_init();
-	ecs_fini(world);
 
-	s_context.canvas.camera            = GetDefaultCamera();
-	s_context.canvas.camera.center     = (b2Pos){0.0f, 0.0f};
-	s_context.canvas.camera.zoom       = 12.0f;
-	s_context.m_mouseForceScale = 500.0f;
+	ECS_IMPORT(world, EgSpatials);
+	ECS_IMPORT(world, EgB2);
+
+	s_context.canvas.camera        = GetDefaultCamera();
+	s_context.canvas.camera.center = (b2Pos){0.0f, 0.0f};
+	s_context.canvas.camera.zoom   = 12.0f;
+	s_context.m_mouseForceScale    = 500.0f;
+
+	ecs_entity_t e = ecs_new(world);
+	ecs_set(world, e, EgB2WorldDef, {0.0f, -10.0f});
+
+	ecs_entity_t e_ground = ecs_new(world);
+	ecs_add_pair(world, e_ground, EcsChildOf, e);
+	ecs_set(world, e_ground, Position2, {0.0f, -10.0f});
+	ecs_set(world, e_ground, EgB2BodyDef, {b2_staticBody});
+	ecs_set(world, e_ground, EgB2Box, {50.0f, 10.0f});
+
+	ecs_entity_t e_box = ecs_new(world);
+	ecs_add_pair(world, e_box, EcsChildOf, e);
+	ecs_set(world, e_box, Position2, {0.0f, 4.0f});
+	ecs_set(world, e_box, EgB2BodyDef, {b2_dynamicBody});
+	ecs_set(world, e_box, EgB2Box, {1.0f, 1.0f});
 
 	b2WorldDef worldDef = b2DefaultWorldDef();
 	worldDef.gravity    = (b2Vec2){0.0f, -10.0f};
 	s_context.m_worldId = b2CreateWorld(&worldDef);
-	test1_create_world(s_context.m_worldId);
+	test1_create_world(world, s_context.m_worldId);
 
 	glfwSetErrorCallback(glfwErrorCallback);
 
@@ -366,6 +385,7 @@ int main(int argc, char *argv[])
 	glfwTerminate();
 
 	b2DestroyWorld(s_context.m_worldId);
+	ecs_fini(world);
 
 	return 0;
 }
