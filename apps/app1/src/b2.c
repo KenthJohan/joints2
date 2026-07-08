@@ -12,8 +12,6 @@ b2BodyId b2_create_body(ecs_world_t *world, b2WorldId worldId, b2BodyType type, 
 	return bodyId;
 }
 
-
-
 ECS_COMPONENT_DECLARE(EgB2World);
 ECS_COMPONENT_DECLARE(EgB2WorldDef);
 ECS_COMPONENT_DECLARE(EgB2Body);
@@ -40,17 +38,19 @@ static void EgB2Body_Create(ecs_iter_t *it)
 	EgB2World   *bw  = ecs_field(it, EgB2World, 0);   // shared,up
 	EgB2BodyDef *def = ecs_field(it, EgB2BodyDef, 1); // self
 	Position2   *pos = ecs_field(it, Position2, 2);   // self
-	EgB2Box     *size = ecs_field(it, EgB2Box, 3);   // self
-	for (int i = 0; i < it->count; ++i, ++def, ++pos, ++size) {
-		b2BodyDef bodyDef = b2DefaultBodyDef();
-		bodyDef.type      = def->type;
-		bodyDef.position  = (b2Pos){pos->x, pos->y};
-		bodyDef.userData  = it->entities[i]; // Use the ECS entity as user data
-		b2BodyId bodyId   = b2CreateBody(bw->id, &bodyDef);
-        b2Polygon box = b2MakeBox(size->half_width, size->half_height);
-        b2ShapeDef boxdef = b2DefaultShapeDef();
-        b2ShapeId shapeId = b2CreatePolygonShape(bodyId, &boxdef, &box);
-		ecs_set(it->world, it->entities[i], EgB2Body, {bodyId, shapeId});
+	EgB2Box     *box = ecs_field(it, EgB2Box, 3);     // self
+	for (int i = 0; i < it->count; ++i, ++def, ++pos, ++box) {
+		b2BodyDef body_def          = b2DefaultBodyDef();
+		body_def.type               = def->type;
+		body_def.position           = (b2Pos){pos->x, pos->y};
+		body_def.userData           = it->entities[i]; // Use the ECS entity as user data
+		b2BodyId   body_id          = b2CreateBody(bw->id, &body_def);
+		b2Polygon  poly             = b2MakeBox(box->half_width, box->half_height);
+		b2ShapeDef shape_def        = b2DefaultShapeDef();
+		shape_def.density           = box->density;
+		shape_def.material.friction = box->friction;
+		b2ShapeId shape_id          = b2CreatePolygonShape(body_id, &shape_def, &poly);
+		ecs_set(it->world, it->entities[i], EgB2Body, {body_id, shape_id});
 	}
 	ecs_log_set_level(-1);
 }

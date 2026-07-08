@@ -25,6 +25,8 @@ typedef struct {
 typedef struct {
     float half_width;
     float half_height;
+    float density;
+    float friction;
 } EgB2Box;
 
 extern ECS_COMPONENT_DECLARE(EgB2World);

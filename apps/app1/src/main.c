@@ -262,6 +262,14 @@ static void MouseButtonCallback(GLFWwindow *window, int button, int action, int 
 	}
 }
 
+static void System_EgB2World_Step(ecs_iter_t *it)
+{
+	EgB2World *b2world = ecs_field(it, EgB2World, 0); // self
+	for (int i = 0; i < it->count; ++i) {
+
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	ecs_world_t *world = ecs_init();
@@ -274,25 +282,35 @@ int main(int argc, char *argv[])
 	s_context.canvas.camera.zoom   = 12.0f;
 	s_context.m_mouseForceScale    = 500.0f;
 
-	ecs_entity_t e = ecs_new(world);
-	ecs_set(world, e, EgB2WorldDef, {0.0f, -10.0f});
+	ecs_entity_t e_b2world = ecs_new(world);
+	ecs_set(world, e_b2world, EgB2WorldDef, {0.0f, -10.0f});
 
 	ecs_entity_t e_ground = ecs_new(world);
-	ecs_add_pair(world, e_ground, EcsChildOf, e);
+	ecs_add_pair(world, e_ground, EcsChildOf, e_b2world);
 	ecs_set(world, e_ground, Position2, {0.0f, -10.0f});
 	ecs_set(world, e_ground, EgB2BodyDef, {b2_staticBody});
 	ecs_set(world, e_ground, EgB2Box, {50.0f, 10.0f});
 
 	ecs_entity_t e_box = ecs_new(world);
-	ecs_add_pair(world, e_box, EcsChildOf, e);
+	ecs_add_pair(world, e_box, EcsChildOf, e_b2world);
 	ecs_set(world, e_box, Position2, {0.0f, 4.0f});
 	ecs_set(world, e_box, EgB2BodyDef, {b2_dynamicBody});
 	ecs_set(world, e_box, EgB2Box, {1.0f, 1.0f});
 
+	ecs_system(world,
+	{.entity = ecs_entity(world, {.name = "System_EgB2World_Step", .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),
+	.callback = System_EgB2World_Step,
+	.query.terms =
+	{
+	{.id = ecs_id(EgB2World), .src.id = EcsSelf, .inout = EcsIn},
+	}});
+
+	/*
 	b2WorldDef worldDef = b2DefaultWorldDef();
 	worldDef.gravity    = (b2Vec2){0.0f, -10.0f};
 	s_context.m_worldId = b2CreateWorld(&worldDef);
 	test1_create_world(world, s_context.m_worldId);
+	*/
 
 	glfwSetErrorCallback(glfwErrorCallback);
 
