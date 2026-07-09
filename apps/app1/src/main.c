@@ -29,6 +29,9 @@ typedef struct SampleContext {
 	b2Pos m_mousePoint;
 
 	float m_mouseForceScale;
+
+	float timeStep;
+	int   subStepCount;
 } SampleContext;
 
 static bool BuildDrawCreateInfo(DrawCreateInfo *createInfo)
@@ -115,7 +118,7 @@ void test1_create_world(ecs_world_t *world, ecs_entity_t e)
 
 	b2BodyId groundId = b2CreateBody(worldId, &groundBodyDef);
 
-	b2Polygon groundBox = b2MakeBox(50.0f, 10.0f);
+	b2Polygon  groundBox      = b2MakeBox(50.0f, 10.0f);
 	b2ShapeDef groundShapeDef = b2DefaultShapeDef();
 	b2CreatePolygonShape(groundId, &groundShapeDef, &groundBox);
 
@@ -264,9 +267,19 @@ static void MouseButtonCallback(GLFWwindow *window, int button, int action, int 
 
 static void System_EgB2World_Step(ecs_iter_t *it)
 {
-	EgB2World *b2world = ecs_field(it, EgB2World, 0); // self
+	EgB2World     *b2world = ecs_field(it, EgB2World, 0); // self
+	SampleContext *ctx     = it->ctx;
 	for (int i = 0; i < it->count; ++i) {
+		b2World_Step(b2world[i].id, ctx->timeStep, ctx->subStepCount);
+	}
+}
 
+static void System_EgB2World_Draw(ecs_iter_t *it)
+{
+	SampleContext *ctx     = it->ctx;
+	EgB2World     *b2world = ecs_field(it, EgB2World, 0); // self
+	for (int i = 0; i < it->count; ++i) {
+		b2World_Draw(b2world[i].id, &ctx->debugDraw);
 	}
 }
 
@@ -281,6 +294,8 @@ int main(int argc, char *argv[])
 	s_context.canvas.camera.center = (b2Pos){0.0f, 0.0f};
 	s_context.canvas.camera.zoom   = 12.0f;
 	s_context.m_mouseForceScale    = 500.0f;
+	s_context.timeStep             = 1.0f / 60.0f;
+	s_context.subStepCount         = 4;
 
 	ecs_entity_t e_b2world = ecs_new(world);
 	ecs_set(world, e_b2world, EgB2WorldDef, {0.0f, -10.0f});
@@ -298,8 +313,18 @@ int main(int argc, char *argv[])
 	ecs_set(world, e_box, EgB2Box, {1.0f, 1.0f});
 
 	ecs_system(world,
-	{.entity = ecs_entity(world, {.name = "System_EgB2World_Step", .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),
+	{.entity  = ecs_entity(world, {.name = "System_EgB2World_Step", .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),
 	.callback = System_EgB2World_Step,
+	.ctx      = &s_context,
+	.query.terms =
+	{
+	{.id = ecs_id(EgB2World), .src.id = EcsSelf, .inout = EcsIn},
+	}});
+
+	ecs_system(world,
+	{.entity  = ecs_entity(world, {.name = "System_EgB2World_Draw", .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),
+	.callback = System_EgB2World_Draw,
+	.ctx      = &s_context,
 	.query.terms =
 	{
 	{.id = ecs_id(EgB2World), .src.id = EcsSelf, .inout = EcsIn},
@@ -361,8 +386,10 @@ int main(int argc, char *argv[])
 		printf("OpenGL %s, GLSL %s\n", glVersionString, glslVersionString);
 	}
 
-	float timeStep     = 1.0f / 60.0f;
-	int   subStepCount = 4;
+#if 1
+	ecs_set(world, EcsWorld, EcsRest, {.port = 0});
+	printf("Remote: %s\n", "https://www.flecs.dev/explorer/?page=rest&host=localhost");
+#endif
 
 	while (!glfwWindowShouldClose(s_context.window)) {
 		int width, height;
@@ -386,15 +413,18 @@ int main(int argc, char *argv[])
 			}
 		}
 
-		if (B2_IS_NON_NULL(s_context.m_mouseBodyId) && timeStep > 0.0f) {
+		if (B2_IS_NON_NULL(s_context.m_mouseBodyId) && s_context.timeStep > 0.0f) {
 			bool wake = true;
-			b2Body_SetTargetTransform(s_context.m_mouseBodyId, (b2WorldTransform){s_context.m_mousePoint, b2Rot_identity}, timeStep, wake);
+			b2Body_SetTargetTransform(s_context.m_mouseBodyId, (b2WorldTransform){s_context.m_mousePoint, b2Rot_identity}, s_context.timeStep, wake);
 		}
 
-		b2World_Step(s_context.m_worldId, timeStep, subStepCount);
-
 		SetDrawOrigin(s_context.canvas.draw, s_context.canvas.camera.center);
+		ecs_progress(world, 0.0f);
+
+		/*
+		b2World_Step(s_context.m_worldId, timeStep, subStepCount);
 		b2World_Draw(s_context.m_worldId, &s_context.debugDraw);
+		*/
 
 		FlushDraw(s_context.canvas.draw, &s_context.canvas.camera);
 		glfwSwapBuffers(s_context.window);

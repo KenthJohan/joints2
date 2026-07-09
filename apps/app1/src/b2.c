@@ -1,17 +1,6 @@
 #include "b2.h"
 #include <EgSpatials.h>
 
-b2BodyId b2_create_body(ecs_world_t *world, b2WorldId worldId, b2BodyType type, b2Pos position, b2Rot rotation)
-{
-	b2BodyDef bodyDef = b2DefaultBodyDef();
-	bodyDef.type      = type;
-	bodyDef.position  = position;
-	bodyDef.rotation  = rotation;
-	bodyDef.userData  = ecs_new(world); // Create a new entity in the ECS world and assign it as user data
-	b2BodyId bodyId   = b2CreateBody(worldId, &bodyDef);
-	return bodyId;
-}
-
 ECS_COMPONENT_DECLARE(EgB2World);
 ECS_COMPONENT_DECLARE(EgB2WorldDef);
 ECS_COMPONENT_DECLARE(EgB2Body);
@@ -22,8 +11,7 @@ static void EgB2World_Create(ecs_iter_t *it)
 {
 	ecs_log_set_level(0);
 	EgB2WorldDef *def = ecs_field(it, EgB2WorldDef, 0); // self
-	Position2    *pos = ecs_field(it, Position2, 1);    // self
-	for (int i = 0; i < it->count; ++i, ++def, ++pos) {
+	for (int i = 0; i < it->count; ++i, ++def) {
 		b2WorldDef worldDef = b2DefaultWorldDef();
 		worldDef.gravity    = (b2Vec2){def->gravity_x, def->gravity_y};
 		b2WorldId bw        = b2CreateWorld(&worldDef);
@@ -36,14 +24,14 @@ static void EgB2Body_Create(ecs_iter_t *it)
 {
 	ecs_log_set_level(0);
 	EgB2World   *bw  = ecs_field(it, EgB2World, 0);   // shared,up
-	EgB2BodyDef *def = ecs_field(it, EgB2BodyDef, 1); // self
-	Position2   *pos = ecs_field(it, Position2, 2);   // self
+	Position2   *pos = ecs_field(it, Position2, 1);   // self
+	EgB2BodyDef *def = ecs_field(it, EgB2BodyDef, 2); // self
 	EgB2Box     *box = ecs_field(it, EgB2Box, 3);     // self
 	for (int i = 0; i < it->count; ++i, ++def, ++pos, ++box) {
 		b2BodyDef body_def          = b2DefaultBodyDef();
 		body_def.type               = def->type;
 		body_def.position           = (b2Pos){pos->x, pos->y};
-		body_def.userData           = it->entities[i]; // Use the ECS entity as user data
+		body_def.userData           = (void *)(uintptr_t)it->entities[i]; // Use the ECS entity as user data
 		b2BodyId   body_id          = b2CreateBody(bw->id, &body_def);
 		b2Polygon  poly             = b2MakeBox(box->half_width, box->half_height);
 		b2ShapeDef shape_def        = b2DefaultShapeDef();
@@ -74,7 +62,6 @@ void EgB2Import(ecs_world_t *world)
 	.query.terms =
 	{
 	{.id = ecs_id(EgB2WorldDef), .src.id = EcsSelf, .inout = EcsIn},
-	{.id = ecs_id(Position2), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(EgB2World), .oper = EcsNot}, // Adds this
 	}});
 
@@ -83,7 +70,7 @@ void EgB2Import(ecs_world_t *world)
 	.callback = EgB2Body_Create,
 	.query.terms =
 	{
-	{.id = ecs_id(EgB2WorldDef), .trav = EcsChildOf, .src.id = EcsUp, .inout = EcsIn},
+	{.id = ecs_id(EgB2World), .trav = EcsChildOf, .src.id = EcsUp, .inout = EcsIn},
 	{.id = ecs_id(Position2), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(EgB2BodyDef), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(EgB2Box), .src.id = EcsSelf, .inout = EcsIn},
