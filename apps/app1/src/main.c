@@ -18,18 +18,10 @@
 #include "b2.h"
 
 typedef struct SampleContext {
-	GLFWwindow *window;
-	Canvas      canvas;
-	b2DebugDraw debugDraw;
-	b2JointId   m_mouseJointId;
-	b2BodyId    m_mouseBodyId;
-
-	b2WorldId m_worldId;
-
-	b2Pos m_mousePoint;
-
-	float m_mouseForceScale;
-
+	ecs_world_t *world;
+	GLFWwindow  *window;
+	Canvas       canvas;
+	b2DebugDraw  debugDraw;
 	float timeStep;
 	int   subStepCount;
 } SampleContext;
@@ -78,192 +70,11 @@ void glfwErrorCallback(int error, const char *description)
 	fprintf(stderr, "GLFW error occurred. Code: %d. Description: %s\n", error, description);
 }
 
-typedef struct
-{
-	b2Pos    point;
-	b2BodyId bodyId;
-} QueryContext;
 
-bool QueryCallback(b2ShapeId shapeId, void *context)
-{
-	QueryContext *queryContext = (QueryContext *)(context);
 
-	b2BodyId   bodyId   = b2Shape_GetBody(shapeId);
-	b2BodyType bodyType = b2Body_GetType(bodyId);
-	if (bodyType != b2_dynamicBody) {
-		// continue query
-		return true;
-	}
 
-	bool overlap = b2Shape_TestPoint(shapeId, queryContext->point);
-	if (overlap) {
-		// found shape
-		queryContext->bodyId = bodyId;
-		return false;
-	}
-
-	return true;
-}
 
 static SampleContext s_context;
-static bool          s_rightMouseDown = false;
-static b2Pos         s_clickPointWS   = b2Pos_zero;
-
-void test1_create_world(ecs_world_t *world, ecs_entity_t e)
-{
-	b2WorldId worldId = ecs_get(world, e, EgB2World)->id;
-
-	b2BodyDef groundBodyDef = b2DefaultBodyDef();
-	groundBodyDef.position  = (b2Vec2){0.0f, -10.0f};
-
-	b2BodyId groundId = b2CreateBody(worldId, &groundBodyDef);
-
-	b2Polygon  groundBox      = b2MakeBox(50.0f, 10.0f);
-	b2ShapeDef groundShapeDef = b2DefaultShapeDef();
-	b2CreatePolygonShape(groundId, &groundShapeDef, &groundBox);
-
-	b2BodyDef bodyDef = b2DefaultBodyDef();
-	bodyDef.type      = b2_dynamicBody;
-	bodyDef.position  = (b2Vec2){0.0f, 4.0f};
-	b2BodyId bodyId   = b2CreateBody(worldId, &bodyDef);
-
-	b2Polygon dynamicBox = b2MakeBox(1.0f, 1.0f);
-
-	b2ShapeDef shapeDef        = b2DefaultShapeDef();
-	shapeDef.density           = 1.0f;
-	shapeDef.material.friction = 0.3f;
-
-	b2CreatePolygonShape(bodyId, &shapeDef, &dynamicBox);
-
-	/*
-	float timeStep = 1.0f / 60.0f;
-
-	int subStepCount = 4;
-
-	for (int i = 0; i < 90; ++i) {
-	    b2World_Step(worldId, timeStep, subStepCount);
-	    b2Vec2 position = b2Body_GetPosition(bodyId);
-	    b2Rot  rotation = b2Body_GetRotation(bodyId);
-	    printf("%4.2f %4.2f %4.2f\n", position.x, position.y, b2Rot_GetAngle(rotation));
-	}
-	*/
-}
-
-void MouseDown(SampleContext *ctx, b2Pos p, int button, int mod)
-{
-	if (B2_IS_NON_NULL(ctx->m_mouseJointId)) {
-		return;
-	}
-
-	if (button == GLFW_MOUSE_BUTTON_1) {
-		// A tiny box around the click point, exact at any distance with the click as the origin
-		b2Vec2 d   = {0.001f, 0.001f};
-		b2AABB box = {b2Neg(d), d};
-
-		ctx->m_mousePoint = p;
-
-		// Query the world for overlapping shapes.
-		QueryContext queryContext = {p, b2_nullBodyId};
-		b2World_OverlapAABB(ctx->m_worldId, p, box, b2DefaultQueryFilter(), QueryCallback, &queryContext);
-
-		if (B2_IS_NON_NULL(queryContext.bodyId)) {
-			b2BodyDef bodyDef  = b2DefaultBodyDef();
-			bodyDef.type       = b2_kinematicBody;
-			bodyDef.position   = ctx->m_mousePoint;
-			ctx->m_mouseBodyId = b2CreateBody(ctx->m_worldId, &bodyDef);
-
-			b2MotorJointDef jointDef    = b2DefaultMotorJointDef();
-			jointDef.base.bodyIdA       = ctx->m_mouseBodyId;
-			jointDef.base.bodyIdB       = queryContext.bodyId;
-			jointDef.base.localFrameB.p = b2Body_GetLocalPoint(queryContext.bodyId, p);
-			jointDef.linearHertz        = 7.5f;
-			jointDef.linearDampingRatio = 1.0f;
-
-			b2MassData massData = b2Body_GetMassData(queryContext.bodyId);
-			float      g        = b2Length(b2World_GetGravity(ctx->m_worldId));
-			float      mg       = massData.mass * g;
-
-			jointDef.maxSpringForce = ctx->m_mouseForceScale * mg;
-
-			if (massData.mass > 0.0f) {
-				// This acts like angular friction
-				float lever                = sqrtf(massData.rotationalInertia / massData.mass);
-				jointDef.maxVelocityTorque = 0.25f * lever * mg;
-			}
-
-			ctx->m_mouseJointId = b2CreateMotorJoint(ctx->m_worldId, &jointDef);
-		}
-	}
-}
-
-void MouseUp(SampleContext *ctx, b2Pos p, int button)
-{
-	if (B2_IS_NON_NULL(ctx->m_mouseJointId) && button == GLFW_MOUSE_BUTTON_1) {
-		b2DestroyJoint(ctx->m_mouseJointId, true);
-		ctx->m_mouseJointId = b2_nullJointId;
-
-		b2DestroyBody(ctx->m_mouseBodyId);
-		ctx->m_mouseBodyId = b2_nullBodyId;
-	}
-}
-
-void MouseMove(SampleContext *ctx, b2Pos p)
-{
-	if (b2Joint_IsValid(ctx->m_mouseJointId) == false) {
-		// The world or attached body was destroyed.
-		ctx->m_mouseJointId = b2_nullJointId;
-	}
-
-	ctx->m_mousePoint = p;
-
-	/*
-	if (B2_IS_NON_NULL(ctx->m_mouseBodyId) && b2Body_IsValid(ctx->m_mouseBodyId)) {
-	    b2Body_SetTransform(ctx->m_mouseBodyId, p, b2Rot_identity);
-	}
-	*/
-}
-
-static void MouseMotionCallback(GLFWwindow *window, double xd, double yd)
-{
-	b2Vec2 ps = {xd, yd};
-	b2Pos  pw = ConvertScreenToWorld(&s_context.canvas.camera, ps);
-	MouseMove(&s_context, pw);
-
-	if (s_rightMouseDown) {
-		b2Vec2 diff = {pw.x - s_clickPointWS.x, pw.y - s_clickPointWS.y};
-		s_context.canvas.camera.center.x -= diff.x;
-		s_context.canvas.camera.center.y -= diff.y;
-		s_clickPointWS = ConvertScreenToWorld(&s_context.canvas.camera, ps);
-	}
-}
-
-static void MouseButtonCallback(GLFWwindow *window, int button, int action, int modifiers)
-{
-	double xd, yd;
-	glfwGetCursorPos(window, &xd, &yd);
-	b2Vec2 ps = {xd, yd};
-
-	// Use the mouse to move things around.
-	if (button == GLFW_MOUSE_BUTTON_1) {
-		b2Pos pw = ConvertScreenToWorld(&s_context.canvas.camera, ps);
-		if (action == GLFW_PRESS) {
-			MouseDown(&s_context, pw, button, modifiers);
-		}
-
-		if (action == GLFW_RELEASE) {
-			MouseUp(&s_context, pw, button);
-		}
-	} else if (button == GLFW_MOUSE_BUTTON_2) {
-		if (action == GLFW_PRESS) {
-			s_clickPointWS   = ConvertScreenToWorld(&s_context.canvas.camera, ps);
-			s_rightMouseDown = true;
-		}
-
-		if (action == GLFW_RELEASE) {
-			s_rightMouseDown = false;
-		}
-	}
-}
 
 static void System_EgB2World_Step(ecs_iter_t *it)
 {
@@ -293,7 +104,6 @@ int main(int argc, char *argv[])
 	s_context.canvas.camera        = GetDefaultCamera();
 	s_context.canvas.camera.center = (b2Pos){0.0f, 0.0f};
 	s_context.canvas.camera.zoom   = 12.0f;
-	s_context.m_mouseForceScale    = 500.0f;
 	s_context.timeStep             = 1.0f / 60.0f;
 	s_context.subStepCount         = 4;
 
@@ -367,9 +177,6 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	glfwSetMouseButtonCallback(s_context.window, MouseButtonCallback);
-	glfwSetCursorPosCallback(s_context.window, MouseMotionCallback);
-
 	DrawCreateInfo drawCreateInfo;
 	if (!BuildDrawCreateInfo(&drawCreateInfo)) {
 		glfwTerminate();
@@ -402,29 +209,8 @@ int main(int argc, char *argv[])
 		glViewport(0, 0, bufferWidth, bufferHeight);
 		glClearColor(0.07f, 0.07f, 0.09f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
-
-		if (B2_IS_NON_NULL(s_context.m_mouseJointId) && b2Joint_IsValid(s_context.m_mouseJointId) == false) {
-			// The world or attached body was destroyed.
-			s_context.m_mouseJointId = b2_nullJointId;
-
-			if (B2_IS_NON_NULL(s_context.m_mouseBodyId)) {
-				b2DestroyBody(s_context.m_mouseBodyId);
-				s_context.m_mouseBodyId = b2_nullBodyId;
-			}
-		}
-
-		if (B2_IS_NON_NULL(s_context.m_mouseBodyId) && s_context.timeStep > 0.0f) {
-			bool wake = true;
-			b2Body_SetTargetTransform(s_context.m_mouseBodyId, (b2WorldTransform){s_context.m_mousePoint, b2Rot_identity}, s_context.timeStep, wake);
-		}
-
 		SetDrawOrigin(s_context.canvas.draw, s_context.canvas.camera.center);
 		ecs_progress(world, 0.0f);
-
-		/*
-		b2World_Step(s_context.m_worldId, timeStep, subStepCount);
-		b2World_Draw(s_context.m_worldId, &s_context.debugDraw);
-		*/
 
 		FlushDraw(s_context.canvas.draw, &s_context.canvas.camera);
 		glfwSwapBuffers(s_context.window);
@@ -432,7 +218,6 @@ int main(int argc, char *argv[])
 	}
 	glfwTerminate();
 
-	b2DestroyWorld(s_context.m_worldId);
 	ecs_fini(world);
 
 	return 0;

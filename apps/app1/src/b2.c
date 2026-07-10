@@ -43,6 +43,14 @@ static void EgB2Body_Create(ecs_iter_t *it)
 	ecs_log_set_level(-1);
 }
 
+void EgB2World_Destroy(ecs_iter_t *it)
+{
+	EgB2World *w = ecs_field(it, EgB2World, 0);
+	for (int i = 0; i < it->count; ++i, ++w) {
+		b2DestroyWorld(w->id);
+	}
+}
+
 void EgB2Import(ecs_world_t *world)
 {
 	ECS_MODULE(world, EgB2);
@@ -76,6 +84,11 @@ void EgB2Import(ecs_world_t *world)
 	{.id = ecs_id(EgB2Box), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(EgB2Body), .oper = EcsNot}, // Adds this
 	}});
+
+	ecs_observer(world,
+	{.query   = {.terms = {{.id = ecs_id(EgB2World)}}},
+	.events   = {EcsOnRemove},
+	.callback = EgB2World_Destroy});
 
 	ecs_struct_init(world,
 	&(ecs_struct_desc_t){
