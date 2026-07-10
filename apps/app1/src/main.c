@@ -120,7 +120,7 @@ int main(int argc, char *argv[])
 	ecs_add_pair(world, e_box, EcsChildOf, e_b2world);
 	ecs_set(world, e_box, Position2, {0.0f, 4.0f});
 	ecs_set(world, e_box, EgB2BodyDef, {b2_dynamicBody});
-	ecs_set(world, e_box, EgB2Box, {1.0f, 1.0f});
+	ecs_set(world, e_box, EgB2Box, {1.0f, 1.0f, 1.0f, 0.3f});
 
 	ecs_system(world,
 	{.entity  = ecs_entity(world, {.name = "System_EgB2World_Step", .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),

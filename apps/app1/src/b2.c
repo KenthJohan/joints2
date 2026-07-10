@@ -28,13 +28,21 @@ static void EgB2Body_Create(ecs_iter_t *it)
 	EgB2BodyDef *def = ecs_field(it, EgB2BodyDef, 2); // self
 	EgB2Box     *box = ecs_field(it, EgB2Box, 3);     // self
 	for (int i = 0; i < it->count; ++i, ++def, ++pos, ++box) {
-		b2BodyDef body_def          = b2DefaultBodyDef();
-		body_def.type               = def->type;
-		body_def.position           = (b2Pos){pos->x, pos->y};
-		body_def.userData           = (void *)(uintptr_t)it->entities[i]; // Use the ECS entity as user data
-		b2BodyId   body_id          = b2CreateBody(bw->id, &body_def);
-		b2Polygon  poly             = b2MakeBox(box->half_width, box->half_height);
-		b2ShapeDef shape_def        = b2DefaultShapeDef();
+		b2BodyDef body_def   = b2DefaultBodyDef();
+		body_def.type        = def->type;
+		body_def.position    = (b2Pos){pos->x, pos->y};
+		body_def.userData    = (void *)(uintptr_t)it->entities[i]; // Use the ECS entity as user data
+		b2BodyId   body_id   = b2CreateBody(bw->id, &body_def);
+		b2Polygon  poly      = b2MakeBox(box->half_width, box->half_height);
+		b2ShapeDef shape_def = b2DefaultShapeDef();
+		if (body_def.type == b2_dynamicBody) {
+			if (box->density <= 0.0f) {
+				ecs_warn("EgB2Box density is %.3f for entity %llu (zero/negative values are allowed but can disable gravity response on dynamic bodies)", box->density, (unsigned long long)it->entities[i]);
+			}
+			if (box->friction <= 0.0f) {
+				ecs_warn("EgB2Box friction is %.3f for entity %llu (zero/negative values are allowed)", box->friction, (unsigned long long)it->entities[i]);
+			}
+		}
 		shape_def.density           = box->density;
 		shape_def.material.friction = box->friction;
 		b2ShapeId shape_id          = b2CreatePolygonShape(body_id, &shape_def, &poly);
