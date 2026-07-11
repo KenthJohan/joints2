@@ -70,7 +70,7 @@ void DrawSolidCircle(Draw *draw, b2WorldTransform transform, b2Vec2 center, floa
 void DrawSolidPolygon(Draw *draw, b2WorldTransform transform, const b2Vec2 *vertices, int vertexCount, float radius, b2HexColor color);
 void DrawTransform(Draw *draw, b2WorldTransform transform, float scale);
 void DrawBounds(Draw *draw, b2AABB aabb, b2HexColor color);
-void DrawString(Draw *draw, Camera *camera, b2Pos p, b2HexColor color, const char *string, ...);
+void DrawString(Draw *draw, b2Pos p, b2HexColor color, const char *string, ...);
 
 void FlushDraw(Draw *draw, Camera *camera);
 

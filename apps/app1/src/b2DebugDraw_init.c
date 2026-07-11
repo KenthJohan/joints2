@@ -52,7 +52,7 @@ void DrawPointFcn(b2Pos p, float size, b2HexColor color, void *context)
 void DrawStringFcn(b2Pos p, const char *s, b2HexColor color, void *context)
 {
 	Canvas *canvas = (Canvas *)(context);
-	DrawString(canvas->draw, &canvas->camera, p, color, "%s", s);
+	DrawString(canvas->draw, p, color, "%s", s);
 }
 
 void DrawBoundsFcn(b2AABB aabb, b2HexColor color, void *context)
