@@ -102,7 +102,7 @@ void AddSolidCircle(SolidCircles *render, b2Transform transform, float radius, b
 	SolidCircleArray_Push(&render->circles, (SolidCircle){transform, radius, rgba});
 }
 
-void FlushSolidCircles(SolidCircles *render, Camera *camera, const float *projectionMatrix)
+void FlushSolidCircles(SolidCircles *render, float pixelScale, const float *projectionMatrix)
 {
 	int count = render->circles.count;
 	if (count == 0) {
@@ -111,7 +111,7 @@ void FlushSolidCircles(SolidCircles *render, Camera *camera, const float *projec
 
 	glUseProgram(render->programId);
 	glUniformMatrix4fv(render->projectionUniform, 1, GL_FALSE, projectionMatrix);
-	glUniform1f(render->pixelScaleUniform, camera->height / camera->zoom);
+	glUniform1f(render->pixelScaleUniform, pixelScale);
 
 	glBindVertexArray(render->vaoId);
 	glBindBuffer(GL_ARRAY_BUFFER, render->vboIds[1]);

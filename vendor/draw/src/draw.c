@@ -254,7 +254,7 @@ static void SetProjectionZBias(float *dst, const float *src, float zBias)
 	dst[14] = zBias;
 }
 
-void FlushDraw(Draw *draw, Camera *camera, const float *projectionMatrix)
+void FlushDraw(Draw *draw, float pixelScale, const float *projectionMatrix)
 {
 	float projDefault[16];
 	float projLine[16];
@@ -265,10 +265,10 @@ void FlushDraw(Draw *draw, Camera *camera, const float *projectionMatrix)
 	SetProjectionZBias(projShape, projectionMatrix, 0.2f);
 
 	// order matters
-	FlushSolidCircles(draw->circles, camera, projShape);
-	FlushCapsules(draw->capsules, camera, projShape);
-	FlushPolygons(draw->polygons, camera, projShape);
-	FlushCircles(draw->hollowCircles, camera, projShape);
+	FlushSolidCircles(draw->circles, pixelScale, projShape);
+	FlushCapsules(draw->capsules, pixelScale, projShape);
+	FlushPolygons(draw->polygons, pixelScale, projShape);
+	FlushCircles(draw->hollowCircles, pixelScale, projShape);
 	FlushLines(draw->lines, projLine);
 	FlushPoints(draw->points, projDefault);
 	FlushText(draw->text, projDefault);

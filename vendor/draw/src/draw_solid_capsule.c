@@ -120,7 +120,7 @@ void AddCapsule(Capsules *render, b2Vec2 p1, b2Vec2 p2, float radius, b2HexColor
 	CapsuleArray_Push(&render->capsules, (Capsule){transform, radius, length, rgba});
 }
 
-void FlushCapsules(Capsules *render, Camera *camera, const float *projectionMatrix)
+void FlushCapsules(Capsules *render, float pixelScale, const float *projectionMatrix)
 {
 	int count = render->capsules.count;
 	if (count == 0) {
@@ -129,7 +129,7 @@ void FlushCapsules(Capsules *render, Camera *camera, const float *projectionMatr
 
 	glUseProgram(render->programId);
 	glUniformMatrix4fv(render->projectionUniform, 1, GL_FALSE, projectionMatrix);
-	glUniform1f(render->pixelScaleUniform, camera->height / camera->zoom);
+	glUniform1f(render->pixelScaleUniform, pixelScale);
 
 	glBindVertexArray(render->vaoId);
 	glBindBuffer(GL_ARRAY_BUFFER, render->vboIds[1]);

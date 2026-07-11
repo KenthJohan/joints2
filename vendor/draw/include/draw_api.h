@@ -27,7 +27,7 @@ void DrawTransform(Draw *draw, b2WorldTransform transform, float scale);
 void DrawBounds(Draw *draw, b2AABB aabb, b2HexColor color);
 void DrawString(Draw *draw, b2Pos p, b2HexColor color, const char *string, ...);
 
-void FlushDraw(Draw *draw, Camera *camera, const float *projectionMatrix);
+void FlushDraw(Draw *draw, float pixelScale, const float *projectionMatrix);
 void DrawBackground(Draw *draw, Camera *camera);
 
 #ifdef __cplusplus

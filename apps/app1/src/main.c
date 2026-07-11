@@ -241,7 +241,8 @@ int main(int argc, char *argv[])
 
 		float projectionMatrix[16] = {0.0f};
 		BuildProjectionMatrixForCamera(&s_context.camera, projectionMatrix);
-		FlushDraw(s_context.draw, &s_context.camera, projectionMatrix);
+		float pixelScale = s_context.camera.height / s_context.camera.zoom;
+		FlushDraw(s_context.draw, pixelScale, projectionMatrix);
 		glfwSwapBuffers(s_context.window);
 		glfwPollEvents();
 	}

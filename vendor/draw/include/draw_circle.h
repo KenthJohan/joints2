@@ -14,7 +14,7 @@ extern "C" {
 CircleRender *CreateCircles(const DrawCreateInfo *createInfo);
 void          DestroyCircles(CircleRender *render);
 void          AddCircle(CircleRender *render, b2Vec2 center, float radius, b2HexColor color);
-void          FlushCircles(CircleRender *render, Camera *camera, const float *projectionMatrix);
+void          FlushCircles(CircleRender *render, float pixelScale, const float *projectionMatrix);
 
 #ifdef __cplusplus
 }
