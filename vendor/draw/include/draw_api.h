@@ -14,8 +14,6 @@ void  DestroyDraw(Draw *draw);
 
 void DrawScreenString(Draw *draw, float x, float y, b2HexColor color, const char *string, ...);
 
-void SetDrawOrigin(Draw *draw, b2Pos origin);
-
 void DrawPoint(Draw *draw, b2Pos p, float size, b2HexColor color);
 void DrawLine(Draw *draw, b2Pos p1, b2Pos p2, b2HexColor color);
 void DrawCircle(Draw *draw, b2Pos center, float radius, b2HexColor color);

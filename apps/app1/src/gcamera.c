@@ -17,24 +17,22 @@ void gcamera_set_viewport_size(GCamera *camera, float width, float height)
 	camera->height = height;
 }
 
-void gcamera_apply_draw_origin(const GCamera *camera, Draw *draw)
-{
-	SetDrawOrigin(draw, camera->center);
-}
 
 void gcamera_build_projection_matrix(const GCamera *camera, float *m)
 {
 	float ratio = camera->width / camera->height;
 	float w     = 2.0f * camera->zoom * ratio;
 	float h     = 2.0f * camera->zoom;
+	float sx    = 2.0f / w;
+	float sy    = 2.0f / h;
 
-	m[0] = 2.0f / w;
+	m[0] = sx;
 	m[1] = 0.0f;
 	m[2] = 0.0f;
 	m[3] = 0.0f;
 
 	m[4] = 0.0f;
-	m[5] = 2.0f / h;
+	m[5] = sy;
 	m[6] = 0.0f;
 	m[7] = 0.0f;
 
@@ -43,8 +41,8 @@ void gcamera_build_projection_matrix(const GCamera *camera, float *m)
 	m[10] = -1.0f;
 	m[11] = 0.0f;
 
-	m[12] = 0.0f;
-	m[13] = 0.0f;
+	m[12] = -camera->center.x * sx;
+	m[13] = -camera->center.y * sy;
 	m[14] = 0.0f;
 	m[15] = 1.0f;
 }

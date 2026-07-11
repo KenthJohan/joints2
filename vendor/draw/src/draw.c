@@ -16,9 +16,6 @@ typedef struct Draw {
 	Capsules    *capsules;
 	Polygons    *polygons;
 	TextRender  *text;
-
-	// View origin in large world mode, subtracted by the DrawWorld helpers. Zero in float mode.
-	b2Pos origin;
 } Draw;
 
 Draw *CreateDraw(const DrawCreateInfo *createInfo)
@@ -52,38 +49,31 @@ void DestroyDraw(Draw *draw)
 	DestroyTextRender(draw->text);
 	free(draw);
 }
-
-void SetDrawOrigin(Draw *draw, b2Pos origin)
-{
-	draw->origin = origin;
-}
-
 void DrawPoint(Draw *draw, b2Pos p, float size, b2HexColor color)
 {
-	AddPoint(draw->points, b2SubPos(p, draw->origin), size, color);
+	AddPoint(draw->points, b2ToVec2(p), size, color);
 }
 
 void DrawLine(Draw *draw, b2Pos p1, b2Pos p2, b2HexColor color)
 {
-	AddLine(draw->lines, b2SubPos(p1, draw->origin), b2SubPos(p2, draw->origin), color);
+	AddLine(draw->lines, b2ToVec2(p1), b2ToVec2(p2), color);
 }
 
 void DrawCircle(Draw *draw, b2Pos center, float radius, b2HexColor color)
 {
-	AddCircle(draw->hollowCircles, b2SubPos(center, draw->origin), radius, color);
+	AddCircle(draw->hollowCircles, b2ToVec2(center), radius, color);
 }
 
 void DrawCapsule(Draw *draw, b2Pos p1, b2Pos p2, float radius, b2HexColor color)
 {
-	AddCapsule(draw->capsules, b2SubPos(p1, draw->origin), b2SubPos(p2, draw->origin), radius, color);
+	AddCapsule(draw->capsules, b2ToVec2(p1), b2ToVec2(p2), radius, color);
 }
 
 void DrawPolygon(Draw *draw, b2WorldTransform transform, const b2Vec2 *vertices, int vertexCount, b2HexColor color)
 {
-	b2Transform xf = b2ToRelativeTransform(transform, draw->origin);
-	b2Vec2      p1 = b2TransformPoint(xf, vertices[vertexCount - 1]);
+	b2Vec2 p1 = b2TransformWorldPoint(transform, vertices[vertexCount - 1]);
 	for (int i = 0; i < vertexCount; ++i) {
-		b2Vec2 p2 = b2TransformPoint(xf, vertices[i]);
+		b2Vec2 p2 = b2TransformWorldPoint(transform, vertices[i]);
 		AddLine(draw->lines, p1, p2, color);
 		p1 = p2;
 	}
@@ -91,21 +81,21 @@ void DrawPolygon(Draw *draw, b2WorldTransform transform, const b2Vec2 *vertices,
 
 void DrawSolidCircle(Draw *draw, b2WorldTransform transform, b2Vec2 center, float radius, b2HexColor color)
 {
-	// Fold the local center offset into the world transform, then shift into the local view frame
-	b2WorldTransform xf             = {b2TransformWorldPoint(transform, center), transform.q};
-	b2Transform      localTransform = b2ToRelativeTransform(xf, draw->origin);
+	b2WorldTransform xf = {b2TransformWorldPoint(transform, center), transform.q};
+	b2Transform localTransform = {b2ToVec2(xf.p), xf.q};
 	AddSolidCircle(draw->circles, localTransform, radius, color);
 }
 
 void DrawSolidPolygon(Draw *draw, b2WorldTransform transform, const b2Vec2 *vertices, int vertexCount, float radius,
 b2HexColor color)
 {
-	AddPolygon(draw->polygons, b2ToRelativeTransform(transform, draw->origin), vertices, vertexCount, radius, color);
+	b2Transform localTransform = {b2ToVec2(transform.p), transform.q};
+	AddPolygon(draw->polygons, localTransform, vertices, vertexCount, radius, color);
 }
 
 void DrawTransform(Draw *draw, b2WorldTransform transform, float scale)
 {
-	b2Transform xf = b2ToRelativeTransform(transform, draw->origin);
+	b2Transform xf = {b2ToVec2(transform.p), transform.q};
 
 	b2Vec2 p1 = xf.p;
 
@@ -118,8 +108,8 @@ void DrawTransform(Draw *draw, b2WorldTransform transform, float scale)
 
 void DrawBounds(Draw *draw, b2AABB aabb, b2HexColor color)
 {
-	b2Vec2 lower = b2SubPos(b2ToPos(aabb.lowerBound), draw->origin);
-	b2Vec2 upper = b2SubPos(b2ToPos(aabb.upperBound), draw->origin);
+	b2Vec2 lower = aabb.lowerBound;
+	b2Vec2 upper = aabb.upperBound;
 
 	b2Vec2 p1 = lower;
 	b2Vec2 p2 = {upper.x, lower.y};
@@ -150,7 +140,7 @@ void DrawString(Draw *draw, b2Pos p, b2HexColor color, const char *string, ...)
 	va_start(args, string);
 	vsnprintf(buffer, sizeof(buffer), string, args);
 	va_end(args);
-	b2Vec2 textPos = b2SubPos(p, draw->origin);
+	b2Vec2 textPos = b2ToVec2(p);
 	AddText(draw->text, textPos.x, textPos.y, 0.5f, color, buffer);
 }
 

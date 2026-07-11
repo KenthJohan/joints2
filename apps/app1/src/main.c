@@ -70,6 +70,44 @@ void glfwErrorCallback(int error, const char *description)
 	fprintf(stderr, "GLFW error occurred. Code: %d. Description: %s\n", error, description);
 }
 
+static void UpdateCameraFromKeyboard(SampleContext *ctx, float deltaTime)
+{
+	const float panSpeed  = 2.0f * ctx->camera.zoom * deltaTime;
+	const float zoomSpeed = 1.5f * deltaTime;
+
+	if (glfwGetKey(ctx->window, GLFW_KEY_A) == GLFW_PRESS) {
+		ctx->camera.center.x -= panSpeed;
+	}
+
+	if (glfwGetKey(ctx->window, GLFW_KEY_D) == GLFW_PRESS) {
+		ctx->camera.center.x += panSpeed;
+	}
+
+	if (glfwGetKey(ctx->window, GLFW_KEY_W) == GLFW_PRESS) {
+		ctx->camera.center.y += panSpeed;
+	}
+
+	if (glfwGetKey(ctx->window, GLFW_KEY_S) == GLFW_PRESS) {
+		ctx->camera.center.y -= panSpeed;
+	}
+
+	if (glfwGetKey(ctx->window, GLFW_KEY_EQUAL) == GLFW_PRESS || glfwGetKey(ctx->window, GLFW_KEY_KP_ADD) == GLFW_PRESS) {
+		ctx->camera.zoom -= zoomSpeed * ctx->camera.zoom;
+	}
+
+	if (glfwGetKey(ctx->window, GLFW_KEY_MINUS) == GLFW_PRESS || glfwGetKey(ctx->window, GLFW_KEY_KP_SUBTRACT) == GLFW_PRESS) {
+		ctx->camera.zoom += zoomSpeed * ctx->camera.zoom;
+	}
+
+	if (ctx->camera.zoom < 0.5f) {
+		ctx->camera.zoom = 0.5f;
+	}
+
+	if (ctx->camera.zoom > 100.0f) {
+		ctx->camera.zoom = 100.0f;
+	}
+}
+
 
 
 
@@ -196,17 +234,24 @@ int main(int argc, char *argv[])
 	printf("Remote: %s\n", "https://www.flecs.dev/explorer/?page=rest&host=localhost");
 #endif
 
+	double previousTime = glfwGetTime();
+
 	while (!glfwWindowShouldClose(s_context.window)) {
+		double currentTime = glfwGetTime();
+		float  deltaTime   = (float)(currentTime - previousTime);
+		previousTime       = currentTime;
+
 		int width, height;
 		glfwGetWindowSize(s_context.window, &width, &height);
 		gcamera_set_viewport_size(&s_context.camera, (float)width, (float)height);
+		UpdateCameraFromKeyboard(&s_context, deltaTime);
 
 		int bufferWidth, bufferHeight;
 		glfwGetFramebufferSize(s_context.window, &bufferWidth, &bufferHeight);
 		glViewport(0, 0, bufferWidth, bufferHeight);
 		glClearColor(0.07f, 0.07f, 0.09f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
-		gcamera_apply_draw_origin(&s_context.camera, s_context.draw);
+
 		ecs_progress(world, 0.0f);
 
 		float projectionMatrix[16] = {0.0f};
