@@ -12,7 +12,6 @@
 #include <draw.h>
 #include <EgSpatials.h>
 
-#include "canvas.h"
 #include "fs.h"
 #include "b2DebugDraw_init.h"
 #include "b2.h"
@@ -20,7 +19,8 @@
 typedef struct SampleContext {
 	ecs_world_t *world;
 	GLFWwindow  *window;
-	Canvas       canvas;
+	Camera      camera;
+	Draw *	draw;
 	b2DebugDraw  debugDraw;
 	float timeStep;
 	int   subStepCount;
@@ -128,9 +128,9 @@ int main(int argc, char *argv[])
 	ECS_IMPORT(world, EgSpatials);
 	ECS_IMPORT(world, EgB2);
 
-	s_context.canvas.camera        = GetDefaultCamera();
-	s_context.canvas.camera.center = (b2Pos){0.0f, 0.0f};
-	s_context.canvas.camera.zoom   = 12.0f;
+	s_context.camera        = GetDefaultCamera();
+	s_context.camera.center = (b2Pos){0.0f, 0.0f};
+	s_context.camera.zoom   = 12.0f;
 	s_context.timeStep             = 1.0f / 60.0f;
 	s_context.subStepCount         = 4;
 
@@ -189,7 +189,7 @@ int main(int argc, char *argv[])
 	// MSAA
 	glfwWindowHint(GLFW_SAMPLES, 4);
 
-	s_context.window = glfwCreateWindow(s_context.canvas.camera.width, s_context.canvas.camera.height, "App1", NULL, NULL);
+	s_context.window = glfwCreateWindow(s_context.camera.width, s_context.camera.height, "App1", NULL, NULL);
 	if (s_context.window == NULL) {
 		fprintf(stderr, "Failed to open GLFW window.\n");
 		glfwTerminate();
@@ -210,8 +210,8 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	s_context.canvas.draw = CreateDraw(&drawCreateInfo);
-	b2DebugDraw_init(&s_context.debugDraw, &s_context.canvas);
+	s_context.draw = CreateDraw(&drawCreateInfo);
+	b2DebugDraw_init(&s_context.debugDraw, s_context.draw);
 	FreeDrawCreateInfo(&drawCreateInfo);
 
 	{
@@ -228,20 +228,20 @@ int main(int argc, char *argv[])
 	while (!glfwWindowShouldClose(s_context.window)) {
 		int width, height;
 		glfwGetWindowSize(s_context.window, &width, &height);
-		s_context.canvas.camera.width  = width;
-		s_context.canvas.camera.height = height;
+		s_context.camera.width  = width;
+		s_context.camera.height = height;
 
 		int bufferWidth, bufferHeight;
 		glfwGetFramebufferSize(s_context.window, &bufferWidth, &bufferHeight);
 		glViewport(0, 0, bufferWidth, bufferHeight);
 		glClearColor(0.07f, 0.07f, 0.09f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
-		SetDrawOrigin(s_context.canvas.draw, s_context.canvas.camera.center);
+		SetDrawOrigin(s_context.draw, s_context.camera.center);
 		ecs_progress(world, 0.0f);
 
 		float projectionMatrix[16] = {0.0f};
-		BuildProjectionMatrixForCamera(&s_context.canvas.camera, projectionMatrix);
-		FlushDraw(s_context.canvas.draw, &s_context.canvas.camera, projectionMatrix);
+		BuildProjectionMatrixForCamera(&s_context.camera, projectionMatrix);
+		FlushDraw(s_context.draw, &s_context.camera, projectionMatrix);
 		glfwSwapBuffers(s_context.window);
 		glfwPollEvents();
 	}

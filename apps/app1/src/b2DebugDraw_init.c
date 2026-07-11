@@ -3,65 +3,65 @@
 
 void DrawPolygonFcn(b2WorldTransform transform, const b2Vec2 *vertices, int vertexCount, b2HexColor color, void *context)
 {
-	Canvas *canvas = (Canvas *)(context);
-	DrawPolygon(canvas->draw, transform, vertices, vertexCount, color);
+	Draw *draw = (Draw *)(context);
+	DrawPolygon(draw, transform, vertices, vertexCount, color);
 }
 
 void DrawSolidPolygonFcn(b2WorldTransform transform, const b2Vec2 *vertices, int vertexCount, float radius, b2HexColor color, void *context)
 {
-	Canvas *canvas = (Canvas *)(context);
-	DrawSolidPolygon(canvas->draw, transform, vertices, vertexCount, radius, color);
+	Draw *draw = (Draw *)(context);
+	DrawSolidPolygon(draw, transform, vertices, vertexCount, radius, color);
 }
 
 void DrawCircleFcn(b2Pos center, float radius, b2HexColor color, void *context)
 {
-	Canvas *canvas = (Canvas *)(context);
-	DrawCircle(canvas->draw, center, radius, color);
+	Draw *draw = (Draw *)(context);
+	DrawCircle(draw, center, radius, color);
 }
 
 void DrawSolidCircleFcn(b2WorldTransform transform, b2Vec2 center, float radius, b2HexColor color, void *context)
 {
-	Canvas *canvas = (Canvas *)(context);
-	DrawSolidCircle(canvas->draw, transform, center, radius, color);
+	Draw *draw = (Draw *)(context);
+	DrawSolidCircle(draw, transform, center, radius, color);
 }
 
 void DrawSolidCapsuleFcn(b2Pos p1, b2Pos p2, float radius, b2HexColor color, void *context)
 {
-	Canvas *canvas = (Canvas *)(context);
-	DrawCapsule(canvas->draw, p1, p2, radius, color);
+	Draw *draw = (Draw *)(context);
+	DrawCapsule(draw, p1, p2, radius, color);
 }
 
 void DrawLineFcn(b2Pos p1, b2Pos p2, b2HexColor color, void *context)
 {
-	Canvas *canvas = (Canvas *)(context);
-	DrawLine(canvas->draw, p1, p2, color);
+	Draw *draw = (Draw *)(context);
+	DrawLine(draw, p1, p2, color);
 }
 
 void DrawTransformFcn(b2WorldTransform transform, void *context)
 {
-	Canvas *canvas = (Canvas *)(context);
-	DrawTransform(canvas->draw, transform, 1.0f);
+	Draw *draw = (Draw *)(context);
+	DrawTransform(draw, transform, 1.0f);
 }
 
 void DrawPointFcn(b2Pos p, float size, b2HexColor color, void *context)
 {
-	Canvas *canvas = (Canvas *)(context);
-	DrawPoint(canvas->draw, p, size, color);
+	Draw *draw = (Draw *)(context);
+	DrawPoint(draw, p, size, color);
 }
 
 void DrawStringFcn(b2Pos p, const char *s, b2HexColor color, void *context)
 {
-	Canvas *canvas = (Canvas *)(context);
-	DrawString(canvas->draw, p, color, "%s", s);
+	Draw *draw = (Draw *)(context);
+	DrawString(draw, p, color, "%s", s);
 }
 
 void DrawBoundsFcn(b2AABB aabb, b2HexColor color, void *context)
 {
-	Canvas *canvas = (Canvas *)(context);
-	DrawBounds(canvas->draw, aabb, color);
+	Draw *draw = (Draw *)(context);
+	DrawBounds(draw, aabb, color);
 }
 
-void b2DebugDraw_init(b2DebugDraw *d, Canvas *canvas)
+void b2DebugDraw_init(b2DebugDraw *d, Draw *draw)
 {
 	d->DrawPolygonFcn           = DrawPolygonFcn;
 	d->DrawSolidPolygonFcn      = DrawSolidPolygonFcn;
@@ -73,7 +73,7 @@ void b2DebugDraw_init(b2DebugDraw *d, Canvas *canvas)
 	d->DrawPointFcn             = DrawPointFcn;
 	d->DrawStringFcn            = DrawStringFcn;
 	d->DrawBoundsFcn            = DrawBoundsFcn;
-	d->context                  = canvas;
+	d->context                  = draw;
 	d->drawMass                 = true;
 	d->drawContacts             = true;
 	d->drawContactForces        = true;
