@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
-#include <cglm/cglm.h>
 #include <flecs.h>
 #include <box2d/box2d.h>
 #include <glad/glad.h>
@@ -15,11 +14,12 @@
 #include "fs.h"
 #include "b2DebugDraw_init.h"
 #include "b2.h"
+#include "gcamera.h"
 
 typedef struct SampleContext {
 	ecs_world_t *world;
 	GLFWwindow  *window;
-	Camera      camera;
+	GCamera      camera;
 	Draw *	draw;
 	b2DebugDraw  debugDraw;
 	float timeStep;
@@ -76,33 +76,6 @@ void glfwErrorCallback(int error, const char *description)
 
 static SampleContext s_context;
 
-static void BuildProjectionMatrixForCamera(const Camera *camera, float *m)
-{
-	float ratio = camera->width / camera->height;
-	float w     = 2.0f * camera->zoom * ratio;
-	float h     = 2.0f * camera->zoom;
-
-	m[0] = 2.0f / w;
-	m[1] = 0.0f;
-	m[2] = 0.0f;
-	m[3] = 0.0f;
-
-	m[4] = 0.0f;
-	m[5] = 2.0f / h;
-	m[6] = 0.0f;
-	m[7] = 0.0f;
-
-	m[8]  = 0.0f;
-	m[9]  = 0.0f;
-	m[10] = -1.0f;
-	m[11] = 0.0f;
-
-	m[12] = 0.0f;
-	m[13] = 0.0f;
-	m[14] = 0.0f;
-	m[15] = 1.0f;
-}
-
 static void System_EgB2World_Step(ecs_iter_t *it)
 {
 	EgB2World     *b2world = ecs_field(it, EgB2World, 0); // self
@@ -128,9 +101,7 @@ int main(int argc, char *argv[])
 	ECS_IMPORT(world, EgSpatials);
 	ECS_IMPORT(world, EgB2);
 
-	s_context.camera        = GetDefaultCamera();
-	s_context.camera.center = (b2Pos){0.0f, 0.0f};
-	s_context.camera.zoom   = 12.0f;
+	s_context.camera               = gcamera_create();
 	s_context.timeStep             = 1.0f / 60.0f;
 	s_context.subStepCount         = 4;
 
@@ -228,20 +199,19 @@ int main(int argc, char *argv[])
 	while (!glfwWindowShouldClose(s_context.window)) {
 		int width, height;
 		glfwGetWindowSize(s_context.window, &width, &height);
-		s_context.camera.width  = width;
-		s_context.camera.height = height;
+		gcamera_set_viewport_size(&s_context.camera, (float)width, (float)height);
 
 		int bufferWidth, bufferHeight;
 		glfwGetFramebufferSize(s_context.window, &bufferWidth, &bufferHeight);
 		glViewport(0, 0, bufferWidth, bufferHeight);
 		glClearColor(0.07f, 0.07f, 0.09f, 1.0f);
 		glClear(GL_COLOR_BUFFER_BIT);
-		SetDrawOrigin(s_context.draw, s_context.camera.center);
+		gcamera_apply_draw_origin(&s_context.camera, s_context.draw);
 		ecs_progress(world, 0.0f);
 
 		float projectionMatrix[16] = {0.0f};
-		BuildProjectionMatrixForCamera(&s_context.camera, projectionMatrix);
-		float pixelScale = s_context.camera.height / s_context.camera.zoom;
+		gcamera_build_projection_matrix(&s_context.camera, projectionMatrix);
+		float pixelScale = gcamera_get_pixel_scale(&s_context.camera);
 		FlushDraw(s_context.draw, pixelScale, projectionMatrix);
 		glfwSwapBuffers(s_context.window);
 		glfwPollEvents();

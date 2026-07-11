@@ -28,7 +28,7 @@ void DrawBounds(Draw *draw, b2AABB aabb, b2HexColor color);
 void DrawString(Draw *draw, b2Pos p, b2HexColor color, const char *string, ...);
 
 void FlushDraw(Draw *draw, float pixelScale, const float *projectionMatrix);
-void DrawBackground(Draw *draw, Camera *camera);
+void DrawBackground(Draw *draw, float width, float height);
 
 #ifdef __cplusplus
 }

@@ -67,7 +67,7 @@ void DestroyBackground(Background *background)
 	free(background);
 }
 
-void RenderBackground(Background *background, Camera *camera)
+void RenderBackground(Background *background, float width, float height)
 {
 	glUseProgram(background->programId);
 
@@ -75,7 +75,7 @@ void RenderBackground(Background *background, Camera *camera)
 	time       = fmodf(time, 100.0f);
 
 	glUniform1f(background->timeUniform, time);
-	glUniform2f(background->resolutionUniform, (float)camera->width, (float)camera->height);
+	glUniform2f(background->resolutionUniform, width, height);
 	glUniform3f(background->baseColorUniform, 0.2f, 0.2f, 0.2f);
 
 	glBindVertexArray(background->vaoId);

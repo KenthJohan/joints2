@@ -7,100 +7,6 @@
 
 #include <string.h>
 
-Camera GetDefaultCamera(void)
-{
-	return (Camera){
-	.center = {0.0f, 20.0f},
-	.zoom   = 1.0f,
-	.width  = 1920.0f,
-	.height = 1080.0f,
-	};
-}
-
-void ResetView(Camera *camera)
-{
-	camera->center = (b2Pos){0.0f, 20.0f};
-	camera->zoom   = 1.0f;
-}
-
-b2Pos ConvertScreenToWorld(Camera *camera, b2Vec2 screenPoint)
-{
-	float w = camera->width;
-	float h = camera->height;
-	float u = screenPoint.x / w;
-	float v = (h - screenPoint.y) / h;
-
-	float  ratio   = w / h;
-	b2Vec2 extents = {camera->zoom * ratio, camera->zoom};
-
-	// Form the offset from the view center in float, then add to the center. Building
-	// center +/- extents in float would lose the view-sized extents far from the origin.
-	b2Vec2 offset = {extents.x * (2.0f * u - 1.0f), extents.y * (2.0f * v - 1.0f)};
-	return b2OffsetPos(camera->center, offset);
-}
-
-b2Vec2 ConvertViewToScreen(Camera *camera, b2Vec2 viewPoint)
-{
-	float w     = camera->width;
-	float h     = camera->height;
-	float ratio = w / h;
-
-	b2Vec2 extents = {camera->zoom * ratio, camera->zoom};
-
-	float u = (viewPoint.x + extents.x) / (2.0f * extents.x);
-	float v = (viewPoint.y + extents.y) / (2.0f * extents.y);
-
-	b2Vec2 ps = {u * w, (1.0f - v) * h};
-	return ps;
-}
-
-b2Vec2 ConvertWorldToScreen(Camera *camera, b2Pos worldPoint)
-{
-	// Distance from the view center, demoted to float, then the float mapping
-	return ConvertViewToScreen(camera, b2SubPos(worldPoint, camera->center));
-}
-
-b2AABB GetViewBounds(Camera *camera)
-{
-	if (camera->height == 0.0f || camera->width == 0.0f) {
-		b2AABB bounds = {
-		.lowerBound = b2Vec2_zero,
-		.upperBound = b2Vec2_zero,
-		};
-		return bounds;
-	}
-
-	b2Pos lower = ConvertScreenToWorld(camera, (b2Vec2){0.0f, camera->height});
-	b2Pos upper = ConvertScreenToWorld(camera, (b2Vec2){camera->width, 0.0f});
-
-	// Engine cull box stays float. Round outward so nothing visible is clipped far from the origin.
-	b2AABB bounds;
-	bounds.lowerBound = (b2Vec2){b2RoundDownFloat(lower.x), b2RoundDownFloat(lower.y)};
-	bounds.upperBound = (b2Vec2){b2RoundUpFloat(upper.x), b2RoundUpFloat(upper.y)};
-	return bounds;
-}
-
-void FocusOnBounds(Camera *camera, b2AABB bounds)
-{
-	if (camera->width == 0) {
-		return;
-	}
-
-	b2Vec2 extents = b2AABB_Extents(bounds);
-
-	if (extents.x < B2_LINEAR_SLOP || extents.y < B2_LINEAR_SLOP) {
-		return;
-	}
-
-	float invRatio = camera->height / camera->width;
-	camera->zoom   = b2MaxFloat(extents.x * invRatio, extents.y);
-
-	// Need to guard against zero because zoom can get stuck there
-	camera->zoom = b2MaxFloat(camera->zoom, 0.01f);
-
-	camera->center = b2ToPos(b2AABB_Center(bounds));
-}
-
 typedef struct Draw {
 	Background  *background;
 	PointRender *points;
@@ -111,7 +17,7 @@ typedef struct Draw {
 	Polygons    *polygons;
 	TextRender  *text;
 
-	// Camera center in large world mode, subtracted by the DrawWorld helpers. Zero in float mode.
+	// View origin in large world mode, subtracted by the DrawWorld helpers. Zero in float mode.
 	b2Pos origin;
 } Draw;
 
@@ -185,7 +91,7 @@ void DrawPolygon(Draw *draw, b2WorldTransform transform, const b2Vec2 *vertices,
 
 void DrawSolidCircle(Draw *draw, b2WorldTransform transform, b2Vec2 center, float radius, b2HexColor color)
 {
-	// Fold the local center offset into the world transform, then shift into the camera frame
+	// Fold the local center offset into the world transform, then shift into the local view frame
 	b2WorldTransform xf             = {b2TransformWorldPoint(transform, center), transform.q};
 	b2Transform      localTransform = b2ToRelativeTransform(xf, draw->origin);
 	AddSolidCircle(draw->circles, localTransform, radius, color);
@@ -275,7 +181,7 @@ void FlushDraw(Draw *draw, float pixelScale, const float *projectionMatrix)
 	CheckOpenGL();
 }
 
-void DrawBackground(Draw *draw, Camera *camera)
+void DrawBackground(Draw *draw, float width, float height)
 {
-	RenderBackground(draw->background, camera);
+	RenderBackground(draw->background, width, height);
 }

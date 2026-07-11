@@ -13,7 +13,7 @@ extern "C" {
 
 Background *CreateBackground(const DrawCreateInfo *createInfo);
 void        DestroyBackground(Background *background);
-void        RenderBackground(Background *background, Camera *camera);
+void        RenderBackground(Background *background, float width, float height);
 
 #ifdef __cplusplus
 }

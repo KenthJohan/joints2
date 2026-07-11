@@ -5,14 +5,6 @@
 
 #include "box2d/types.h"
 
-typedef struct Camera {
-	// World point the view is centered on. Double precision in large world mode.
-	b2Pos center;
-	float zoom;
-	float width;
-	float height;
-} Camera;
-
 typedef struct Draw Draw;
 
 typedef enum DrawShaderType {

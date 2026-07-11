@@ -49,32 +49,3 @@ static inline RGBA8 MakeRGBA8(b2HexColor c, float alpha)
 	(uint8_t)(0xFF * alpha),
 	};
 }
-
-static inline void BuildProjectionMatrix(Camera *camera, float *m, float zBias)
-{
-	float  ratio   = camera->width / camera->height;
-	b2Vec2 extents = {camera->zoom * ratio, camera->zoom};
-
-	float w = 2.0f * extents.x;
-	float h = 2.0f * extents.y;
-
-	m[0] = 2.0f / w;
-	m[1] = 0.0f;
-	m[2] = 0.0f;
-	m[3] = 0.0f;
-
-	m[4] = 0.0f;
-	m[5] = 2.0f / h;
-	m[6] = 0.0f;
-	m[7] = 0.0f;
-
-	m[8]  = 0.0f;
-	m[9]  = 0.0f;
-	m[10] = -1.0f;
-	m[11] = 0.0f;
-
-	m[12] = 0.0f;
-	m[13] = 0.0f;
-	m[14] = zBias;
-	m[15] = 1.0f;
-}

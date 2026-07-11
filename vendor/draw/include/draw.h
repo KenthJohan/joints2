@@ -5,7 +5,6 @@
 
 #include "draw_api.h"
 #include "draw_background.h"
-#include "draw_camera.h"
 #include "draw_circle.h"
 #include "draw_line.h"
 #include "draw_point.h"
