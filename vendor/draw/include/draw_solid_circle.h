@@ -14,7 +14,7 @@ extern "C" {
 SolidCircles *CreateSolidCircles(const DrawCreateInfo *createInfo);
 void          DestroySolidCircles(SolidCircles *render);
 void          AddSolidCircle(SolidCircles *render, b2Transform transform, float radius, b2HexColor color);
-void          FlushSolidCircles(SolidCircles *render, Camera *camera);
+void          FlushSolidCircles(SolidCircles *render, Camera *camera, const float *projectionMatrix);
 
 #ifdef __cplusplus
 }

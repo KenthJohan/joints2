@@ -84,7 +84,7 @@ void AddLine(LineRender *render, b2Vec2 p1, b2Vec2 p2, b2HexColor c)
 	VertexDataArray_Push(&render->points, (VertexData){p2, rgba});
 }
 
-void FlushLines(LineRender *render, Camera *camera)
+void FlushLines(LineRender *render, const float *projectionMatrix)
 {
 	int count = render->points.count;
 	if (count == 0) {
@@ -97,11 +97,7 @@ void FlushLines(LineRender *render, Camera *camera)
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 	glUseProgram(render->programId);
-
-	float proj[16] = {0};
-	BuildProjectionMatrix(camera, proj, 0.1f);
-
-	glUniformMatrix4fv(render->projectionUniform, 1, GL_FALSE, proj);
+	glUniformMatrix4fv(render->projectionUniform, 1, GL_FALSE, projectionMatrix);
 	glBindVertexArray(render->vaoId);
 	glBindBuffer(GL_ARRAY_BUFFER, render->vboId);
 

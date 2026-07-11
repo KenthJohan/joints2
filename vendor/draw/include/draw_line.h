@@ -14,7 +14,7 @@ extern "C" {
 LineRender *CreateLineRender(const DrawCreateInfo *createInfo);
 void        DestroyLineRender(LineRender *render);
 void        AddLine(LineRender *render, b2Vec2 p1, b2Vec2 p2, b2HexColor c);
-void        FlushLines(LineRender *render, Camera *camera);
+void        FlushLines(LineRender *render, const float *projectionMatrix);
 
 #ifdef __cplusplus
 }

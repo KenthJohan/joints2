@@ -14,7 +14,7 @@ extern "C" {
 PointRender *CreatePointDrawData(const DrawCreateInfo *createInfo);
 void         DestroyPointDrawData(PointRender *render);
 void         AddPoint(PointRender *render, b2Vec2 v, float size, b2HexColor c);
-void         FlushPoints(PointRender *render, Camera *camera);
+void         FlushPoints(PointRender *render, const float *projectionMatrix);
 
 #ifdef __cplusplus
 }

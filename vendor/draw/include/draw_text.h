@@ -14,7 +14,7 @@ extern "C" {
 TextRender *CreateTextRender(const DrawCreateInfo *createInfo);
 void        DestroyTextRender(TextRender *render);
 void        AddText(TextRender *render, float x, float y, float fontSize, b2HexColor color, const char *string);
-void        FlushText(TextRender *render, Camera *camera);
+void        FlushText(TextRender *render, const float *projectionMatrix);
 
 #ifdef __cplusplus
 }

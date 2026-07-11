@@ -5,6 +5,8 @@
 
 #include "draw_internal.h"
 
+#include <string.h>
+
 Camera GetDefaultCamera(void)
 {
 	return (Camera){
@@ -246,16 +248,30 @@ void DrawString(Draw *draw, b2Pos p, b2HexColor color, const char *string, ...)
 	AddText(draw->text, textPos.x, textPos.y, 0.5f, color, buffer);
 }
 
-void FlushDraw(Draw *draw, Camera *camera)
+static void SetProjectionZBias(float *dst, const float *src, float zBias)
 {
+	memcpy(dst, src, 16 * sizeof(float));
+	dst[14] = zBias;
+}
+
+void FlushDraw(Draw *draw, Camera *camera, const float *projectionMatrix)
+{
+	float projDefault[16];
+	float projLine[16];
+	float projShape[16];
+
+	SetProjectionZBias(projDefault, projectionMatrix, 0.0f);
+	SetProjectionZBias(projLine, projectionMatrix, 0.1f);
+	SetProjectionZBias(projShape, projectionMatrix, 0.2f);
+
 	// order matters
-	FlushSolidCircles(draw->circles, camera);
-	FlushCapsules(draw->capsules, camera);
-	FlushPolygons(draw->polygons, camera);
-	FlushCircles(draw->hollowCircles, camera);
-	FlushLines(draw->lines, camera);
-	FlushPoints(draw->points, camera);
-	FlushText(draw->text, camera);
+	FlushSolidCircles(draw->circles, camera, projShape);
+	FlushCapsules(draw->capsules, camera, projShape);
+	FlushPolygons(draw->polygons, camera, projShape);
+	FlushCircles(draw->hollowCircles, camera, projShape);
+	FlushLines(draw->lines, projLine);
+	FlushPoints(draw->points, projDefault);
+	FlushText(draw->text, projDefault);
 	CheckOpenGL();
 }
 

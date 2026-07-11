@@ -101,7 +101,7 @@ void AddCircle(CircleRender *render, b2Vec2 center, float radius, b2HexColor col
 	CircleDataArray_Push(&render->circles, (CircleData){center, radius, rgba});
 }
 
-void FlushCircles(CircleRender *render, Camera *camera)
+void FlushCircles(CircleRender *render, Camera *camera, const float *projectionMatrix)
 {
 	int count = render->circles.count;
 	if (count == 0) {
@@ -109,11 +109,7 @@ void FlushCircles(CircleRender *render, Camera *camera)
 	}
 
 	glUseProgram(render->programId);
-
-	float proj[16] = {0.0f};
-	BuildProjectionMatrix(camera, proj, 0.2f);
-
-	glUniformMatrix4fv(render->projectionUniform, 1, GL_FALSE, proj);
+	glUniformMatrix4fv(render->projectionUniform, 1, GL_FALSE, projectionMatrix);
 	glUniform1f(render->pixelScaleUniform, camera->height / camera->zoom);
 
 	glBindVertexArray(render->vaoId);

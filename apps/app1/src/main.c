@@ -76,6 +76,33 @@ void glfwErrorCallback(int error, const char *description)
 
 static SampleContext s_context;
 
+static void BuildProjectionMatrixForCamera(const Camera *camera, float *m)
+{
+	float ratio = camera->width / camera->height;
+	float w     = 2.0f * camera->zoom * ratio;
+	float h     = 2.0f * camera->zoom;
+
+	m[0] = 2.0f / w;
+	m[1] = 0.0f;
+	m[2] = 0.0f;
+	m[3] = 0.0f;
+
+	m[4] = 0.0f;
+	m[5] = 2.0f / h;
+	m[6] = 0.0f;
+	m[7] = 0.0f;
+
+	m[8]  = 0.0f;
+	m[9]  = 0.0f;
+	m[10] = -1.0f;
+	m[11] = 0.0f;
+
+	m[12] = 0.0f;
+	m[13] = 0.0f;
+	m[14] = 0.0f;
+	m[15] = 1.0f;
+}
+
 static void System_EgB2World_Step(ecs_iter_t *it)
 {
 	EgB2World     *b2world = ecs_field(it, EgB2World, 0); // self
@@ -212,7 +239,9 @@ int main(int argc, char *argv[])
 		SetDrawOrigin(s_context.canvas.draw, s_context.canvas.camera.center);
 		ecs_progress(world, 0.0f);
 
-		FlushDraw(s_context.canvas.draw, &s_context.canvas.camera);
+		float projectionMatrix[16] = {0.0f};
+		BuildProjectionMatrixForCamera(&s_context.canvas.camera, projectionMatrix);
+		FlushDraw(s_context.canvas.draw, &s_context.canvas.camera, projectionMatrix);
 		glfwSwapBuffers(s_context.window);
 		glfwPollEvents();
 	}

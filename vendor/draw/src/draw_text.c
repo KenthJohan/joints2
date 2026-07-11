@@ -249,7 +249,7 @@ void AddText(TextRender *render, float x, float y, float fontSize, b2HexColor co
 	}
 }
 
-void FlushText(TextRender *render, Camera *camera)
+void FlushText(TextRender *render, const float *projectionMatrix)
 {
 	int count = render->vertices.count;
 	if (count == 0 || render->initialized == 0) {
@@ -259,10 +259,7 @@ void FlushText(TextRender *render, Camera *camera)
 	glEnable(GL_BLEND);
 	glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	glUseProgram(render->programId);
-
-	float proj[16] = {0.0f};
-	BuildProjectionMatrix(camera, proj, 0.0f);
-	glUniformMatrix4fv(render->projectionUniform, 1, GL_FALSE, proj);
+	glUniformMatrix4fv(render->projectionUniform, 1, GL_FALSE, projectionMatrix);
 
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, render->textureId);

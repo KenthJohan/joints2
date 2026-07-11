@@ -14,7 +14,7 @@ extern "C" {
 Capsules *CreateCapsules(const DrawCreateInfo *createInfo);
 void      DestroyCapsules(Capsules *render);
 void      AddCapsule(Capsules *render, b2Vec2 p1, b2Vec2 p2, float radius, b2HexColor c);
-void      FlushCapsules(Capsules *render, Camera *camera);
+void      FlushCapsules(Capsules *render, Camera *camera, const float *projectionMatrix);
 
 #ifdef __cplusplus
 }

@@ -14,7 +14,7 @@ extern "C" {
 Polygons *CreatePolygons(const DrawCreateInfo *createInfo);
 void      DestroyPolygons(Polygons *render);
 void      AddPolygon(Polygons *render, b2Transform transform, const b2Vec2 *points, int count, float radius, b2HexColor color);
-void      FlushPolygons(Polygons *render, Camera *camera);
+void      FlushPolygons(Polygons *render, Camera *camera, const float *projectionMatrix);
 
 #ifdef __cplusplus
 }

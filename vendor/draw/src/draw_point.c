@@ -87,7 +87,7 @@ void AddPoint(PointRender *render, b2Vec2 v, float size, b2HexColor c)
 	PointDataArray_Push(&render->points, (PointData){v, size, rgba});
 }
 
-void FlushPoints(PointRender *render, Camera *camera)
+void FlushPoints(PointRender *render, const float *projectionMatrix)
 {
 	int count = render->points.count;
 	if (count == 0) {
@@ -95,11 +95,7 @@ void FlushPoints(PointRender *render, Camera *camera)
 	}
 
 	glUseProgram(render->programId);
-
-	float proj[16] = {0.0f};
-	BuildProjectionMatrix(camera, proj, 0.0f);
-
-	glUniformMatrix4fv(render->projectionUniform, 1, GL_FALSE, proj);
+	glUniformMatrix4fv(render->projectionUniform, 1, GL_FALSE, projectionMatrix);
 	glBindVertexArray(render->vaoId);
 
 	glBindBuffer(GL_ARRAY_BUFFER, render->vboId);
