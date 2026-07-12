@@ -1,11 +1,15 @@
 #include "b2.h"
 #include <EgSpatials.h>
+#include "AppDraw.h"
+#include "b2DebugDraw_init.h"
 
 ECS_COMPONENT_DECLARE(EgB2World);
 ECS_COMPONENT_DECLARE(EgB2WorldDef);
 ECS_COMPONENT_DECLARE(EgB2Body);
 ECS_COMPONENT_DECLARE(EgB2BodyDef);
 ECS_COMPONENT_DECLARE(EgB2Box);
+ECS_COMPONENT_DECLARE(EgB2DebugDrawDef);
+ECS_COMPONENT_DECLARE(EgB2DebugDraw);
 
 static void EgB2World_Create(ecs_iter_t *it)
 {
@@ -59,6 +63,21 @@ void EgB2World_Destroy(ecs_iter_t *it)
 	}
 }
 
+static void EgB2DebugDraw_Create(ecs_iter_t *it)
+{
+	ecs_log_set_level(0);
+	/*
+	AppDrawContext   *draw = ecs_field(it, AppDrawContext, 0);   // shared, up
+	EgB2DebugDrawDef *def  = ecs_field(it, EgB2DebugDrawDef, 1); // self
+	for (int i = 0; i < it->count; ++i, ++def) {
+		b2DebugDraw d;
+		b2DebugDraw_init(&d, draw->draw);
+		ecs_set(it->world, it->entities[i], EgB2DebugDraw, {d});
+	}
+	*/
+	ecs_log_set_level(-1);
+}
+
 void EgB2Import(ecs_world_t *world)
 {
 	ECS_MODULE(world, EgB2);
@@ -71,6 +90,8 @@ void EgB2Import(ecs_world_t *world)
 	ECS_COMPONENT_DEFINE(world, EgB2Body);
 	ECS_COMPONENT_DEFINE(world, EgB2BodyDef);
 	ECS_COMPONENT_DEFINE(world, EgB2Box);
+	ECS_COMPONENT_DEFINE(world, EgB2DebugDrawDef);
+	ECS_COMPONENT_DEFINE(world, EgB2DebugDraw);
 
 	ecs_system(world,
 	{.entity  = ecs_entity(world, {.name = "EgB2World_Create", .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),
@@ -91,6 +112,16 @@ void EgB2Import(ecs_world_t *world)
 	{.id = ecs_id(EgB2BodyDef), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(EgB2Box), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(EgB2Body), .oper = EcsNot}, // Adds this
+	}});
+
+	ecs_system(world,
+	{.entity  = ecs_entity(world, {.name = "EgB2DebugDraw_Create", .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),
+	.callback = EgB2DebugDraw_Create,
+	.query.terms =
+	{
+	{.id = ecs_id(AppDrawContext), .trav = EcsChildOf, .src.id = EcsUp, .inout = EcsIn},
+	{.id = ecs_id(EgB2DebugDrawDef), .src.id = EcsSelf, .inout = EcsIn},
+	{.id = ecs_id(EgB2DebugDraw), .oper = EcsNot}, // Adds this
 	}});
 
 	ecs_observer(world,

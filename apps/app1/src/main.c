@@ -10,141 +10,36 @@
 #include <GLFW/glfw3.h>
 #include <draw.h>
 #include <EgSpatials.h>
+#include <EgShapes.h>
+#include <EgWindows.h>
+#include <EgWindowsSdl.h>
+#include <EgCamcontrols.h>
+#include <EgCameras.h>
 
 #include "fs.h"
 #include "b2DebugDraw_init.h"
 #include "b2.h"
 #include "gcamera.h"
 
-typedef struct SampleContext {
-	ecs_world_t *world;
-	GLFWwindow  *window;
-	GCamera      camera;
-	Draw *	draw;
-	b2DebugDraw  debugDraw;
-	float timeStep;
-	int   subStepCount;
-} SampleContext;
-
-static bool BuildDrawCreateInfo(DrawCreateInfo *createInfo)
-{
-	*createInfo = (DrawCreateInfo){0};
-
-	createInfo->shaders[DRAW_SHADER_BACKGROUND_VERTEX]      = fs_read_allocated("data/background.vs");
-	createInfo->shaders[DRAW_SHADER_BACKGROUND_FRAGMENT]    = fs_read_allocated("data/background.fs");
-	createInfo->shaders[DRAW_SHADER_POINT_VERTEX]           = fs_read_allocated("data/point.vs");
-	createInfo->shaders[DRAW_SHADER_POINT_FRAGMENT]         = fs_read_allocated("data/point.fs");
-	createInfo->shaders[DRAW_SHADER_LINE_VERTEX]            = fs_read_allocated("data/line.vs");
-	createInfo->shaders[DRAW_SHADER_LINE_FRAGMENT]          = fs_read_allocated("data/line.fs");
-	createInfo->shaders[DRAW_SHADER_CIRCLE_VERTEX]          = fs_read_allocated("data/circle.vs");
-	createInfo->shaders[DRAW_SHADER_CIRCLE_FRAGMENT]        = fs_read_allocated("data/circle.fs");
-	createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_VERTEX]    = fs_read_allocated("data/solid_circle.vs");
-	createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_FRAGMENT]  = fs_read_allocated("data/solid_circle.fs");
-	createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_VERTEX]   = fs_read_allocated("data/solid_capsule.vs");
-	createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_FRAGMENT] = fs_read_allocated("data/solid_capsule.fs");
-	createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_VERTEX]   = fs_read_allocated("data/solid_polygon.vs");
-	createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_FRAGMENT] = fs_read_allocated("data/solid_polygon.fs");
-	createInfo->shaders[DRAW_SHADER_TEXT_VERTEX]            = fs_read_allocated("data/text.vs");
-	createInfo->shaders[DRAW_SHADER_TEXT_FRAGMENT]          = fs_read_allocated("data/text.fs");
-
-	for (int i = 0; i < DRAW_SHADER_COUNT; ++i) {
-		if (createInfo->shaders[i] == NULL) {
-			fprintf(stderr, "Failed to load one or more shader files from apps/app1/data or data\n");
-			return false;
-		}
-	}
-
-	return true;
-}
-
-static void FreeDrawCreateInfo(DrawCreateInfo *createInfo)
-{
-	for (int i = 0; i < DRAW_SHADER_COUNT; ++i) {
-		free((void *)createInfo->shaders[i]);
-	}
-	*createInfo = (DrawCreateInfo){0};
-}
-
-void glfwErrorCallback(int error, const char *description)
-{
-	fprintf(stderr, "GLFW error occurred. Code: %d. Description: %s\n", error, description);
-}
-
-static void UpdateCameraFromKeyboard(SampleContext *ctx, float deltaTime)
-{
-	const float panSpeed  = 2.0f * ctx->camera.zoom * deltaTime;
-	const float zoomSpeed = 1.5f * deltaTime;
-
-	if (glfwGetKey(ctx->window, GLFW_KEY_A) == GLFW_PRESS) {
-		ctx->camera.center.x -= panSpeed;
-	}
-
-	if (glfwGetKey(ctx->window, GLFW_KEY_D) == GLFW_PRESS) {
-		ctx->camera.center.x += panSpeed;
-	}
-
-	if (glfwGetKey(ctx->window, GLFW_KEY_W) == GLFW_PRESS) {
-		ctx->camera.center.y += panSpeed;
-	}
-
-	if (glfwGetKey(ctx->window, GLFW_KEY_S) == GLFW_PRESS) {
-		ctx->camera.center.y -= panSpeed;
-	}
-
-	if (glfwGetKey(ctx->window, GLFW_KEY_EQUAL) == GLFW_PRESS || glfwGetKey(ctx->window, GLFW_KEY_KP_ADD) == GLFW_PRESS) {
-		ctx->camera.zoom -= zoomSpeed * ctx->camera.zoom;
-	}
-
-	if (glfwGetKey(ctx->window, GLFW_KEY_MINUS) == GLFW_PRESS || glfwGetKey(ctx->window, GLFW_KEY_KP_SUBTRACT) == GLFW_PRESS) {
-		ctx->camera.zoom += zoomSpeed * ctx->camera.zoom;
-	}
-
-	if (ctx->camera.zoom < 0.5f) {
-		ctx->camera.zoom = 0.5f;
-	}
-
-	if (ctx->camera.zoom > 100.0f) {
-		ctx->camera.zoom = 100.0f;
-	}
-}
-
-
-
-
-
-static SampleContext s_context;
-
-static void System_EgB2World_Step(ecs_iter_t *it)
-{
-	EgB2World     *b2world = ecs_field(it, EgB2World, 0); // self
-	SampleContext *ctx     = it->ctx;
-	for (int i = 0; i < it->count; ++i) {
-		b2World_Step(b2world[i].id, ctx->timeStep, ctx->subStepCount);
-	}
-}
-
-static void System_EgB2World_Draw(ecs_iter_t *it)
-{
-	SampleContext *ctx     = it->ctx;
-	EgB2World     *b2world = ecs_field(it, EgB2World, 0); // self
-	for (int i = 0; i < it->count; ++i) {
-		b2World_Draw(b2world[i].id, &ctx->debugDraw);
-	}
-}
-
 int main(int argc, char *argv[])
 {
 	ecs_world_t *world = ecs_init();
 
+	ECS_IMPORT(world, EgShapes);
 	ECS_IMPORT(world, EgSpatials);
 	ECS_IMPORT(world, EgB2);
+	ECS_IMPORT(world, EgWindows);
+	ECS_IMPORT(world, EgWindowsSdl);
+	ECS_IMPORT(world, EgCameras);
+	ECS_IMPORT(world, EgCamcontrols);
 
-	s_context.camera               = gcamera_create();
-	s_context.timeStep             = 1.0f / 60.0f;
-	s_context.subStepCount         = 4;
+	/*
+	ecs_entity_t e_debugdraw = ecs_new(world);
+	ecs_set(world, e_debugdraw, EgB2DebugDrawDef, {0});
 
 	ecs_entity_t e_b2world = ecs_new(world);
 	ecs_set(world, e_b2world, EgB2WorldDef, {0.0f, -10.0f});
+	ecs_add_pair(world, e_b2world, EcsDependsOn, e_debugdraw);
 
 	ecs_entity_t e_ground = ecs_new(world);
 	ecs_add_pair(world, e_ground, EcsChildOf, e_b2world);
@@ -158,111 +53,45 @@ int main(int argc, char *argv[])
 	ecs_set(world, e_box, EgB2BodyDef, {b2_dynamicBody});
 	ecs_set(world, e_box, EgB2Box, {1.0f, 1.0f, 1.0f, 0.3f});
 
-	ecs_system(world,
-	{.entity  = ecs_entity(world, {.name = "System_EgB2World_Step", .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),
-	.callback = System_EgB2World_Step,
-	.ctx      = &s_context,
-	.query.terms =
-	{
-	{.id = ecs_id(EgB2World), .src.id = EcsSelf, .inout = EcsIn},
-	}});
-
-	ecs_system(world,
-	{.entity  = ecs_entity(world, {.name = "System_EgB2World_Draw", .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),
-	.callback = System_EgB2World_Draw,
-	.ctx      = &s_context,
-	.query.terms =
-	{
-	{.id = ecs_id(EgB2World), .src.id = EcsSelf, .inout = EcsIn},
-	}});
-
-	/*
-	b2WorldDef worldDef = b2DefaultWorldDef();
-	worldDef.gravity    = (b2Vec2){0.0f, -10.0f};
-	s_context.m_worldId = b2CreateWorld(&worldDef);
-	test1_create_world(world, s_context.m_worldId);
+	ecs_entity_t e_box2 = ecs_new(world);
+	ecs_add_pair(world, e_box2, EcsChildOf, e_b2world);
+	ecs_set(world, e_box2, Position2, {0.1f, 9.0f});
+	ecs_set(world, e_box2, EgB2BodyDef, {b2_dynamicBody});
+	ecs_set(world, e_box2, EgB2Box, {1.0f, 1.0f, 1.0f, 0.3f});
 	*/
 
-	glfwSetErrorCallback(glfwErrorCallback);
+	ecs_log_set_level(0);
+	ecs_script_run_file(world, "config/windows.flecs");
+	ecs_log_set_level(-1);
 
-	if (glfwInit() == 0) {
-		fprintf(stderr, "Failed to initialize GLFW\n");
-		return -1;
-	}
+	ecs_log_set_level(0);
+	ecs_script_run_file(world, "config/camera.flecs");
+	ecs_log_set_level(-1);
 
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+	/*
+	ecs_entity_t e_window = ecs_new(world);
+	ecs_add_pair(world, e_window, EcsChildOf, ecs_id(EgWindows));
+	ecs_set(world, e_window, EgWindowsWindowCreateInfo, {false});
+	ecs_set(world, e_window, EgShapesRectangle, {800, 600});
+	*/
 
-	// MSAA
-	glfwWindowHint(GLFW_SAMPLES, 4);
+	/*
+	ecs_entity_t e_camera = ecs_new(world);
+	ecs_add_pair(world, e_camera, EcsDependsOn, e_window);
+	ecs_add(world, e_camera, EgCamerasState);
+	ecs_set(world, e_camera, Position3, {0.0f, 0.0f, 10.0f});
+	ecs_set(world, e_camera, Orientation, {0.0f, 0.0f, 0.0f, 1.0f});
+	*/
 
-	s_context.window = glfwCreateWindow(s_context.camera.width, s_context.camera.height, "App1", NULL, NULL);
-	if (s_context.window == NULL) {
-		fprintf(stderr, "Failed to open GLFW window.\n");
-		glfwTerminate();
-		return -1;
-	}
-	glfwMakeContextCurrent(s_context.window);
-
-	// Load OpenGL functions using glad
-	if (!gladLoadGL()) {
-		fprintf(stderr, "Failed to initialize glad\n");
-		glfwTerminate();
-		return -1;
-	}
-
-	DrawCreateInfo drawCreateInfo;
-	if (!BuildDrawCreateInfo(&drawCreateInfo)) {
-		glfwTerminate();
-		return -1;
-	}
-
-	s_context.draw = CreateDraw(&drawCreateInfo);
-	b2DebugDraw_init(&s_context.debugDraw, s_context.draw);
-	FreeDrawCreateInfo(&drawCreateInfo);
-
-	{
-		const char *glVersionString   = (const char *)glGetString(GL_VERSION);
-		const char *glslVersionString = (const char *)glGetString(GL_SHADING_LANGUAGE_VERSION);
-		printf("OpenGL %s, GLSL %s\n", glVersionString, glslVersionString);
-	}
 
 #if 1
 	ecs_set(world, EcsWorld, EcsRest, {.port = 0});
 	printf("Remote: %s\n", "https://www.flecs.dev/explorer/?page=rest&host=localhost");
 #endif
 
-	double previousTime = glfwGetTime();
-
-	while (!glfwWindowShouldClose(s_context.window)) {
-		double currentTime = glfwGetTime();
-		float  deltaTime   = (float)(currentTime - previousTime);
-		previousTime       = currentTime;
-
-		int width, height;
-		glfwGetWindowSize(s_context.window, &width, &height);
-		gcamera_set_viewport_size(&s_context.camera, (float)width, (float)height);
-		UpdateCameraFromKeyboard(&s_context, deltaTime);
-
-		int bufferWidth, bufferHeight;
-		glfwGetFramebufferSize(s_context.window, &bufferWidth, &bufferHeight);
-		glViewport(0, 0, bufferWidth, bufferHeight);
-		glClearColor(0.07f, 0.07f, 0.09f, 1.0f);
-		glClear(GL_COLOR_BUFFER_BIT);
-
-		ecs_progress(world, 0.0f);
-
-		float projectionMatrix[16] = {0.0f};
-		gcamera_build_projection_matrix(&s_context.camera, projectionMatrix);
-		float pixelScale = gcamera_get_pixel_scale(&s_context.camera);
-		FlushDraw(s_context.draw, pixelScale, projectionMatrix);
-		glfwSwapBuffers(s_context.window);
-		glfwPollEvents();
+	while (1) {
+		ecs_progress(world, 0.016f);
 	}
-	glfwTerminate();
-
 	ecs_fini(world);
 
 	return 0;

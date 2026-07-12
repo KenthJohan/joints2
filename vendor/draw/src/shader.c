@@ -9,8 +9,9 @@
 
 #include <assert.h>
 #include <stdbool.h>
-#include <glad/glad.h>
 #include <stdio.h>
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_opengl.h>
 
 #if defined( _MSC_VER )
 	#define _CRTDBG_MAP_ALLOC

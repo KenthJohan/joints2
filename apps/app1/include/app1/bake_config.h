@@ -19,7 +19,14 @@
 
 /* Headers of public dependencies */
 #include <flecs.h>
-#include <draw.h>
+#include <EgSpatials.h>
+#include <EgShapes.h>
+#include <EgWindows.h>
+#include <EgWindowsGlfw.h>
+#include <EgCamcontrols.h>
+#include <EgCameras.h>
+#include <EgKeyboards.h>
+#include <egmath.h>
 
 #endif
 

@@ -1,0 +1,8 @@
+module eg.windows
+using eg.shapes
+using eg.spatials
+
+window1 {
+    WindowCreateInfo : {false}
+    Rectangle : {800, 600}
+}

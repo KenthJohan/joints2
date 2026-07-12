@@ -5,9 +5,15 @@
         "language": "c",
         "use": [
             "flecs",
-			"box2d",
-			"draw",
-			"glad"
+			"EgSpatials",
+			"EgShapes",
+			"EgWindows",
+			"EgWindowsGlfw",
+			"EgCamcontrols",
+			"EgCameras",
+			"EgKeyboards",
+			"egmath",
+			"box2d"
         ],
         "public": false
     },
@@ -17,13 +23,23 @@
 			"_FORTIFY_SOURCE=2"
 		],
 		"lib": [
-			"flecs",
+			"EgCamcontrols",
+			"EgCameras",
+			"EgShapes",
 			"EgSpatials",
+			"EgWindows",
+			"EgWindowsSdl",
+			"EgKeyboards",
+			"EgFs",
+			"EgBase",
+			"EgGlslang",
+			"ecsx",
+			"egmisc",
+			"egmath",
 			"box2d",
-			"cglm",
+			"flecs",
 			"draw",
-			"glad",
-			"glfw",
+			"SDL3",
 			"stdc++",
 			"m"
 		],
