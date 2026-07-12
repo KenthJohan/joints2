@@ -15,7 +15,8 @@
 			"-DGL_GLEXT_PROTOTYPES"
 		],
 		"lib": [
-			"SDL3"
+			"SDL3",
+			"GL"
 		]
 	}
 }

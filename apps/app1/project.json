@@ -20,7 +20,8 @@
 	"lang.c": {
 		"c-standard": "gnu99",
 		"defines": [
-			"_FORTIFY_SOURCE=2"
+			"_FORTIFY_SOURCE=2",
+			"GL_GLEXT_PROTOTYPES"
 		],
 		"lib": [
 			"EgCamcontrols",
@@ -40,6 +41,7 @@
 			"flecs",
 			"draw",
 			"SDL3",
+			"GL",
 			"stdc++",
 			"m"
 		],

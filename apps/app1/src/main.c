@@ -6,8 +6,6 @@
 #include <string.h>
 #include <flecs.h>
 #include <box2d/box2d.h>
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
 #include <draw.h>
 #include <EgSpatials.h>
 #include <EgShapes.h>
