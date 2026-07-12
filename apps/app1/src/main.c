@@ -11,6 +11,7 @@
 #include <EgShapes.h>
 #include <EgWindows.h>
 #include <EgWindowsSdl.h>
+#include <EgWindowsSdlGl.h>
 #include <EgCamcontrols.h>
 #include <EgCameras.h>
 
@@ -28,6 +29,7 @@ int main(int argc, char *argv[])
 	ECS_IMPORT(world, EgB2);
 	ECS_IMPORT(world, EgWindows);
 	ECS_IMPORT(world, EgWindowsSdl);
+	ECS_IMPORT(world, EgWindowsSdlGl);
 	ECS_IMPORT(world, EgCameras);
 	ECS_IMPORT(world, EgCamcontrols);
 
@@ -66,6 +68,12 @@ int main(int argc, char *argv[])
 	ecs_script_run_file(world, "config/camera.flecs");
 	ecs_log_set_level(-1);
 
+	ecs_entity_t e_window = ecs_lookup(world, "eg.windows.window1");
+	if (!e_window) {
+		printf("Failed to find window entity\n");
+		return -1;
+	}
+
 	/*
 	ecs_entity_t e_window = ecs_new(world);
 	ecs_add_pair(world, e_window, EcsChildOf, ecs_id(EgWindows));
@@ -88,6 +96,10 @@ int main(int argc, char *argv[])
 #endif
 
 	while (1) {
+		if (ecs_has(world, e_window, EgWindowsEventCloseRequest)) {
+			printf("Window should close\n");
+			break;
+		}
 		ecs_progress(world, 0.016f);
 	}
 	ecs_fini(world);

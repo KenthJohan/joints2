@@ -22,7 +22,8 @@
 #include <EgSpatials.h>
 #include <EgShapes.h>
 #include <EgWindows.h>
-#include <EgWindowsGlfw.h>
+#include <EgWindowsSdl.h>
+#include <EgWindowsSdlGl.h>
 #include <EgCamcontrols.h>
 #include <EgCameras.h>
 #include <EgKeyboards.h>
