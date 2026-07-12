@@ -6,11 +6,11 @@
         "use": [
             "flecs",
 			"EgSpatials",
+			"EgSpatialsSystems",
 			"EgShapes",
 			"EgWindows",
 			"EgWindowsSdl",
 			"EgWindowsSdlGl",
-			"EgCamcontrols",
 			"EgCameras",
 			"EgKeyboards",
 			"egmath",
@@ -25,10 +25,10 @@
 			"GL_GLEXT_PROTOTYPES"
 		],
 		"lib": [
-			"EgCamcontrols",
 			"EgCameras",
 			"EgShapes",
 			"EgSpatials",
+			"EgSpatialsSystems",
 			"EgWindows",
 			"EgWindowsSdl",
 			"EgWindowsSdlGl",

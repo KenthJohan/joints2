@@ -8,11 +8,11 @@
 #include <box2d/box2d.h>
 #include <draw.h>
 #include <EgSpatials.h>
+#include <EgSpatialsSystems.h>
 #include <EgShapes.h>
 #include <EgWindows.h>
 #include <EgWindowsSdl.h>
 #include <EgWindowsSdlGl.h>
-#include <EgCamcontrols.h>
 #include <EgCameras.h>
 
 #include "fs.h"
@@ -26,12 +26,12 @@ int main(int argc, char *argv[])
 
 	ECS_IMPORT(world, EgShapes);
 	ECS_IMPORT(world, EgSpatials);
+	ECS_IMPORT(world, EgSpatialsSystems);
 	ECS_IMPORT(world, EgB2);
 	ECS_IMPORT(world, EgWindows);
 	ECS_IMPORT(world, EgWindowsSdl);
 	ECS_IMPORT(world, EgWindowsSdlGl);
 	ECS_IMPORT(world, EgCameras);
-	ECS_IMPORT(world, EgCamcontrols);
 
 	/*
 	ecs_entity_t e_debugdraw = ecs_new(world);
@@ -68,6 +68,11 @@ int main(int argc, char *argv[])
 	ecs_script_run_file(world, "config/camera.flecs");
 	ecs_log_set_level(-1);
 
+	// print offset of Velocity3 members:
+	printf("Velocity3.x offset: %zu\n", offsetof(Velocity3, x));
+	printf("Velocity3.y offset: %zu\n", offsetof(Velocity3, y));
+	printf("Velocity3.z offset: %zu\n", offsetof(Velocity3, z));
+
 	ecs_entity_t e_window = ecs_lookup(world, "eg.windows.window1");
 	if (!e_window) {
 		printf("Failed to find window entity\n");
@@ -100,7 +105,7 @@ int main(int argc, char *argv[])
 			printf("Window should close\n");
 			break;
 		}
-		ecs_progress(world, 0.016f);
+		ecs_progress(world, 1.0f / 60.0f);
 	}
 	ecs_fini(world);
 

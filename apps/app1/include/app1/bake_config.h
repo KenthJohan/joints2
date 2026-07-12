@@ -20,11 +20,11 @@
 /* Headers of public dependencies */
 #include <flecs.h>
 #include <EgSpatials.h>
+#include <EgSpatialsSystems.h>
 #include <EgShapes.h>
 #include <EgWindows.h>
 #include <EgWindowsSdl.h>
 #include <EgWindowsSdlGl.h>
-#include <EgCamcontrols.h>
 #include <EgCameras.h>
 #include <EgKeyboards.h>
 #include <egmath.h>
