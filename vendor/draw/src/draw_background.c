@@ -71,7 +71,7 @@ void RenderBackground(Background *background, float width, float height)
 {
 	glUseProgram(background->programId);
 
-	float time = (float)glfwGetTime();
+	float time = (float)SDL_GetTicks() * 0.001f;
 	time       = fmodf(time, 100.0f);
 
 	glUniform1f(background->timeUniform, time);

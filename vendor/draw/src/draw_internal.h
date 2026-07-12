@@ -30,6 +30,7 @@
 #endif
 
 // clang-format off
+#include <SDL3/SDL.h>
 #include <SDL3/SDL_opengl.h>
 // clang-format on
 

@@ -39,7 +39,7 @@ void DestroyDraw(Draw *draw)
 		return;
 	}
 
-	DestroyBackground(&draw->background);
+	DestroyBackground(draw->background);
 	DestroyPointDrawData(draw->points);
 	DestroyLineRender(draw->lines);
 	DestroyCircles(draw->hollowCircles);
