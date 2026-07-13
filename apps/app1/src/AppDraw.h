@@ -1,5 +1,4 @@
 #pragma once
-#include <box2d/box2d.h>
 #include <flecs.h>
 #include <draw.h>
 
@@ -8,10 +7,10 @@ typedef struct {
 } AppDrawContext;
 
 typedef struct {
-	int dummy;
+	ecs_i32_t dummy;
 } AppDrawContextCreate;
 
 extern ECS_COMPONENT_DECLARE(AppDrawContext);
 extern ECS_COMPONENT_DECLARE(AppDrawContextCreate);
 
-void EgB2Import(ecs_world_t *world);
+void AppDrawImport(ecs_world_t *world);

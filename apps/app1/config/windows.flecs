@@ -6,4 +6,8 @@ window1 {
     WindowCreateInfo : {debug: false, enable_opengl: true}
     Rectangle : {800, 600}
     OpenGLContextCreate : {0}
+
+    system_draw {
+        app.draw.ContextCreate : {0}
+    }
 }

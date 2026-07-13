@@ -19,13 +19,16 @@
 #include "b2DebugDraw_init.h"
 #include "b2.h"
 #include "gcamera.h"
+#include "AppDraw.h"
+
+
 
 int main(int argc, char *argv[])
 {
 	ecs_os_set_api_defaults();
 	ecs_os_api_t os_api = ecs_os_get_api();
 	ecs_os_set_api(&os_api);
-	
+
 	ecs_world_t *world = ecs_init();
 
 	ECS_IMPORT(world, EgShapes);
@@ -36,6 +39,8 @@ int main(int argc, char *argv[])
 	ECS_IMPORT(world, EgWindowsSdl);
 	ECS_IMPORT(world, EgWindowsSdlGl);
 	ECS_IMPORT(world, EgCameras);
+	ECS_IMPORT(world, AppDraw);
+
 
 	/*
 	ecs_entity_t e_debugdraw = ecs_new(world);
@@ -87,9 +92,16 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
+
+
+
+
+
+
+
 #if 1
 	ecs_set(world, EcsWorld, EcsRest, {.port = 0});
-	printf("Remote: %s\n", "https://www.flecs.dev/explorer/?page=rest&host=localhost");
+	printf("Flecs Explorer: %s\n", "https://www.flecs.dev/explorer/?page=rest&host=localhost");
 #endif
 
 	while (1) {

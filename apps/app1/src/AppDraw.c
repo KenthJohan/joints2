@@ -1,5 +1,6 @@
 #include "AppDraw.h"
 #include "fs.h"
+#include <EgWindows.h>
 
 ECS_COMPONENT_DECLARE(AppDrawContext);
 ECS_COMPONENT_DECLARE(AppDrawContextCreate);
@@ -43,6 +44,15 @@ static void FreeDrawCreateInfo(DrawCreateInfo *createInfo)
 	*createInfo = (DrawCreateInfo){0};
 }
 
+static void Test_Render(ecs_iter_t *it)
+{
+	// Placeholder for rendering logic. This function will be called every frame to handle rendering tasks.
+	printf("Test_Render called with %d entities\n", it->count);
+}
+
+
+
+
 static void AppDrawContext_Create(ecs_iter_t *it)
 {
 	ecs_log_set_level(0);
@@ -55,18 +65,38 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 		Draw *draw = CreateDraw(&drawCreateInfo);
 		FreeDrawCreateInfo(&drawCreateInfo);
 		ecs_set(it->world, it->entities[i], AppDrawContext, {draw});
+		ecs_system(it->world,
+		{.entity  = it->entities[i],
+		.callback = Test_Render,
+		.query.terms =
+		{
+		{.id = ecs_pair(EcsChildOf, it->entities[i])},
+		}});
 	}
 	ecs_log_set_level(-1);
 }
+
+
 
 void AppDrawImport(ecs_world_t *world)
 {
 	ECS_MODULE(world, AppDraw);
 	ecs_set_name_prefix(world, "AppDraw");
 
+	ECS_COMPONENT_DEFINE(world, AppDrawContext);
+	ECS_COMPONENT_DEFINE(world, AppDrawContextCreate);
+
+	ecs_struct(world,
+	{.entity = ecs_id(AppDrawContextCreate),
+	.members = {
+	{.name = "dummy", .type = ecs_id(ecs_i32_t)},
+	}});
+
+
 	ecs_system(world,
 	{.entity  = ecs_entity(world, {.name = "AppDrawContext_Create", .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),
 	.callback = AppDrawContext_Create,
+	.immediate = true,
 	.query.terms =
 	{
 	{.id = ecs_id(AppDrawContextCreate), .src.id = EcsSelf, .inout = EcsIn},

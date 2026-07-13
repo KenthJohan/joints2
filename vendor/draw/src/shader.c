@@ -86,6 +86,7 @@ void PrintLogGL( uint32_t object )
 static GLuint sCreateShaderFromString( const char* source, GLenum type )
 {
 	GLuint shader = glCreateShader( type );
+	printf( "source:\n%s\n", source );
 	const char* sources[] = { source };
 
 	glShaderSource( shader, 1, sources, NULL );

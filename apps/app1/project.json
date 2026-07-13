@@ -15,7 +15,8 @@
 			"EgCameras",
 			"EgKeyboards",
 			"egmath",
-			"box2d"
+			"box2d",
+			"draw"
         ],
         "public": false
     },

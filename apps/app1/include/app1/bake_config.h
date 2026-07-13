@@ -29,6 +29,7 @@
 #include <EgCameras.h>
 #include <EgKeyboards.h>
 #include <egmath.h>
+#include <draw.h>
 
 #endif
 
