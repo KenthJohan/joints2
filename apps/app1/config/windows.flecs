@@ -3,7 +3,7 @@ using eg.shapes
 using eg.spatials
 
 window1 {
-    WindowCreateInfo : {false}
+    WindowCreateInfo : {debug: false, enable_opengl: true}
     Rectangle : {800, 600}
     OpenGLContextCreate : {0}
 }
