@@ -19,6 +19,16 @@
 
 /* Headers of public dependencies */
 #include <flecs.h>
+#include <ecsx.h>
+#include <EgSpatials.h>
+#include <EgSpatialsSystems.h>
+#include <EgShapes.h>
+#include <EgWindows.h>
+#include <EgWindowsSdl.h>
+#include <EgWindowsSdlGl.h>
+#include <EgCameras.h>
+#include <EgKeyboards.h>
+#include <egmath.h>
 #include <draw.h>
 
 #endif

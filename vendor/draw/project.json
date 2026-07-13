@@ -4,14 +4,19 @@
 	"value": {
 		"language": "c",
 		"public": true,
-		"use": ["glad"]
+		"use": []
 	},
 	"lang.c": {
 		"c-standard": "c17",
 		"export-symbols": true,
 		"static": true,
 		"defines": [],
-		"cflags": [],
-		"lib": []
+		"cflags": [
+			"-DGL_GLEXT_PROTOTYPES"
+		],
+		"lib": [
+			"SDL3",
+			"GL"
+		]
 	}
 }

@@ -1,0 +1,24 @@
+@color #FF99FF
+cameras {}
+module cameras
+using eg.spatials
+
+cam0 {
+	eg.cameras.State
+	// Get window size component from the window entity to calculate aspect ratio
+	(flecs.core.DependsOn, eg.windows.window1)
+	// Set the order of the operands, changes how {Orientation} rotates
+	RotateOrder2
+	
+    // Pan in X/Y, keep Z fixed as camera distance.
+    // EgCameras applies the inverse translation internally, so the camera must
+    // sit at positive Z to look toward the origin with identity rotation.
+    Position3 : {0, 0, 10}
+
+    // Quaternion order here is x, y, z, w
+    // Identity rotation: no pitch, no yaw, no roll
+    Orientation : {0, 0, 0, 1}
+
+    Rotate3 : {0, 0, 0}
+    Velocity3 : {0, 0, 0}
+}

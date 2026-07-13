@@ -5,24 +5,47 @@
         "language": "c",
         "use": [
             "flecs",
+			"ecsx",
+			"EgSpatials",
+			"EgSpatialsSystems",
+			"EgShapes",
+			"EgWindows",
+			"EgWindowsSdl",
+			"EgWindowsSdlGl",
+			"EgCameras",
+			"EgKeyboards",
+			"egmath",
 			"box2d",
-			"draw",
-			"glad"
+			"draw"
         ],
         "public": false
     },
 	"lang.c": {
 		"c-standard": "gnu99",
 		"defines": [
-			"_FORTIFY_SOURCE=2"
+			"_FORTIFY_SOURCE=2",
+			"GL_GLEXT_PROTOTYPES"
 		],
 		"lib": [
-			"flecs",
+			"EgCameras",
+			"EgShapes",
+			"EgSpatials",
+			"EgSpatialsSystems",
+			"EgWindows",
+			"EgWindowsSdl",
+			"EgWindowsSdlGl",
+			"EgKeyboards",
+			"EgFs",
+			"EgBase",
+			"EgGlslang",
+			"egmisc",
+			"egmath",
+			"ecsx",
 			"box2d",
-			"cglm",
+			"flecs",
 			"draw",
-			"glad",
-			"glfw",
+			"SDL3",
+			"GL",
 			"stdc++",
 			"m"
 		],
