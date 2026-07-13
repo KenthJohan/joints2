@@ -67,7 +67,7 @@ int main(int argc, char *argv[])
 	ecs_log_set_level(0);
 	ecs_script_run_file(world, "config/camera.flecs");
 	ecs_log_set_level(-1);
-	
+
 	ecs_log_set_level(0);
 	ecs_script_run_file(world, "config/keybindings.flecs");
 	ecs_log_set_level(-1);
@@ -82,22 +82,6 @@ int main(int argc, char *argv[])
 		printf("Failed to find window entity\n");
 		return -1;
 	}
-
-	/*
-	ecs_entity_t e_window = ecs_new(world);
-	ecs_add_pair(world, e_window, EcsChildOf, ecs_id(EgWindows));
-	ecs_set(world, e_window, EgWindowsWindowCreateInfo, {false});
-	ecs_set(world, e_window, EgShapesRectangle, {800, 600});
-	*/
-
-	/*
-	ecs_entity_t e_camera = ecs_new(world);
-	ecs_add_pair(world, e_camera, EcsDependsOn, e_window);
-	ecs_add(world, e_camera, EgCamerasState);
-	ecs_set(world, e_camera, Position3, {0.0f, 0.0f, 10.0f});
-	ecs_set(world, e_camera, Orientation, {0.0f, 0.0f, 0.0f, 1.0f});
-	*/
-
 
 #if 1
 	ecs_set(world, EcsWorld, EcsRest, {.port = 0});

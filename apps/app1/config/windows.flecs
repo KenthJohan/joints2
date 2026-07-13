@@ -5,4 +5,5 @@ using eg.spatials
 window1 {
     WindowCreateInfo : {false}
     Rectangle : {800, 600}
+    OpenGLContextCreate : {0}
 }
