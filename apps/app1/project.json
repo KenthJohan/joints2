@@ -5,6 +5,7 @@
         "language": "c",
         "use": [
             "flecs",
+			"ecsx",
 			"EgSpatials",
 			"EgSpatialsSystems",
 			"EgShapes",
@@ -36,9 +37,9 @@
 			"EgFs",
 			"EgBase",
 			"EgGlslang",
-			"ecsx",
 			"egmisc",
 			"egmath",
+			"ecsx",
 			"box2d",
 			"flecs",
 			"draw",
