@@ -8,7 +8,7 @@ typedef struct {
 } EgB2WorldDef;
 
 typedef struct {
-	int type; // b2BodyType
+	ecs_i32_t type; // b2BodyType
 } EgB2BodyDef;
 
 typedef struct {

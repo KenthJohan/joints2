@@ -66,16 +66,33 @@ void EgB2World_Destroy(ecs_iter_t *it)
 static void EgB2DebugDraw_Create(ecs_iter_t *it)
 {
 	ecs_log_set_level(0);
-	/*
 	AppDrawContext   *draw = ecs_field(it, AppDrawContext, 0);   // shared, up
 	EgB2DebugDrawDef *def  = ecs_field(it, EgB2DebugDrawDef, 1); // self
 	for (int i = 0; i < it->count; ++i, ++def) {
-		b2DebugDraw d;
+		b2DebugDraw d = {0};
 		b2DebugDraw_init(&d, draw->draw);
 		ecs_set(it->world, it->entities[i], EgB2DebugDraw, {d});
 	}
-	*/
 	ecs_log_set_level(-1);
+}
+
+static void EgB2World_Step(ecs_iter_t *it)
+{
+	float      timeStep     = 1.0f / 60.0f;
+	int        subStepCount = 4;
+	EgB2World *w            = ecs_field(it, EgB2World, 0);
+	for (int i = 0; i < it->count; ++i, ++w) {
+		b2World_Step(w->id, timeStep, subStepCount);
+	}
+}
+
+static void EgB2World_Draw(ecs_iter_t *it)
+{
+	EgB2World     *w = ecs_field(it, EgB2World, 0);
+	EgB2DebugDraw *d = ecs_field(it, EgB2DebugDraw, 1);
+	for (int i = 0; i < it->count; ++i, ++w) {
+		b2World_Draw(w->id, &d->debugDraw);
+	}
 }
 
 void EgB2Import(ecs_world_t *world)
@@ -84,6 +101,7 @@ void EgB2Import(ecs_world_t *world)
 	ecs_set_name_prefix(world, "EgB2");
 
 	ECS_IMPORT(world, EgSpatials);
+	ECS_IMPORT(world, AppDraw);
 
 	ECS_COMPONENT_DEFINE(world, EgB2World);
 	ECS_COMPONENT_DEFINE(world, EgB2WorldDef);
@@ -119,9 +137,26 @@ void EgB2Import(ecs_world_t *world)
 	.callback = EgB2DebugDraw_Create,
 	.query.terms =
 	{
-	{.id = ecs_id(AppDrawContext), .trav = EcsChildOf, .src.id = EcsUp, .inout = EcsIn},
+	{.id = ecs_id(AppDrawContext), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
 	{.id = ecs_id(EgB2DebugDrawDef), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(EgB2DebugDraw), .oper = EcsNot}, // Adds this
+	}});
+
+	ecs_system(world,
+	{.entity  = ecs_entity(world, {.name = "EgB2World_Step", .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),
+	.callback = EgB2World_Step,
+	.query.terms =
+	{
+	{.id = ecs_id(EgB2World), .src.id = EcsSelf, .inout = EcsIn},
+	}});
+
+	ecs_system(world,
+	{.entity  = ecs_entity(world, {.name = "EgB2World_Draw", .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),
+	.callback = EgB2World_Draw,
+	.query.terms =
+	{
+	{.id = ecs_id(EgB2World), .src.id = EcsSelf, .inout = EcsIn},
+	{.id = ecs_id(EgB2DebugDraw), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
 	}});
 
 	ecs_observer(world,
@@ -135,5 +170,22 @@ void EgB2Import(ecs_world_t *world)
 	.members = {
 	{.name = "gravity_x", .type = ecs_id(ecs_f32_t)},
 	{.name = "gravity_y", .type = ecs_id(ecs_f32_t)},
+	}});
+
+	ecs_struct_init(world,
+	&(ecs_struct_desc_t){
+	.entity  = ecs_id(EgB2BodyDef),
+	.members = {
+	{.name = "type", .type = ecs_id(ecs_i32_t)},
+	}});
+
+	ecs_struct_init(world,
+	&(ecs_struct_desc_t){
+	.entity  = ecs_id(EgB2Box),
+	.members = {
+	{.name = "half_width", .type = ecs_id(ecs_f32_t)},
+	{.name = "half_height", .type = ecs_id(ecs_f32_t)},
+	{.name = "density", .type = ecs_id(ecs_f32_t)},
+	{.name = "friction", .type = ecs_id(ecs_f32_t)},
 	}});
 }

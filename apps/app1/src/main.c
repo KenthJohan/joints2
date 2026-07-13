@@ -21,8 +21,6 @@
 #include "gcamera.h"
 #include "AppDraw.h"
 
-
-
 int main(int argc, char *argv[])
 {
 	ecs_os_set_api_defaults();
@@ -41,34 +39,6 @@ int main(int argc, char *argv[])
 	ECS_IMPORT(world, EgCameras);
 	ECS_IMPORT(world, AppDraw);
 
-
-	/*
-	ecs_entity_t e_debugdraw = ecs_new(world);
-	ecs_set(world, e_debugdraw, EgB2DebugDrawDef, {0});
-
-	ecs_entity_t e_b2world = ecs_new(world);
-	ecs_set(world, e_b2world, EgB2WorldDef, {0.0f, -10.0f});
-	ecs_add_pair(world, e_b2world, EcsDependsOn, e_debugdraw);
-
-	ecs_entity_t e_ground = ecs_new(world);
-	ecs_add_pair(world, e_ground, EcsChildOf, e_b2world);
-	ecs_set(world, e_ground, Position2, {0.0f, -10.0f});
-	ecs_set(world, e_ground, EgB2BodyDef, {b2_staticBody});
-	ecs_set(world, e_ground, EgB2Box, {50.0f, 10.0f});
-
-	ecs_entity_t e_box = ecs_new(world);
-	ecs_add_pair(world, e_box, EcsChildOf, e_b2world);
-	ecs_set(world, e_box, Position2, {0.0f, 4.0f});
-	ecs_set(world, e_box, EgB2BodyDef, {b2_dynamicBody});
-	ecs_set(world, e_box, EgB2Box, {1.0f, 1.0f, 1.0f, 0.3f});
-
-	ecs_entity_t e_box2 = ecs_new(world);
-	ecs_add_pair(world, e_box2, EcsChildOf, e_b2world);
-	ecs_set(world, e_box2, Position2, {0.1f, 9.0f});
-	ecs_set(world, e_box2, EgB2BodyDef, {b2_dynamicBody});
-	ecs_set(world, e_box2, EgB2Box, {1.0f, 1.0f, 1.0f, 0.3f});
-	*/
-
 	ecs_log_set_level(0);
 	ecs_script_run_file(world, "config/windows.flecs");
 	ecs_log_set_level(-1);
@@ -81,6 +51,10 @@ int main(int argc, char *argv[])
 	ecs_script_run_file(world, "config/keybindings.flecs");
 	ecs_log_set_level(-1);
 
+	ecs_log_set_level(0);
+	ecs_script_run_file(world, "config/physics.flecs");
+	ecs_log_set_level(-1);
+
 	// print offset of Velocity3 members:
 	printf("Velocity3.x offset: %zu\n", offsetof(Velocity3, x));
 	printf("Velocity3.y offset: %zu\n", offsetof(Velocity3, y));
@@ -91,13 +65,6 @@ int main(int argc, char *argv[])
 		printf("Failed to find window entity\n");
 		return -1;
 	}
-
-
-
-
-
-
-
 
 #if 1
 	ecs_set(world, EcsWorld, EcsRest, {.port = 0});

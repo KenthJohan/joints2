@@ -1,0 +1,38 @@
+@color #FF99FF
+physics {}
+module physics
+
+const BODY_STATIC: 0
+const BODY_KINEMATIC: 1
+const BODY_DYNAMIC: 2
+
+debug_draw {
+    eg.b2.DebugDrawDef
+    (flecs.core.DependsOn, eg.windows.window1.draw1)
+}
+
+
+b2world {
+    eg.b2.WorldDef : {gravity_x: 0, gravity_y: -10}
+    (flecs.core.DependsOn, debug_draw)
+}
+
+b2world.ground {
+    eg.b2.BodyDef : {type : $BODY_STATIC}
+    eg.spatials.Position2 : {0, -10}
+    eg.b2.Box : {half_width:50, half_height:10}
+}
+
+
+
+b2world.box1 {
+    eg.b2.BodyDef : {type : $BODY_DYNAMIC}
+    eg.spatials.Position2 : {0, 4}
+    eg.b2.Box : {half_width:1, half_height:1, density:1, friction:0.3}
+}
+
+b2world.box2 {
+    eg.b2.BodyDef : {type : $BODY_DYNAMIC}
+    eg.spatials.Position2 : {0.1, 9.0}
+    eg.b2.Box : {half_width:1, half_height:1, density:1, friction:0.3}
+}

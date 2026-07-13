@@ -8,7 +8,7 @@ using eg.spatials
 
 window1 {
     WindowCreateInfo : {debug: false, enable_opengl: true}
-    Rectangle : {800, 600}
+    Rectangle : {1024, 1024}
     OpenGLContextCreate : {0}
 
     draw1 {
