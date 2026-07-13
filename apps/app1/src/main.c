@@ -59,6 +59,9 @@ int main(int argc, char *argv[])
 	ecs_set(world, e_box2, EgB2BodyDef, {b2_dynamicBody});
 	ecs_set(world, e_box2, EgB2Box, {1.0f, 1.0f, 1.0f, 0.3f});
 	*/
+	ecs_log_set_level(0);
+	ecs_script_run_file(world, "config/EgKeyboards.flecs");
+	ecs_log_set_level(-1);
 
 	ecs_log_set_level(0);
 	ecs_script_run_file(world, "config/windows.flecs");

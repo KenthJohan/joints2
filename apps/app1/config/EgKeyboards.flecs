@@ -1,9 +1,7 @@
-@color #FF99FF
-cameras {}
-module cameras
-using eg.spatials
+module eg.keyboards
 
-// Copied from EgKeyboards.flecs
+// This can not be shared to other scripts yet.
+
 const SCANCODE_A: 4
 const SCANCODE_B: 5
 const SCANCODE_C: 6
@@ -82,39 +80,3 @@ const SCANCODE_RGUI: 231
 const BUTTON_HELD: 0x01
 const BUTTON_PRESSED: 0x02
 const BUTTON_RELEASED: 0x04
-
-
-
-cam0 {
-	eg.cameras.State
-	// Get window size component from the window entity to calculate aspect ratio
-	(flecs.core.DependsOn, eg.windows.window1)
-	// Set the order of the operands, changes how {Orientation} rotates
-	RotateOrder2
-	Position3 : {3, -4, 4}
-	Orientation : {-0.4, -0.1, -0.2, 0.8}
-	Rotate3 : {0, 0, 0}
-	Velocity3 : {0, 0, 0}
-}
-
-
-keybindings {
-	camera_rotate_dx {
-		eg.keyboards.Binding : {key0:$SCANCODE_UP, key1:$SCANCODE_DOWN, mask:$BUTTON_HELD, entity:cam0, comonent:Rotate3, byte_offset:0, factor: 0.01}
-	}
-	camera_rotate_dy {
-		eg.keyboards.Binding : {key0:$SCANCODE_LEFT, key1:$SCANCODE_RIGHT, mask:$BUTTON_HELD, entity:cam0, comonent:Rotate3, byte_offset:4, factor: 0.01}
-	}
-	camera_rotate_dz {
-		eg.keyboards.Binding : {key0:$SCANCODE_E, key1:$SCANCODE_Q, mask:$BUTTON_HELD, entity:cam0, comonent:Rotate3, byte_offset:8, factor: 0.01}
-	}
-	camera_move_dx {
-		eg.keyboards.Binding : {key0:$SCANCODE_D, key1:$SCANCODE_A, mask:$BUTTON_HELD, entity:cam0, comonent:Velocity3, byte_offset:0, factor: 0.01}
-	}
-	camera_move_dy {
-		eg.keyboards.Binding : {key0:$SCANCODE_W, key1:$SCANCODE_S, mask:$BUTTON_HELD, entity:cam0, comonent:Velocity3, byte_offset:4, factor: 0.01}
-	}
-	quit {
-		eg.keyboards.ActionToggleEntity : {key:$SCANCODE_ESCAPE, mask:$BUTTON_PRESSED, entity:eg.windows.window1, relation:0, toggle:eg.windows.EventCloseRequest}
-	}
-}
