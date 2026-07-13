@@ -7,7 +7,7 @@ window1 {
     Rectangle : {800, 600}
     OpenGLContextCreate : {0}
 
-    system_draw {
+    draw1 {
         app.draw.ContextCreate : {0}
     }
 }

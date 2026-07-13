@@ -36,3 +36,4 @@ bake run
 
 - The project is configured through `project.json`.
 - Do not invoke `gcc` directly unless the user explicitly asks for a manual build command; prefer `bake` for all normal compile steps.
+- In Flecs systems, `ecs_field(it, Type, index)` uses the term order from `.query.terms` (0-based). If you add/reorder terms, update all field indices in the callback to match.

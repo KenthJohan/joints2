@@ -50,13 +50,12 @@ static void Test_Render(ecs_iter_t *it)
 	printf("Test_Render called with %d entities\n", it->count);
 }
 
-
-
-
 static void AppDrawContext_Create(ecs_iter_t *it)
 {
 	ecs_log_set_level(0);
-	AppDrawContextCreate *def = ecs_field(it, AppDrawContextCreate, 0); // self
+	AppDrawContextCreate *def      = ecs_field(it, AppDrawContextCreate, 0); // self
+	ecs_entity_t          e_window = ecs_field_src(it, 1);
+	printf("window_entity: %s\n", ecs_get_name(it->world, e_window));
 	for (int i = 0; i < it->count; ++i, ++def) {
 		DrawCreateInfo drawCreateInfo;
 		if (!BuildDrawCreateInfo(&drawCreateInfo)) {
@@ -64,19 +63,20 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 		}
 		Draw *draw = CreateDraw(&drawCreateInfo);
 		FreeDrawCreateInfo(&drawCreateInfo);
-		ecs_set(it->world, it->entities[i], AppDrawContext, {draw});
+		ecs_set(it->world, it->entities[i], AppDrawContext, {NULL});
+
+		// The window system will call this render system using `ecs_run()` every frame
+		// by putting it as a child of the window entity.
 		ecs_system(it->world,
-		{.entity  = it->entities[i],
-		.callback = Test_Render,
-		.query.terms =
-		{
-		{.id = ecs_pair(EcsChildOf, it->entities[i])},
+		{.entity     = ecs_entity(it->world, {.parent = e_window}),
+		.callback    = Test_Render,
+		.query.terms = {
+		{.id = ecs_childof(e_window)},
+		{.id = ecs_id(AppDrawContext), .src.id = EcsSelf, .inout = EcsIn},
 		}});
 	}
 	ecs_log_set_level(-1);
 }
-
-
 
 void AppDrawImport(ecs_world_t *world)
 {
@@ -92,14 +92,14 @@ void AppDrawImport(ecs_world_t *world)
 	{.name = "dummy", .type = ecs_id(ecs_i32_t)},
 	}});
 
-
 	ecs_system(world,
-	{.entity  = ecs_entity(world, {.name = "AppDrawContext_Create", .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),
-	.callback = AppDrawContext_Create,
+	{.entity   = ecs_entity(world, {.name = "AppDrawContext_Create", .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),
+	.callback  = AppDrawContext_Create,
 	.immediate = true,
 	.query.terms =
 	{
 	{.id = ecs_id(AppDrawContextCreate), .src.id = EcsSelf, .inout = EcsIn},
+	{.id = ecs_id(EgWindowsOpenGLContext), .trav = EcsChildOf, .src.id = EcsUp, .inout = EcsIn},
 	{.id = ecs_id(AppDrawContext), .oper = EcsNot}, // Adds this
 	}});
 }
