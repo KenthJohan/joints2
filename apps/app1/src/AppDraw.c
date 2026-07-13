@@ -1,6 +1,9 @@
 #include "AppDraw.h"
 #include "fs.h"
 #include <EgWindows.h>
+#include <EgCameras.h>
+#include <ecsx.h>
+#include <draw.h>
 
 ECS_COMPONENT_DECLARE(AppDrawContext);
 ECS_COMPONENT_DECLARE(AppDrawContextCreate);
@@ -46,8 +49,16 @@ static void FreeDrawCreateInfo(DrawCreateInfo *createInfo)
 
 static void Test_Render(ecs_iter_t *it)
 {
-	// Placeholder for rendering logic. This function will be called every frame to handle rendering tasks.
-	printf("Test_Render called with %d entities\n", it->count);
+	AppDrawContext *draw   = ecs_field_self(it, AppDrawContext, 1);
+	EgCamerasState *camera = ecs_field_shared(it, EgCamerasState, 2);
+	for (int i = 0; i < it->count; ++i, ++draw) {
+		// Placeholder for rendering logic. This function will be called every frame to handle rendering tasks.
+		//printf("Test_Render called with %d entities\n", it->count);
+
+		float pixelScale = 1.0f; // Placeholder for pixel scale, can be adjusted based on window size or other factors
+		FlushDraw(draw->draw, pixelScale, (float*)&camera->vp);
+
+	}
 }
 
 static void AppDrawContext_Create(ecs_iter_t *it)
@@ -63,7 +74,11 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 		}
 		Draw *draw = CreateDraw(&drawCreateInfo);
 		FreeDrawCreateInfo(&drawCreateInfo);
-		ecs_set(it->world, it->entities[i], AppDrawContext, {NULL});
+
+		// Add example draw graphics:
+		DrawCircle(draw, (b2Pos){0.0f, 0.0f}, 50.0f, b2_colorRed);
+
+		ecs_set(it->world, it->entities[i], AppDrawContext, {draw});
 
 		// The window system will call this render system using `ecs_run()` every frame
 		// by putting it as a child of the window entity.
@@ -73,6 +88,7 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 		.query.terms = {
 		{.id = ecs_childof(e_window)},
 		{.id = ecs_id(AppDrawContext), .src.id = EcsSelf, .inout = EcsIn},
+		{.id = ecs_id(EgCamerasState), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
 		}});
 	}
 	ecs_log_set_level(-1);

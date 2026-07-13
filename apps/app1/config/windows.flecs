@@ -1,3 +1,7 @@
+cameras.cam0 {
+    
+}
+
 module eg.windows
 using eg.shapes
 using eg.spatials
@@ -9,5 +13,6 @@ window1 {
 
     draw1 {
         app.draw.ContextCreate : {0}
+        (flecs.core.DependsOn, cameras.cam0)
     }
 }
