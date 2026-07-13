@@ -55,6 +55,9 @@ static void Test_Render(ecs_iter_t *it)
 		// Placeholder for rendering logic. This function will be called every frame to handle rendering tasks.
 		//printf("Test_Render called with %d entities\n", it->count);
 
+		b2WorldTransform transform = {{0.0f, 0.0f}, {1.0f, 0.0f}};
+		DrawSolidCircle(draw->draw, transform, (b2Pos){0.0f, 0.0f}, 50.0f, b2_colorRed);
+
 		float pixelScale = 1.0f; // Placeholder for pixel scale, can be adjusted based on window size or other factors
 		FlushDraw(draw->draw, pixelScale, (float*)&camera->vp);
 
@@ -74,9 +77,6 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 		}
 		Draw *draw = CreateDraw(&drawCreateInfo);
 		FreeDrawCreateInfo(&drawCreateInfo);
-
-		// Add example draw graphics:
-		DrawCircle(draw, (b2Pos){0.0f, 0.0f}, 50.0f, b2_colorRed);
 
 		ecs_set(it->world, it->entities[i], AppDrawContext, {draw});
 

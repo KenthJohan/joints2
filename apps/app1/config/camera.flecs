@@ -9,8 +9,16 @@ cam0 {
 	(flecs.core.DependsOn, eg.windows.window1)
 	// Set the order of the operands, changes how {Orientation} rotates
 	RotateOrder2
-	Position3 : {3, -4, 4}
-	Orientation : {-0.4, -0.1, -0.2, 0.8}
-	Rotate3 : {0, 0, 0}
-	Velocity3 : {0, 0, 0}
+	
+    // Pan in X/Y, keep Z fixed as camera distance.
+    // EgCameras applies the inverse translation internally, so the camera must
+    // sit at positive Z to look toward the origin with identity rotation.
+    Position3 : {0, 0, 200}
+
+    // Quaternion order here is x, y, z, w
+    // Identity rotation: no pitch, no yaw, no roll
+    Orientation : {0, 0, 0, 1}
+
+    Rotate3 : {0, 0, 0}
+    Velocity3 : {0, 0, 0}
 }
