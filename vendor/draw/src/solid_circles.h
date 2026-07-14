@@ -4,7 +4,7 @@
 #pragma once
 
 #include "draw.h"
-#include "draw_internal.h"
+#include "internal.h"
 #include <flecs.h>
 
 typedef struct
@@ -12,7 +12,7 @@ typedef struct
 	b2Transform transform;
 	float       radius;
 	RGBA8       rgba;
-} SolidCircle;
+} solid_circles_data_t;
 
 typedef struct
 {
@@ -22,16 +22,16 @@ typedef struct
 	GLuint           programId;
 	GLint            projectionUniform;
 	GLint            pixelScaleUniform;
-} SolidCircles;
+} solid_circles_t;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-SolidCircles *CreateSolidCircles(const DrawCreateInfo *createInfo);
-void          DestroySolidCircles(SolidCircles *render);
-void          AddSolidCircle(SolidCircles *render, b2Transform transform, float radius, b2HexColor color);
-void          FlushSolidCircles(SolidCircles *render, float pixelScale, const float *projectionMatrix);
+solid_circles_t *solid_circles_init(const draw_create_info_t *createInfo);
+void          solid_circles_destroy(solid_circles_t *render);
+void          solid_circles_add(solid_circles_t *render, b2Transform transform, float radius, b2HexColor color);
+void          solid_circles_flush(solid_circles_t *render, float pixelScale, const float *projectionMatrix);
 
 #ifdef __cplusplus
 }

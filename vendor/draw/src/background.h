@@ -4,7 +4,7 @@
 #pragma once
 
 #include "draw.h"
-#include "draw_internal.h"
+#include "internal.h"
 
 typedef struct
 {
@@ -14,15 +14,15 @@ typedef struct
 	GLint  timeUniform;
 	GLint  resolutionUniform;
 	GLint  baseColorUniform;
-} Background;
+} background_t;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-Background *CreateBackground(const DrawCreateInfo *createInfo);
-void        DestroyBackground(Background *background);
-void        RenderBackground(Background *background, float width, float height);
+background_t *background_init(const draw_create_info_t *createInfo);
+void        background_destroy(background_t *background);
+void        background_render(background_t *background, float width, float height);
 
 #ifdef __cplusplus
 }

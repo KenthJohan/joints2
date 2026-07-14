@@ -3,7 +3,7 @@
 #include <draw.h>
 
 typedef struct {
-	Draw *draw;
+	draw_t *draw;
 } AppDrawContext;
 
 typedef struct {

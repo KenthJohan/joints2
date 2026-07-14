@@ -5,7 +5,7 @@
 
 #include "draw.h"
 #include "stb_truetype.h"
-#include "draw_internal.h"
+#include "internal.h"
 #include <flecs.h>
 
 #define TEXT_CHAR_COUNT 96
@@ -15,7 +15,7 @@ typedef struct
 	b2Vec2 position;
 	b2Vec2 uv;
 	RGBA8  rgba;
-} TextVertex;
+} text_vertex_t;
 
 
 
@@ -30,16 +30,16 @@ typedef struct {
 	GLint           textureUniform;
 	float           lineHeight;
 	int             initialized;
-} TextRender;
+} text_t;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-TextRender *CreateTextRender(const DrawCreateInfo *createInfo);
-void        DestroyTextRender(TextRender *render);
-void        AddText(TextRender *render, float x, float y, float fontSize, b2HexColor color, const char *string);
-void        FlushText(TextRender *render, const float *projectionMatrix);
+text_t *text_init(const draw_create_info_t *createInfo);
+void        text_destroy(text_t *render);
+void        text_add(text_t *render, float x, float y, float fontSize, b2HexColor color, const char *string);
+void        text_flush(text_t *render, const float *projectionMatrix);
 
 #ifdef __cplusplus
 }

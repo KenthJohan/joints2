@@ -1,18 +1,18 @@
 // SPDX-FileCopyrightText: 2023 Erin Catto
 // SPDX-License-Identifier: MIT
 
-#include "draw_solid_polygon.h"
+#include "solid_polygons.h"
 
-#include "draw_internal.h"
+#include "internal.h"
 
 #define POLYGON_BATCH_SIZE 2048
 
 
-Polygons *CreatePolygons(const DrawCreateInfo *createInfo)
+solid_polygons_t *solid_polygons_init(const draw_create_info_t *createInfo)
 {
-	Polygons *render         = malloc(sizeof(Polygons));
-	*render                  = (Polygons){0};
-	ecs_vec_init_t(NULL, &render->polygons, Polygon, 10 * POLYGON_BATCH_SIZE);
+	solid_polygons_t *render         = malloc(sizeof(solid_polygons_t));
+	*render                  = (solid_polygons_t){0};
+	ecs_vec_init_t(NULL, &render->polygons, solid_polygons_data_t, 10 * POLYGON_BATCH_SIZE);
 	render->programId        = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_VERTEX],
 	createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_FRAGMENT]);
 	render->projectionUniform = glGetUniformLocation(render->programId, "projectionMatrix");
@@ -49,15 +49,15 @@ Polygons *CreatePolygons(const DrawCreateInfo *createInfo)
 	glVertexAttribPointer(vertexAttribute, 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
 
 	glBindBuffer(GL_ARRAY_BUFFER, render->vboIds[1]);
-	glBufferData(GL_ARRAY_BUFFER, POLYGON_BATCH_SIZE * sizeof(Polygon), NULL, GL_DYNAMIC_DRAW);
-	glVertexAttribPointer(instanceTransform, 4, GL_FLOAT, GL_FALSE, sizeof(Polygon), (void *)offsetof(Polygon, transform));
-	glVertexAttribPointer(instancePoint12, 4, GL_FLOAT, GL_FALSE, sizeof(Polygon), (void *)offsetof(Polygon, p1));
-	glVertexAttribPointer(instancePoint34, 4, GL_FLOAT, GL_FALSE, sizeof(Polygon), (void *)offsetof(Polygon, p3));
-	glVertexAttribPointer(instancePoint56, 4, GL_FLOAT, GL_FALSE, sizeof(Polygon), (void *)offsetof(Polygon, p5));
-	glVertexAttribPointer(instancePoint78, 4, GL_FLOAT, GL_FALSE, sizeof(Polygon), (void *)offsetof(Polygon, p7));
-	glVertexAttribIPointer(instancePointCount, 1, GL_INT, sizeof(Polygon), (void *)offsetof(Polygon, count));
-	glVertexAttribPointer(instanceRadius, 1, GL_FLOAT, GL_FALSE, sizeof(Polygon), (void *)offsetof(Polygon, radius));
-	glVertexAttribPointer(instanceColor, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(Polygon), (void *)offsetof(Polygon, color));
+	glBufferData(GL_ARRAY_BUFFER, POLYGON_BATCH_SIZE * sizeof(solid_polygons_data_t), NULL, GL_DYNAMIC_DRAW);
+	glVertexAttribPointer(instanceTransform, 4, GL_FLOAT, GL_FALSE, sizeof(solid_polygons_data_t), (void *)offsetof(solid_polygons_data_t, transform));
+	glVertexAttribPointer(instancePoint12, 4, GL_FLOAT, GL_FALSE, sizeof(solid_polygons_data_t), (void *)offsetof(solid_polygons_data_t, p1));
+	glVertexAttribPointer(instancePoint34, 4, GL_FLOAT, GL_FALSE, sizeof(solid_polygons_data_t), (void *)offsetof(solid_polygons_data_t, p3));
+	glVertexAttribPointer(instancePoint56, 4, GL_FLOAT, GL_FALSE, sizeof(solid_polygons_data_t), (void *)offsetof(solid_polygons_data_t, p5));
+	glVertexAttribPointer(instancePoint78, 4, GL_FLOAT, GL_FALSE, sizeof(solid_polygons_data_t), (void *)offsetof(solid_polygons_data_t, p7));
+	glVertexAttribIPointer(instancePointCount, 1, GL_INT, sizeof(solid_polygons_data_t), (void *)offsetof(solid_polygons_data_t, count));
+	glVertexAttribPointer(instanceRadius, 1, GL_FLOAT, GL_FALSE, sizeof(solid_polygons_data_t), (void *)offsetof(solid_polygons_data_t, radius));
+	glVertexAttribPointer(instanceColor, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(solid_polygons_data_t), (void *)offsetof(solid_polygons_data_t, color));
 
 	glVertexAttribDivisor(instanceTransform, 1);
 	glVertexAttribDivisor(instancePoint12, 1);
@@ -76,7 +76,7 @@ Polygons *CreatePolygons(const DrawCreateInfo *createInfo)
 	return render;
 }
 
-void DestroyPolygons(Polygons *render)
+void solid_polygons_destroy(solid_polygons_t *render)
 {
 	if (render == NULL) {
 		return;
@@ -91,13 +91,13 @@ void DestroyPolygons(Polygons *render)
 		glDeleteProgram(render->programId);
 	}
 
-	ecs_vec_fini_t(NULL, &render->polygons, Polygon);
+	ecs_vec_fini_t(NULL, &render->polygons, solid_polygons_data_t);
 	free(render);
 }
 
-void AddPolygon(Polygons *render, b2Transform transform, const b2Vec2 *points, int count, float radius, b2HexColor color)
+void solid_polygons_add(solid_polygons_t *render, b2Transform transform, const b2Vec2 *points, int count, float radius, b2HexColor color)
 {
-	Polygon data   = {};
+	solid_polygons_data_t data   = {};
 	data.transform = transform;
 
 	int     n  = count < 8 ? count : 8;
@@ -110,12 +110,12 @@ void AddPolygon(Polygons *render, b2Transform transform, const b2Vec2 *points, i
 	data.radius = radius;
 	data.color  = MakeRGBA8(color, 1.0f);
 
-	ecs_vec_append_t(NULL, &render->polygons, Polygon)[0] = data;
+	ecs_vec_append_t(NULL, &render->polygons, solid_polygons_data_t)[0] = data;
 }
 
-void FlushPolygons(Polygons *render, float pixelScale, const float *projectionMatrix)
+void solid_polygons_flush(solid_polygons_t *render, float pixelScale, const float *projectionMatrix)
 {
-	Polygon *polygons = ecs_vec_first_t(&render->polygons, Polygon);
+	solid_polygons_data_t *polygons = ecs_vec_first_t(&render->polygons, solid_polygons_data_t);
 	int32_t count = ecs_vec_count(&render->polygons);
 	if (count == 0) {
 		return;
@@ -133,7 +133,7 @@ void FlushPolygons(Polygons *render, float pixelScale, const float *projectionMa
 	int base = 0;
 	while (count > 0) {
 		int batchCount = b2MinInt(count, POLYGON_BATCH_SIZE);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, batchCount * sizeof(Polygon), polygons + base);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, batchCount * sizeof(solid_polygons_data_t), polygons + base);
 		glDrawArraysInstanced(GL_TRIANGLES, 0, 6, batchCount);
 		CheckOpenGL();
 

@@ -5,9 +5,9 @@
 
 #include <box2d/types.h>
 
-typedef struct Draw Draw;
+typedef struct draw_t draw_t;
 
-typedef enum DrawShaderType {
+typedef enum draw_shader_type_t {
 	DRAW_SHADER_BACKGROUND_VERTEX,
 	DRAW_SHADER_BACKGROUND_FRAGMENT,
 	DRAW_SHADER_POINT_VERTEX,
@@ -25,28 +25,28 @@ typedef enum DrawShaderType {
 	DRAW_SHADER_TEXT_VERTEX,
 	DRAW_SHADER_TEXT_FRAGMENT,
 	DRAW_SHADER_COUNT,
-} DrawShaderType;
+} draw_shader_type_t;
 
-typedef struct DrawCreateInfo {
+typedef struct draw_create_info_t {
 	const char *shaders[DRAW_SHADER_COUNT];
-} DrawCreateInfo;
+} draw_create_info_t;
 
 
-Draw *CreateDraw(const DrawCreateInfo *createInfo);
-void  DestroyDraw(Draw *draw);
+draw_t *draw_init(const draw_create_info_t *createInfo);
+void  draw_destroy(draw_t *draw);
 
-void DrawScreenString(Draw *draw, float x, float y, b2HexColor color, const char *string, ...);
+void draw_screen_string(draw_t *draw, float x, float y, b2HexColor color, const char *string, ...);
 
-void DrawPoint(Draw *draw, b2Pos p, float size, b2HexColor color);
-void DrawLine(Draw *draw, b2Pos p1, b2Pos p2, b2HexColor color);
-void DrawCircle(Draw *draw, b2Pos center, float radius, b2HexColor color);
-void DrawCapsule(Draw *draw, b2Pos p1, b2Pos p2, float radius, b2HexColor color);
-void DrawPolygon(Draw *draw, b2WorldTransform transform, const b2Vec2 *vertices, int vertexCount, b2HexColor color);
-void DrawSolidCircle(Draw *draw, b2WorldTransform transform, b2Vec2 center, float radius, b2HexColor color);
-void DrawSolidPolygon(Draw *draw, b2WorldTransform transform, const b2Vec2 *vertices, int vertexCount, float radius, b2HexColor color);
-void DrawTransform(Draw *draw, b2WorldTransform transform, float scale);
-void DrawBounds(Draw *draw, b2AABB aabb, b2HexColor color);
-void DrawString(Draw *draw, b2Pos p, b2HexColor color, const char *string, ...);
+void draw_point(draw_t *draw, b2Pos p, float size, b2HexColor color);
+void draw_line(draw_t *draw, b2Pos p1, b2Pos p2, b2HexColor color);
+void draw_circle(draw_t *draw, b2Pos center, float radius, b2HexColor color);
+void draw_capsule(draw_t *draw, b2Pos p1, b2Pos p2, float radius, b2HexColor color);
+void draw_polygon(draw_t *draw, b2WorldTransform transform, const b2Vec2 *vertices, int vertexCount, b2HexColor color);
+void draw_solid_circle(draw_t *draw, b2WorldTransform transform, b2Vec2 center, float radius, b2HexColor color);
+void draw_solid_polygon(draw_t *draw, b2WorldTransform transform, const b2Vec2 *vertices, int vertexCount, float radius, b2HexColor color);
+void draw_transform(draw_t *draw, b2WorldTransform transform, float scale);
+void draw_bounds(draw_t *draw, b2AABB aabb, b2HexColor color);
+void draw_string(draw_t *draw, b2Pos p, b2HexColor color, const char *string, ...);
 
-void FlushDraw(Draw *draw, float pixelScale, const float *projectionMatrix);
-void DrawBackground(Draw *draw, float width, float height);
+void draw_flush(draw_t *draw, float pixelScale, const float *projectionMatrix);
+void draw_background(draw_t *draw, float width, float height);

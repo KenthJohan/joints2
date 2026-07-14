@@ -4,14 +4,14 @@
 #pragma once
 
 #include "draw.h"
-#include "draw_internal.h"
+#include "internal.h"
 #include <flecs.h>
 
 typedef struct
 {
 	b2Vec2 position;
 	RGBA8  rgba;
-} LineData;
+} lines_data_t;
 
 
 typedef struct 
@@ -21,17 +21,17 @@ typedef struct
 	GLuint          vboId;
 	GLuint          programId;
 	GLint           projectionUniform;
-} LineRender;
+} lines_t;
 
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-LineRender *CreateLineRender(const DrawCreateInfo *createInfo);
-void        DestroyLineRender(LineRender *render);
-void        AddLine(LineRender *render, b2Vec2 p1, b2Vec2 p2, b2HexColor c);
-void        FlushLines(LineRender *render, const float *projectionMatrix);
+lines_t *lines_init(const draw_create_info_t *createInfo);
+void        lines_destroy(lines_t *render);
+void        lines_add(lines_t *render, b2Vec2 p1, b2Vec2 p2, b2HexColor c);
+void        lines_flush(lines_t *render, const float *projectionMatrix);
 
 #ifdef __cplusplus
 }

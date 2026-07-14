@@ -1,16 +1,16 @@
 // SPDX-FileCopyrightText: 2023 Erin Catto
 // SPDX-License-Identifier: MIT
 
-#include "draw_background.h"
+#include "background.h"
 
-#include "draw_internal.h"
+#include "internal.h"
 
 
 
-Background *CreateBackground(const DrawCreateInfo *createInfo)
+background_t *background_init(const draw_create_info_t *createInfo)
 {
-	Background *background = malloc(sizeof(Background));
-	*background            = (Background){0};
+	background_t *background = malloc(sizeof(background_t));
+	*background            = (background_t){0};
 
 	background->programId         = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_BACKGROUND_VERTEX],
 	createInfo->shaders[DRAW_SHADER_BACKGROUND_FRAGMENT]);
@@ -38,7 +38,7 @@ Background *CreateBackground(const DrawCreateInfo *createInfo)
 	return background;
 }
 
-void DestroyBackground(Background *background)
+void background_destroy(background_t *background)
 {
 	if (background == NULL) {
 		return;
@@ -59,7 +59,7 @@ void DestroyBackground(Background *background)
 	free(background);
 }
 
-void RenderBackground(Background *background, float width, float height)
+void background_render(background_t *background, float width, float height)
 {
 	glUseProgram(background->programId);
 

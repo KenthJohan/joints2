@@ -1,17 +1,17 @@
 // SPDX-FileCopyrightText: 2023 Erin Catto
 // SPDX-License-Identifier: MIT
 
-#include "draw_line.h"
+#include "lines.h"
 
-#include "draw_internal.h"
+#include "internal.h"
 
 #define LINE_BATCH_SIZE (2 * 2048)
 
-LineRender *CreateLineRender(const DrawCreateInfo *createInfo)
+lines_t *lines_init(const draw_create_info_t *createInfo)
 {
-	LineRender *render        = malloc(sizeof(LineRender));
-	*render                   = (LineRender){0};
-	ecs_vec_init_t(NULL, &render->points, LineData, LINE_BATCH_SIZE);
+	lines_t *render        = malloc(sizeof(lines_t));
+	*render                   = (lines_t){0};
+	ecs_vec_init_t(NULL, &render->points, lines_data_t, LINE_BATCH_SIZE);
 	render->programId         = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_LINE_VERTEX],
 	createInfo->shaders[DRAW_SHADER_LINE_FRAGMENT]);
 	render->projectionUniform = glGetUniformLocation(render->programId, "projectionMatrix");
@@ -26,10 +26,10 @@ LineRender *CreateLineRender(const DrawCreateInfo *createInfo)
 	glEnableVertexAttribArray(colorAttribute);
 
 	glBindBuffer(GL_ARRAY_BUFFER, render->vboId);
-	glBufferData(GL_ARRAY_BUFFER, LINE_BATCH_SIZE * sizeof(LineData), NULL, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, LINE_BATCH_SIZE * sizeof(lines_data_t), NULL, GL_DYNAMIC_DRAW);
 
-	glVertexAttribPointer(vertexAttribute, 2, GL_FLOAT, GL_FALSE, sizeof(LineData), (void *)offsetof(LineData, position));
-	glVertexAttribPointer(colorAttribute, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(LineData), (void *)offsetof(LineData, rgba));
+	glVertexAttribPointer(vertexAttribute, 2, GL_FLOAT, GL_FALSE, sizeof(lines_data_t), (void *)offsetof(lines_data_t, position));
+	glVertexAttribPointer(colorAttribute, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(lines_data_t), (void *)offsetof(lines_data_t, rgba));
 
 	CheckOpenGL();
 
@@ -39,7 +39,7 @@ LineRender *CreateLineRender(const DrawCreateInfo *createInfo)
 	return render;
 }
 
-void DestroyLineRender(LineRender *render)
+void lines_destroy(lines_t *render)
 {
 	if (render == NULL) {
 		return;
@@ -54,20 +54,20 @@ void DestroyLineRender(LineRender *render)
 		glDeleteProgram(render->programId);
 	}
 
-	ecs_vec_fini_t(NULL, &render->points, LineData);
+	ecs_vec_fini_t(NULL, &render->points, lines_data_t);
 	free(render);
 }
 
-void AddLine(LineRender *render, b2Vec2 p1, b2Vec2 p2, b2HexColor c)
+void lines_add(lines_t *render, b2Vec2 p1, b2Vec2 p2, b2HexColor c)
 {
 	RGBA8 rgba = MakeRGBA8(c, 1.0f);
-	ecs_vec_append_t(NULL, &render->points, LineData)[0] = (LineData){p1, rgba};
-	ecs_vec_append_t(NULL, &render->points, LineData)[0] = (LineData){p2, rgba};
+	ecs_vec_append_t(NULL, &render->points, lines_data_t)[0] = (lines_data_t){p1, rgba};
+	ecs_vec_append_t(NULL, &render->points, lines_data_t)[0] = (lines_data_t){p2, rgba};
 }
 
-void FlushLines(LineRender *render, const float *projectionMatrix)
+void lines_flush(lines_t *render, const float *projectionMatrix)
 {
-	LineData *points = ecs_vec_first_t(&render->points, LineData);
+	lines_data_t *points = ecs_vec_first_t(&render->points, lines_data_t);
 	int32_t count = ecs_vec_count(&render->points);
 	if (count == 0) {
 		return;
@@ -86,7 +86,7 @@ void FlushLines(LineRender *render, const float *projectionMatrix)
 	int base = 0;
 	while (count > 0) {
 		int batchCount = b2MinInt(count, LINE_BATCH_SIZE);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, batchCount * sizeof(LineData), points + base);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, batchCount * sizeof(lines_data_t), points + base);
 		glDrawArrays(GL_LINES, 0, batchCount);
 
 		CheckOpenGL();

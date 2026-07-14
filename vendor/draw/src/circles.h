@@ -5,7 +5,7 @@
 
 #include "draw.h"
 
-#include "draw_internal.h"
+#include "internal.h"
 #include <flecs.h>
 
 typedef struct
@@ -13,7 +13,7 @@ typedef struct
 	b2Vec2 position;
 	float  radius;
 	RGBA8  rgba;
-} CircleData;
+} circles_data_t;
 
 
 typedef struct
@@ -24,16 +24,16 @@ typedef struct
 	GLuint          programId;
 	GLint           projectionUniform;
 	GLint           pixelScaleUniform;
-} CircleRender;
+} circles_t;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-CircleRender *CreateCircles(const DrawCreateInfo *createInfo);
-void          DestroyCircles(CircleRender *render);
-void          AddCircle(CircleRender *render, b2Vec2 center, float radius, b2HexColor color);
-void          FlushCircles(CircleRender *render, float pixelScale, const float *projectionMatrix);
+circles_t *circles_init(const draw_create_info_t *createInfo);
+void          circles_destroy(circles_t *render);
+void          circles_add(circles_t *render, b2Vec2 center, float radius, b2HexColor color);
+void          circles_flush(circles_t *render, float pixelScale, const float *projectionMatrix);
 
 #ifdef __cplusplus
 }

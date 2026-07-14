@@ -8,9 +8,9 @@
 ECS_COMPONENT_DECLARE(AppDrawContext);
 ECS_COMPONENT_DECLARE(AppDrawContextCreate);
 
-static bool BuildDrawCreateInfo(DrawCreateInfo *createInfo)
+static bool BuildDrawCreateInfo(draw_create_info_t *createInfo)
 {
-	*createInfo = (DrawCreateInfo){0};
+	*createInfo = (draw_create_info_t){0};
 
 	createInfo->shaders[DRAW_SHADER_BACKGROUND_VERTEX]      = fs_read_allocated("data/background.vs");
 	createInfo->shaders[DRAW_SHADER_BACKGROUND_FRAGMENT]    = fs_read_allocated("data/background.fs");
@@ -39,12 +39,12 @@ static bool BuildDrawCreateInfo(DrawCreateInfo *createInfo)
 	return true;
 }
 
-static void FreeDrawCreateInfo(DrawCreateInfo *createInfo)
+static void FreeDrawCreateInfo(draw_create_info_t *createInfo)
 {
 	for (int i = 0; i < DRAW_SHADER_COUNT; ++i) {
 		free((void *)createInfo->shaders[i]);
 	}
-	*createInfo = (DrawCreateInfo){0};
+	*createInfo = (draw_create_info_t){0};
 }
 
 static void Test_Render(ecs_iter_t *it)
@@ -58,11 +58,11 @@ static void Test_Render(ecs_iter_t *it)
 		
 		/*
 		b2WorldTransform transform = {{1.0f, 0.0f}, {1.0f, 0.0f}};
-		DrawSolidCircle(draw->draw, transform, (b2Pos){0.0f, 0.0f}, 10.0f, b2_colorRed);
+		draw_solid_circle(draw->draw, transform, (b2Pos){0.0f, 0.0f}, 10.0f, b2_colorRed);
 		*/
 
 		float pixelScale = 100.1f; // Placeholder for pixel scale, can be adjusted based on window size or other factors
-		FlushDraw(draw->draw, pixelScale, (float*)&camera->vp);
+		draw_flush(draw->draw, pixelScale, (float*)&camera->vp);
 		
 
 	}
@@ -75,11 +75,11 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 	ecs_entity_t          e_window = ecs_field_src(it, 1);
 	printf("window_entity: %s\n", ecs_get_name(it->world, e_window));
 	for (int i = 0; i < it->count; ++i, ++def) {
-		DrawCreateInfo drawCreateInfo;
+		draw_create_info_t drawCreateInfo;
 		if (!BuildDrawCreateInfo(&drawCreateInfo)) {
 			continue; // Skip this entity if shader loading failed
 		}
-		Draw *draw = CreateDraw(&drawCreateInfo);
+		draw_t *draw = draw_init(&drawCreateInfo);
 		FreeDrawCreateInfo(&drawCreateInfo);
 
 		ecs_set(it->world, it->entities[i], AppDrawContext, {draw});

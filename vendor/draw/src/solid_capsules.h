@@ -4,7 +4,7 @@
 #pragma once
 
 #include "draw.h"
-#include "draw_internal.h"
+#include "internal.h"
 #include <flecs.h>
 
 typedef struct
@@ -13,7 +13,7 @@ typedef struct
 	float       radius;
 	float       length;
 	RGBA8       rgba;
-} Capsule;
+} solid_capsules_data_t;
 
 
 typedef struct
@@ -24,16 +24,16 @@ typedef struct
 	GLuint       programId;
 	GLint        projectionUniform;
 	GLint        pixelScaleUniform;
-} Capsules;
+} solid_capsules_t;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-Capsules *CreateCapsules(const DrawCreateInfo *createInfo);
-void      DestroyCapsules(Capsules *render);
-void      AddCapsule(Capsules *render, b2Vec2 p1, b2Vec2 p2, float radius, b2HexColor c);
-void      FlushCapsules(Capsules *render, float pixelScale, const float *projectionMatrix);
+solid_capsules_t *solid_capsules_init(const draw_create_info_t *createInfo);
+void      solid_capsules_destroy(solid_capsules_t *render);
+void      solid_capsules_add(solid_capsules_t *render, b2Vec2 p1, b2Vec2 p2, float radius, b2HexColor c);
+void      solid_capsules_flush(solid_capsules_t *render, float pixelScale, const float *projectionMatrix);
 
 #ifdef __cplusplus
 }
