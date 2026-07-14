@@ -8,11 +8,11 @@ using eg.buttons
 
 camera_rotate_dz {
     eg.buttons.Binding : {
-        key0:SCANCODE_E, 
-        key1:SCANCODE_Q, 
+        key0:MOUSE_X1, 
+        key1:MOUSE_X2, 
         mask:$BUTTON_HELD, 
         entity:cameras.cam0, 
-        comonent:Rotate3, 
+        component:Rotate3, 
         byte_offset:8, 
         factor: 0.01
     }
@@ -24,7 +24,7 @@ camera_move_dx {
         key1:SCANCODE_A, 
         mask:BUTTON_HELD, 
         entity:cameras.cam0, 
-        comonent:Velocity3, 
+        component:Velocity3, 
         byte_offset:0, 
         factor: 10.01
     }
@@ -36,7 +36,7 @@ camera_move_dy {
         key1:SCANCODE_S, 
         mask:BUTTON_HELD, 
         entity:cameras.cam0, 
-        comonent:Velocity3, 
+        component:Velocity3, 
         byte_offset:4, 
         factor: 10.01
     }
@@ -48,7 +48,7 @@ camera_move_dz {
         key1:SCANCODE_KP_PLUS, 
         mask:BUTTON_HELD, 
         entity:cameras.cam0, 
-        comonent:Velocity3, 
+        component:Velocity3, 
         byte_offset:8, 
         factor: 10.01
     }

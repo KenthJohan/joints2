@@ -1,10 +1,18 @@
 module eg.buttons
 
+export const BTNDEV_KEYBOARD = i32: (0 << 16)
+export const BTNDEV_MOUSE = i32: (1 << 16)
 
 // Keyboard button states
 export const BUTTON_HELD = i32: 0x01
 export const BUTTON_PRESSED = i32: 0x02
 export const BUTTON_RELEASED = i32: 0x04
+
+export const MOUSE_LEFT = i32: (BTNDEV_MOUSE | 1)
+export const MOUSE_MIDDLE = i32: (BTNDEV_MOUSE | 2)
+export const MOUSE_RIGHT = i32: (BTNDEV_MOUSE | 3)
+export const MOUSE_X1 = i32: (BTNDEV_MOUSE | 4)
+export const MOUSE_X2 = i32: (BTNDEV_MOUSE | 5)
 
 // SDL3 scancodes
 export const SCANCODE_A = i32: 4
