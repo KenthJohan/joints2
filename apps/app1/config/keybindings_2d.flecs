@@ -2,12 +2,12 @@
 keybindings {}
 module keybindings
 using eg.spatials
-using eg.keyboards
+using eg.buttons
 
 
 
 camera_rotate_dz {
-    eg.keyboards.Binding : {
+    eg.buttons.Binding : {
         key0:SCANCODE_E, 
         key1:SCANCODE_Q, 
         mask:$BUTTON_HELD, 
@@ -19,7 +19,7 @@ camera_rotate_dz {
 }
 
 camera_move_dx {
-    eg.keyboards.Binding : {
+    eg.buttons.Binding : {
         key0:SCANCODE_D, 
         key1:SCANCODE_A, 
         mask:BUTTON_HELD, 
@@ -31,7 +31,7 @@ camera_move_dx {
 }
 
 camera_move_dy {
-    eg.keyboards.Binding : {
+    eg.buttons.Binding : {
         key0:SCANCODE_W, 
         key1:SCANCODE_S, 
         mask:BUTTON_HELD, 
@@ -43,7 +43,7 @@ camera_move_dy {
 }
 
 camera_move_dz {
-    eg.keyboards.Binding : {
+    eg.buttons.Binding : {
         key0:SCANCODE_KP_MINUS, 
         key1:SCANCODE_KP_PLUS, 
         mask:BUTTON_HELD, 
@@ -55,7 +55,7 @@ camera_move_dz {
 }
 
 quit {
-    eg.keyboards.ActionToggleEntity : {
+    eg.buttons.ActionToggleEntity : {
         key:SCANCODE_ESCAPE, 
         mask:BUTTON_PRESSED, 
         entity:eg.windows.window1, 

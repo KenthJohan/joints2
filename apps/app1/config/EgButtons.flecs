@@ -1,4 +1,4 @@
-module eg.keyboards
+module eg.buttons
 
 
 // Keyboard button states

@@ -1,6 +1,5 @@
-cameras.cam0 {
-    
-}
+// Forward declare the camera so that it can be used in the window draw context
+cameras.cam0 {}
 
 module eg.windows
 using eg.shapes
@@ -8,11 +7,17 @@ using eg.spatials
 
 window1 {
     WindowCreateInfo : {debug: false, enable_opengl: true}
+    Position2 : {0, 0}
     Rectangle : {1024, 1024}
     OpenGLContextCreate : {0}
 
     draw1 {
         app.draw.ContextCreate : {0}
         (flecs.core.DependsOn, cameras.cam0)
+    }
+
+    mouse {
+        Position2
+        eg.windows.Mouse
     }
 }

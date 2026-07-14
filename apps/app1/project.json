@@ -13,7 +13,7 @@
 			"EgWindowsSdl",
 			"EgWindowsSdlGl",
 			"EgCameras",
-			"EgKeyboards",
+			"EgButtons",
 			"egmath",
 			"box2d",
 			"draw"
@@ -34,7 +34,7 @@
 			"EgWindows",
 			"EgWindowsSdl",
 			"EgWindowsSdlGl",
-			"EgKeyboards",
+			"EgButtons",
 			"EgFs",
 			"EgBase",
 			"EgGlslang",

@@ -27,7 +27,7 @@
 #include <EgWindowsSdl.h>
 #include <EgWindowsSdlGl.h>
 #include <EgCameras.h>
-#include <EgKeyboards.h>
+#include <EgButtons.h>
 #include <egmath.h>
 #include <draw.h>
 
