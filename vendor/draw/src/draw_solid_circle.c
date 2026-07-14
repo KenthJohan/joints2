@@ -7,15 +7,12 @@
 
 #define SOLID_CIRCLE_BATCH_SIZE 2048
 
-ARRAY_INLINE(SolidCircle);
-ARRAY_SOURCE(SolidCircle);
-
 
 SolidCircles *CreateSolidCircles(const DrawCreateInfo *createInfo)
 {
 	SolidCircles *render     = malloc(sizeof(SolidCircles));
 	*render                  = (SolidCircles){0};
-	render->circles          = SolidCircleArray_Create(SOLID_CIRCLE_BATCH_SIZE);
+	ecs_vec_init_t(NULL, &render->circles, SolidCircle, SOLID_CIRCLE_BATCH_SIZE);
 	render->programId        = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_VERTEX],
 	createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_FRAGMENT]);
 	render->projectionUniform = glGetUniformLocation(render->programId, "projectionMatrix");
@@ -75,19 +72,20 @@ void DestroySolidCircles(SolidCircles *render)
 		glDeleteProgram(render->programId);
 	}
 
-	SolidCircleArray_Destroy(&render->circles);
+	ecs_vec_fini_t(NULL, &render->circles, SolidCircle);
 	free(render);
 }
 
 void AddSolidCircle(SolidCircles *render, b2Transform transform, float radius, b2HexColor color)
 {
 	RGBA8 rgba = MakeRGBA8(color, 1.0f);
-	SolidCircleArray_Push(&render->circles, (SolidCircle){transform, radius, rgba});
+	ecs_vec_append_t(NULL, &render->circles, SolidCircle)[0] = (SolidCircle){transform, radius, rgba};
 }
 
 void FlushSolidCircles(SolidCircles *render, float pixelScale, const float *projectionMatrix)
 {
-	int count = render->circles.count;
+	SolidCircle *circles = ecs_vec_first_t(&render->circles, SolidCircle);
+	int32_t count = ecs_vec_count(&render->circles);
 	if (count == 0) {
 		return;
 	}
@@ -104,7 +102,7 @@ void FlushSolidCircles(SolidCircles *render, float pixelScale, const float *proj
 	int base = 0;
 	while (count > 0) {
 		int batchCount = b2MinInt(count, SOLID_CIRCLE_BATCH_SIZE);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, batchCount * sizeof(SolidCircle), render->circles.data + base);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, batchCount * sizeof(SolidCircle), circles + base);
 		glDrawArraysInstanced(GL_TRIANGLES, 0, 6, batchCount);
 
 		CheckOpenGL();
@@ -118,5 +116,5 @@ void FlushSolidCircles(SolidCircles *render, float pixelScale, const float *proj
 	glBindVertexArray(0);
 	glUseProgram(0);
 
-	render->circles.count = 0;
+	ecs_vec_clear(&render->circles);
 }

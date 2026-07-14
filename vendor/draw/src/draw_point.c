@@ -7,14 +7,11 @@
 
 #define POINT_BATCH_SIZE 2048
 
-ARRAY_INLINE(PointData);
-ARRAY_SOURCE(PointData);
-
 PointRender *CreatePointDrawData(const DrawCreateInfo *createInfo)
 {
 	PointRender *render      = malloc(sizeof(PointRender));
 	*render                  = (PointRender){0};
-	render->points           = PointDataArray_Create(POINT_BATCH_SIZE);
+	ecs_vec_init_t(NULL, &render->points, PointData, POINT_BATCH_SIZE);
 	render->programId        = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_POINT_VERTEX],
 	createInfo->shaders[DRAW_SHADER_POINT_FRAGMENT]);
 	render->projectionUniform = glGetUniformLocation(render->programId, "projectionMatrix");
@@ -60,19 +57,20 @@ void DestroyPointDrawData(PointRender *render)
 		glDeleteProgram(render->programId);
 	}
 
-	PointDataArray_Destroy(&render->points);
+	ecs_vec_fini_t(NULL, &render->points, PointData);
 	free(render);
 }
 
 void AddPoint(PointRender *render, b2Vec2 v, float size, b2HexColor c)
 {
 	RGBA8 rgba = MakeRGBA8(c, 1.0f);
-	PointDataArray_Push(&render->points, (PointData){v, size, rgba});
+	ecs_vec_append_t(NULL, &render->points, PointData)[0] = (PointData){v, size, rgba};
 }
 
 void FlushPoints(PointRender *render, const float *projectionMatrix)
 {
-	int count = render->points.count;
+	PointData *points = ecs_vec_first_t(&render->points, PointData);
+	int32_t count = ecs_vec_count(&render->points);
 	if (count == 0) {
 		return;
 	}
@@ -87,7 +85,7 @@ void FlushPoints(PointRender *render, const float *projectionMatrix)
 	int base = 0;
 	while (count > 0) {
 		int batchCount = b2MinInt(count, POINT_BATCH_SIZE);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, batchCount * sizeof(PointData), render->points.data + base);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, batchCount * sizeof(PointData), points + base);
 		glDrawArrays(GL_POINTS, 0, batchCount);
 
 		CheckOpenGL();
@@ -101,5 +99,5 @@ void FlushPoints(PointRender *render, const float *projectionMatrix)
 	glBindVertexArray(0);
 	glUseProgram(0);
 
-	render->points.count = 0;
+	ecs_vec_clear(&render->points);
 }

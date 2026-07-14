@@ -7,7 +7,6 @@
 #define _CRT_SECURE_NO_WARNINGS
 #endif
 
-#include "container.h"
 #include "shader.h"
 
 #include "box2d/constants.h"

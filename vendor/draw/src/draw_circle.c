@@ -7,14 +7,12 @@
 
 #define CIRCLE_BATCH_SIZE 2048
 
-ARRAY_INLINE(CircleData);
-ARRAY_SOURCE(CircleData);
 
 CircleRender *CreateCircles(const DrawCreateInfo *createInfo)
 {
 	CircleRender *render      = malloc(sizeof(CircleRender));
 	*render                   = (CircleRender){0};
-	render->circles           = CircleDataArray_Create(CIRCLE_BATCH_SIZE);
+	ecs_vec_init_t(NULL, &render->circles, CircleData, CIRCLE_BATCH_SIZE);
 	render->programId         = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_CIRCLE_VERTEX],
 	createInfo->shaders[DRAW_SHADER_CIRCLE_FRAGMENT]);
 	render->projectionUniform = glGetUniformLocation(render->programId, "projectionMatrix");
@@ -73,19 +71,20 @@ void DestroyCircles(CircleRender *render)
 		glDeleteProgram(render->programId);
 	}
 
-	CircleDataArray_Destroy(&render->circles);
+	ecs_vec_fini_t(NULL, &render->circles, CircleData);
 	free(render);
 }
 
 void AddCircle(CircleRender *render, b2Vec2 center, float radius, b2HexColor color)
 {
 	RGBA8 rgba = MakeRGBA8(color, 1.0f);
-	CircleDataArray_Push(&render->circles, (CircleData){center, radius, rgba});
+	ecs_vec_append_t(NULL, &render->circles, CircleData)[0] = (CircleData){center, radius, rgba};
 }
 
 void FlushCircles(CircleRender *render, float pixelScale, const float *projectionMatrix)
 {
-	int count = render->circles.count;
+	CircleData *circles = ecs_vec_first_t(&render->circles, CircleData);
+	int32_t count = ecs_vec_count(&render->circles);
 	if (count == 0) {
 		return;
 	}
@@ -102,7 +101,7 @@ void FlushCircles(CircleRender *render, float pixelScale, const float *projectio
 	int base = 0;
 	while (count > 0) {
 		int batchCount = b2MinInt(count, CIRCLE_BATCH_SIZE);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, batchCount * sizeof(CircleData), render->circles.data + base);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, batchCount * sizeof(CircleData), circles + base);
 		glDrawArraysInstanced(GL_TRIANGLES, 0, 6, batchCount);
 
 		CheckOpenGL();
@@ -116,5 +115,5 @@ void FlushCircles(CircleRender *render, float pixelScale, const float *projectio
 	glBindVertexArray(0);
 	glUseProgram(0);
 
-	render->circles.count = 0;
+	ecs_vec_clear(&render->circles);
 }

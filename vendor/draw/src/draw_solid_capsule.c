@@ -8,15 +8,11 @@
 #define CAPSULE_BATCH_SIZE 2048
 
 
-ARRAY_INLINE(Capsule);
-ARRAY_SOURCE(Capsule);
-
-
 Capsules *CreateCapsules(const DrawCreateInfo *createInfo)
 {
 	Capsules *render         = malloc(sizeof(Capsules));
 	*render                  = (Capsules){0};
-	render->capsules         = CapsuleArray_Create(CAPSULE_BATCH_SIZE);
+	ecs_vec_init_t(NULL, &render->capsules, Capsule, CAPSULE_BATCH_SIZE);
 	render->programId        = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_VERTEX],
 	createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_FRAGMENT]);
 	render->projectionUniform = glGetUniformLocation(render->programId, "projectionMatrix");
@@ -80,7 +76,7 @@ void DestroyCapsules(Capsules *render)
 		glDeleteProgram(render->programId);
 	}
 
-	CapsuleArray_Destroy(&render->capsules);
+	ecs_vec_fini_t(NULL, &render->capsules, Capsule);
 	free(render);
 }
 
@@ -100,12 +96,13 @@ void AddCapsule(Capsules *render, b2Vec2 p1, b2Vec2 p2, float radius, b2HexColor
 	transform.q.s = axis.y;
 
 	RGBA8 rgba = MakeRGBA8(c, 1.0f);
-	CapsuleArray_Push(&render->capsules, (Capsule){transform, radius, length, rgba});
+	ecs_vec_append_t(NULL, &render->capsules, Capsule)[0] = (Capsule){transform, radius, length, rgba};
 }
 
 void FlushCapsules(Capsules *render, float pixelScale, const float *projectionMatrix)
 {
-	int count = render->capsules.count;
+	Capsule *capsules = ecs_vec_first_t(&render->capsules, Capsule);
+	int32_t count = ecs_vec_count(&render->capsules);
 	if (count == 0) {
 		return;
 	}
@@ -122,7 +119,7 @@ void FlushCapsules(Capsules *render, float pixelScale, const float *projectionMa
 	int base = 0;
 	while (count > 0) {
 		int batchCount = b2MinInt(count, CAPSULE_BATCH_SIZE);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, batchCount * sizeof(Capsule), render->capsules.data + base);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, batchCount * sizeof(Capsule), capsules + base);
 		glDrawArraysInstanced(GL_TRIANGLES, 0, 6, batchCount);
 
 		CheckOpenGL();
@@ -136,5 +133,5 @@ void FlushCapsules(Capsules *render, float pixelScale, const float *projectionMa
 	glBindVertexArray(0);
 	glUseProgram(0);
 
-	render->capsules.count = 0;
+	ecs_vec_clear(&render->capsules);
 }

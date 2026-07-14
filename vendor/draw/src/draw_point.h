@@ -4,8 +4,8 @@
 #pragma once
 
 #include "draw.h"
-#include "container.h"
 #include "draw_internal.h"
+#include <flecs.h>
 
 typedef struct
 {
@@ -14,12 +14,10 @@ typedef struct
 	RGBA8  rgba;
 } PointData;
 
-ARRAY_DECLARE(PointData);
-
 
 typedef struct
 {
-	PointDataArray points;
+	ecs_vec_t points;
 	GLuint         vaoId;
 	GLuint         vboId;
 	GLuint         programId;

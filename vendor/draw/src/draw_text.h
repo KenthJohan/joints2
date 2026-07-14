@@ -6,6 +6,7 @@
 #include "draw.h"
 #include "stb_truetype.h"
 #include "draw_internal.h"
+#include <flecs.h>
 
 #define TEXT_CHAR_COUNT 96
 
@@ -16,12 +17,10 @@ typedef struct
 	RGBA8  rgba;
 } TextVertex;
 
-ARRAY_DECLARE(TextVertex);
-
 
 
 typedef struct {
-	TextVertexArray vertices;
+	ecs_vec_t       vertices;
 	stbtt_bakedchar glyphs[TEXT_CHAR_COUNT];
 	GLuint          vaoId;
 	GLuint          vboId;

@@ -4,8 +4,8 @@
 #pragma once
 
 #include "draw.h"
-#include "container.h"
 #include "draw_internal.h"
+#include <flecs.h>
 
 typedef struct
 {
@@ -14,11 +14,9 @@ typedef struct
 	RGBA8       rgba;
 } SolidCircle;
 
-ARRAY_DECLARE(SolidCircle);
-
 typedef struct
 {
-	SolidCircleArray circles;
+	ecs_vec_t       circles;
 	GLuint           vaoId;
 	GLuint           vboIds[2];
 	GLuint           programId;

@@ -7,14 +7,11 @@
 
 #define LINE_BATCH_SIZE (2 * 2048)
 
-ARRAY_INLINE(LineData);
-ARRAY_SOURCE(LineData);
-
 LineRender *CreateLineRender(const DrawCreateInfo *createInfo)
 {
 	LineRender *render        = malloc(sizeof(LineRender));
 	*render                   = (LineRender){0};
-	render->points            = LineDataArray_Create(LINE_BATCH_SIZE);
+	ecs_vec_init_t(NULL, &render->points, LineData, LINE_BATCH_SIZE);
 	render->programId         = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_LINE_VERTEX],
 	createInfo->shaders[DRAW_SHADER_LINE_FRAGMENT]);
 	render->projectionUniform = glGetUniformLocation(render->programId, "projectionMatrix");
@@ -57,20 +54,21 @@ void DestroyLineRender(LineRender *render)
 		glDeleteProgram(render->programId);
 	}
 
-	LineDataArray_Destroy(&render->points);
+	ecs_vec_fini_t(NULL, &render->points, LineData);
 	free(render);
 }
 
 void AddLine(LineRender *render, b2Vec2 p1, b2Vec2 p2, b2HexColor c)
 {
 	RGBA8 rgba = MakeRGBA8(c, 1.0f);
-	LineDataArray_Push(&render->points, (LineData){p1, rgba});
-	LineDataArray_Push(&render->points, (LineData){p2, rgba});
+	ecs_vec_append_t(NULL, &render->points, LineData)[0] = (LineData){p1, rgba};
+	ecs_vec_append_t(NULL, &render->points, LineData)[0] = (LineData){p2, rgba};
 }
 
 void FlushLines(LineRender *render, const float *projectionMatrix)
 {
-	int count = render->points.count;
+	LineData *points = ecs_vec_first_t(&render->points, LineData);
+	int32_t count = ecs_vec_count(&render->points);
 	if (count == 0) {
 		return;
 	}
@@ -88,7 +86,7 @@ void FlushLines(LineRender *render, const float *projectionMatrix)
 	int base = 0;
 	while (count > 0) {
 		int batchCount = b2MinInt(count, LINE_BATCH_SIZE);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, batchCount * sizeof(LineData), render->points.data + base);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, batchCount * sizeof(LineData), points + base);
 		glDrawArrays(GL_LINES, 0, batchCount);
 
 		CheckOpenGL();
@@ -102,5 +100,5 @@ void FlushLines(LineRender *render, const float *projectionMatrix)
 	glUseProgram(0);
 	glDisable(GL_BLEND);
 
-	render->points.count = 0;
+	ecs_vec_clear(&render->points);
 }

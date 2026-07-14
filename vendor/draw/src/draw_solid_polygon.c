@@ -8,16 +8,11 @@
 #define POLYGON_BATCH_SIZE 2048
 
 
-
-ARRAY_INLINE(Polygon);
-ARRAY_SOURCE(Polygon);
-
-
 Polygons *CreatePolygons(const DrawCreateInfo *createInfo)
 {
 	Polygons *render         = malloc(sizeof(Polygons));
 	*render                  = (Polygons){0};
-	render->polygons         = PolygonArray_Create(10 * POLYGON_BATCH_SIZE);
+	ecs_vec_init_t(NULL, &render->polygons, Polygon, 10 * POLYGON_BATCH_SIZE);
 	render->programId        = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_VERTEX],
 	createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_FRAGMENT]);
 	render->projectionUniform = glGetUniformLocation(render->programId, "projectionMatrix");
@@ -96,7 +91,7 @@ void DestroyPolygons(Polygons *render)
 		glDeleteProgram(render->programId);
 	}
 
-	PolygonArray_Destroy(&render->polygons);
+	ecs_vec_fini_t(NULL, &render->polygons, Polygon);
 	free(render);
 }
 
@@ -115,12 +110,13 @@ void AddPolygon(Polygons *render, b2Transform transform, const b2Vec2 *points, i
 	data.radius = radius;
 	data.color  = MakeRGBA8(color, 1.0f);
 
-	PolygonArray_Push(&render->polygons, data);
+	ecs_vec_append_t(NULL, &render->polygons, Polygon)[0] = data;
 }
 
 void FlushPolygons(Polygons *render, float pixelScale, const float *projectionMatrix)
 {
-	int count = render->polygons.count;
+	Polygon *polygons = ecs_vec_first_t(&render->polygons, Polygon);
+	int32_t count = ecs_vec_count(&render->polygons);
 	if (count == 0) {
 		return;
 	}
@@ -137,7 +133,7 @@ void FlushPolygons(Polygons *render, float pixelScale, const float *projectionMa
 	int base = 0;
 	while (count > 0) {
 		int batchCount = b2MinInt(count, POLYGON_BATCH_SIZE);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, batchCount * sizeof(Polygon), render->polygons.data + base);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, batchCount * sizeof(Polygon), polygons + base);
 		glDrawArraysInstanced(GL_TRIANGLES, 0, 6, batchCount);
 		CheckOpenGL();
 
@@ -150,5 +146,5 @@ void FlushPolygons(Polygons *render, float pixelScale, const float *projectionMa
 	glBindVertexArray(0);
 	glUseProgram(0);
 
-	render->polygons.count = 0;
+	ecs_vec_clear(&render->polygons);
 }

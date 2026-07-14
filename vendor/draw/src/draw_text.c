@@ -12,9 +12,6 @@
 #define TEXT_ATLAS_HEIGHT       512
 #define TEXT_BAKE_FONT_SIZE     32.0f
 
-ARRAY_INLINE(TextVertex);
-ARRAY_SOURCE(TextVertex);
-
 
 static unsigned char *sReadBinaryFile(const char *path, size_t *outSize)
 {
@@ -75,7 +72,7 @@ TextRender *CreateTextRender(const DrawCreateInfo *createInfo)
 {
 	TextRender *render       = malloc(sizeof(TextRender));
 	*render                  = (TextRender){0};
-	render->vertices         = TextVertexArray_Create(TEXT_BATCH_VERTEX_COUNT);
+	ecs_vec_init_t(NULL, &render->vertices, TextVertex, TEXT_BATCH_VERTEX_COUNT);
 	render->programId        = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_TEXT_VERTEX],
 	createInfo->shaders[DRAW_SHADER_TEXT_FRAGMENT]);
 	render->projectionUniform = glGetUniformLocation(render->programId, "projectionMatrix");
@@ -161,18 +158,18 @@ void DestroyTextRender(TextRender *render)
 		glDeleteProgram(render->programId);
 	}
 
-	TextVertexArray_Destroy(&render->vertices);
+	ecs_vec_fini_t(NULL, &render->vertices, TextVertex);
 	free(render);
 }
 
 static void AddGlyphQuad(TextRender *render, stbtt_aligned_quad q, RGBA8 rgba)
 {
-	TextVertexArray_Push(&render->vertices, (TextVertex){{q.x0, q.y0}, {q.s0, q.t0}, rgba});
-	TextVertexArray_Push(&render->vertices, (TextVertex){{q.x1, q.y0}, {q.s1, q.t0}, rgba});
-	TextVertexArray_Push(&render->vertices, (TextVertex){{q.x1, q.y1}, {q.s1, q.t1}, rgba});
-	TextVertexArray_Push(&render->vertices, (TextVertex){{q.x0, q.y0}, {q.s0, q.t0}, rgba});
-	TextVertexArray_Push(&render->vertices, (TextVertex){{q.x1, q.y1}, {q.s1, q.t1}, rgba});
-	TextVertexArray_Push(&render->vertices, (TextVertex){{q.x0, q.y1}, {q.s0, q.t1}, rgba});
+	ecs_vec_append_t(NULL, &render->vertices, TextVertex)[0] = (TextVertex){{q.x0, q.y0}, {q.s0, q.t0}, rgba};
+	ecs_vec_append_t(NULL, &render->vertices, TextVertex)[0] = (TextVertex){{q.x1, q.y0}, {q.s1, q.t0}, rgba};
+	ecs_vec_append_t(NULL, &render->vertices, TextVertex)[0] = (TextVertex){{q.x1, q.y1}, {q.s1, q.t1}, rgba};
+	ecs_vec_append_t(NULL, &render->vertices, TextVertex)[0] = (TextVertex){{q.x0, q.y0}, {q.s0, q.t0}, rgba};
+	ecs_vec_append_t(NULL, &render->vertices, TextVertex)[0] = (TextVertex){{q.x1, q.y1}, {q.s1, q.t1}, rgba};
+	ecs_vec_append_t(NULL, &render->vertices, TextVertex)[0] = (TextVertex){{q.x0, q.y1}, {q.s0, q.t1}, rgba};
 }
 
 void AddText(TextRender *render, float x, float y, float fontSize, b2HexColor color, const char *string)
@@ -227,7 +224,8 @@ void AddText(TextRender *render, float x, float y, float fontSize, b2HexColor co
 
 void FlushText(TextRender *render, const float *projectionMatrix)
 {
-	int count = render->vertices.count;
+	TextVertex *vertices = ecs_vec_first_t(&render->vertices, TextVertex);
+	int32_t count = ecs_vec_count(&render->vertices);
 	if (count == 0 || render->initialized == 0) {
 		return;
 	}
@@ -247,7 +245,7 @@ void FlushText(TextRender *render, const float *projectionMatrix)
 	int base = 0;
 	while (count > 0) {
 		int batchCount = b2MinInt(count, TEXT_BATCH_VERTEX_COUNT);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, batchCount * sizeof(TextVertex), render->vertices.data + base);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, batchCount * sizeof(TextVertex), vertices + base);
 		glDrawArrays(GL_TRIANGLES, 0, batchCount);
 
 		count -= TEXT_BATCH_VERTEX_COUNT;
@@ -260,5 +258,5 @@ void FlushText(TextRender *render, const float *projectionMatrix)
 	glUseProgram(0);
 	glDisable(GL_BLEND);
 
-	render->vertices.count = 0;
+	ecs_vec_clear(&render->vertices);
 }
