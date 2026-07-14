@@ -84,30 +84,84 @@ const SCANCODE_RGUI: 231
 
 
 camera_rotate_dx {
-    eg.keyboards.Binding : {key0:$SCANCODE_UP, key1:$SCANCODE_DOWN, mask:$BUTTON_HELD, entity:cameras.cam0, comonent:Rotate3, byte_offset:0, factor: 0.01}
+    eg.keyboards.Binding : {
+        key0:$SCANCODE_UP, 
+        key1:$SCANCODE_DOWN, 
+        mask:$BUTTON_HELD, 
+        entity:cameras.cam0, 
+        comonent:Rotate3, 
+        byte_offset:0, 
+        factor: 0.01
+    }
 }
 
 camera_rotate_dy {
-    eg.keyboards.Binding : {key0:$SCANCODE_LEFT, key1:$SCANCODE_RIGHT, mask:$BUTTON_HELD, entity:cameras.cam0, comonent:Rotate3, byte_offset:4, factor: -0.01}
+    eg.keyboards.Binding : {
+        key0:$SCANCODE_LEFT, 
+        key1:$SCANCODE_RIGHT, 
+        mask:$BUTTON_HELD, 
+        entity:cameras.cam0, 
+        comonent:Rotate3, 
+        byte_offset:4, 
+        factor: -0.01
+    }
 }
 
 camera_rotate_dz {
-    eg.keyboards.Binding : {key0:$SCANCODE_E, key1:$SCANCODE_Q, mask:$BUTTON_HELD, entity:cameras.cam0, comonent:Rotate3, byte_offset:8, factor: 0.01}
+    eg.keyboards.Binding : {
+        key0:$SCANCODE_E, 
+        key1:$SCANCODE_Q, 
+        mask:$BUTTON_HELD, 
+        entity:cameras.cam0, 
+        comonent:Rotate3, 
+        byte_offset:8, 
+        factor: 0.01
+    }
 }
 
 camera_move_dx {
-    eg.keyboards.Binding : {key0:$SCANCODE_D, key1:$SCANCODE_A, mask:$BUTTON_HELD, entity:cameras.cam0, comonent:Velocity3, byte_offset:0, factor: 10.01}
+    eg.keyboards.Binding : {
+        key0:$SCANCODE_D, 
+        key1:$SCANCODE_A, 
+        mask:$BUTTON_HELD, 
+        entity:cameras.cam0, 
+        comonent:Velocity3, 
+        byte_offset:0, 
+        factor: 10.01
+    }
 }
 
 camera_move_dy {
-    eg.keyboards.Binding : {key0:$SCANCODE_W, key1:$SCANCODE_S, mask:$BUTTON_HELD, entity:cameras.cam0, comonent:Velocity3, byte_offset:4, factor: 10.01}
+    eg.keyboards.Binding : {
+        key0:$SCANCODE_W, 
+        key1:$SCANCODE_S, 
+        mask:$BUTTON_HELD, 
+        entity:cameras.cam0, 
+        comonent:Velocity3, 
+        byte_offset:4, 
+        factor: 10.01
+    }
 }
 
 camera_move_dz {
-    eg.keyboards.Binding : {key0:$SCANCODE_LCTRL, key1:$SCANCODE_SPACE, mask:$BUTTON_HELD, entity:cameras.cam0, comonent:Velocity3, byte_offset:8, factor: 10.01}
+    eg.keyboards.Binding : {
+        key0:$SCANCODE_LCTRL, 
+        key1:$SCANCODE_SPACE, 
+        mask:$BUTTON_HELD, 
+        entity:cameras.cam0, 
+        comonent:Velocity3, 
+        byte_offset:8, 
+        factor: 10.01
+    }
 }
 
 quit {
-    eg.keyboards.ActionToggleEntity : {key:$SCANCODE_ESCAPE, mask:$BUTTON_PRESSED, entity:eg.windows.window1, relation:0, toggle:eg.windows.EventCloseRequest}
+    eg.keyboards.ActionToggleEntity : {
+        key:$SCANCODE_ESCAPE, 
+        mask:$BUTTON_PRESSED, 
+        entity:eg.windows.window1, 
+        relation:0, 
+        toggle:eg.windows.EventCloseRequest
+    }
 }
 

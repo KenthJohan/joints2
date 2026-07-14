@@ -1,0 +1,142 @@
+@color #FF99FF
+keybindings {}
+module keybindings
+using eg.spatials
+
+// Copied from EgKeyboards.flecs
+const BUTTON_HELD: 0x01
+const BUTTON_PRESSED: 0x02
+const BUTTON_RELEASED: 0x04
+const SCANCODE_A: 4
+const SCANCODE_B: 5
+const SCANCODE_C: 6
+const SCANCODE_D: 7
+const SCANCODE_E: 8
+const SCANCODE_F: 9
+const SCANCODE_G: 10
+const SCANCODE_H: 11
+const SCANCODE_I: 12
+const SCANCODE_J: 13
+const SCANCODE_K: 14
+const SCANCODE_L: 15
+const SCANCODE_M: 16
+const SCANCODE_N: 17
+const SCANCODE_O: 18
+const SCANCODE_P: 19
+const SCANCODE_Q: 20
+const SCANCODE_R: 21
+const SCANCODE_S: 22
+const SCANCODE_T: 23
+const SCANCODE_U: 24
+const SCANCODE_V: 25
+const SCANCODE_W: 26
+const SCANCODE_X: 27
+const SCANCODE_Y: 28
+const SCANCODE_Z: 29
+const SCANCODE_1: 30
+const SCANCODE_2: 31
+const SCANCODE_3: 32
+const SCANCODE_4: 33
+const SCANCODE_5: 34
+const SCANCODE_6: 35
+const SCANCODE_7: 36
+const SCANCODE_8: 37
+const SCANCODE_9: 38
+const SCANCODE_0: 39
+const SCANCODE_RETURN: 40
+const SCANCODE_ESCAPE: 41
+const SCANCODE_BACKSPACE: 42
+const SCANCODE_TAB: 43
+const SCANCODE_SPACE: 44
+const SCANCODE_HOME: 74
+const SCANCODE_PAGEUP: 75
+const SCANCODE_DELETE: 76
+const SCANCODE_END: 77
+const SCANCODE_PAGEDOWN: 78
+const SCANCODE_RIGHT: 79
+const SCANCODE_LEFT: 80
+const SCANCODE_DOWN: 81
+const SCANCODE_UP: 82
+const SCANCODE_KP_DIVIDE: 84
+const SCANCODE_KP_MULTIPLY: 85
+const SCANCODE_KP_MINUS: 86
+const SCANCODE_KP_PLUS: 87
+const SCANCODE_KP_ENTER: 88
+const SCANCODE_KP_1: 89
+const SCANCODE_KP_2: 90
+const SCANCODE_KP_3: 91
+const SCANCODE_KP_4: 92
+const SCANCODE_KP_5: 93
+const SCANCODE_KP_6: 94
+const SCANCODE_KP_7: 95
+const SCANCODE_KP_8: 96
+const SCANCODE_KP_9: 97
+const SCANCODE_KP_0: 98
+const SCANCODE_KP_PERIOD: 99
+const SCANCODE_LCTRL: 224
+const SCANCODE_LSHIFT: 225
+const SCANCODE_LALT: 226
+const SCANCODE_LGUI: 227
+const SCANCODE_RCTRL: 228
+const SCANCODE_RSHIFT: 229
+const SCANCODE_RALT: 230
+const SCANCODE_RGUI: 231
+
+camera_rotate_dz {
+    eg.keyboards.Binding : {
+        key0:$SCANCODE_E, 
+        key1:$SCANCODE_Q, 
+        mask:$BUTTON_HELD, 
+        entity:cameras.cam0, 
+        comonent:Rotate3, 
+        byte_offset:8, 
+        factor: 0.01
+    }
+}
+
+camera_move_dx {
+    eg.keyboards.Binding : {
+        key0:$SCANCODE_D, 
+        key1:$SCANCODE_A, 
+        mask:$BUTTON_HELD, 
+        entity:cameras.cam0, 
+        comonent:Velocity3, 
+        byte_offset:0, 
+        factor: 10.01
+    }
+}
+
+camera_move_dy {
+    eg.keyboards.Binding : {
+        key0:$SCANCODE_W, 
+        key1:$SCANCODE_S, 
+        mask:$BUTTON_HELD, 
+        entity:cameras.cam0, 
+        comonent:Velocity3, 
+        byte_offset:4, 
+        factor: 10.01
+    }
+}
+
+camera_move_dz {
+    eg.keyboards.Binding : {
+        key0:$SCANCODE_KP_MINUS, 
+        key1:$SCANCODE_KP_PLUS, 
+        mask:$BUTTON_HELD, 
+        entity:cameras.cam0, 
+        comonent:Velocity3, 
+        byte_offset:8, 
+        factor: 10.01
+    }
+}
+
+quit {
+    eg.keyboards.ActionToggleEntity : {
+        key:$SCANCODE_ESCAPE, 
+        mask:$BUTTON_PRESSED, 
+        entity:eg.windows.window1, 
+        relation:0, 
+        toggle:eg.windows.EventCloseRequest
+    }
+}
+
