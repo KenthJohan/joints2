@@ -77,7 +77,7 @@ int main(int argc, char *argv[])
 #endif
 
 	while (1) {
-		if (ecs_has(world, e_window, EgWindowsEventCloseRequest)) {
+		if (ecs_has(world, e_window, EgWindowsCloseRequest)) {
 			printf("Window should close\n");
 			break;
 		}
