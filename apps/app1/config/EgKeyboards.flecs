@@ -1,80 +1,83 @@
 module eg.keyboards
 
-// This can not be shared to other scripts yet.
-const BUTTON_HELD: 0x01
-const BUTTON_PRESSED: 0x02
-const BUTTON_RELEASED: 0x04
-const SCANCODE_A: 4
-const SCANCODE_B: 5
-const SCANCODE_C: 6
-const SCANCODE_D: 7
-const SCANCODE_E: 8
-const SCANCODE_F: 9
-const SCANCODE_G: 10
-const SCANCODE_H: 11
-const SCANCODE_I: 12
-const SCANCODE_J: 13
-const SCANCODE_K: 14
-const SCANCODE_L: 15
-const SCANCODE_M: 16
-const SCANCODE_N: 17
-const SCANCODE_O: 18
-const SCANCODE_P: 19
-const SCANCODE_Q: 20
-const SCANCODE_R: 21
-const SCANCODE_S: 22
-const SCANCODE_T: 23
-const SCANCODE_U: 24
-const SCANCODE_V: 25
-const SCANCODE_W: 26
-const SCANCODE_X: 27
-const SCANCODE_Y: 28
-const SCANCODE_Z: 29
-const SCANCODE_1: 30
-const SCANCODE_2: 31
-const SCANCODE_3: 32
-const SCANCODE_4: 33
-const SCANCODE_5: 34
-const SCANCODE_6: 35
-const SCANCODE_7: 36
-const SCANCODE_8: 37
-const SCANCODE_9: 38
-const SCANCODE_0: 39
-const SCANCODE_RETURN: 40
-const SCANCODE_ESCAPE: 41
-const SCANCODE_BACKSPACE: 42
-const SCANCODE_TAB: 43
-const SCANCODE_SPACE: 44
-const SCANCODE_HOME: 74
-const SCANCODE_PAGEUP: 75
-const SCANCODE_DELETE: 76
-const SCANCODE_END: 77
-const SCANCODE_PAGEDOWN: 78
-const SCANCODE_RIGHT: 79
-const SCANCODE_LEFT: 80
-const SCANCODE_DOWN: 81
-const SCANCODE_UP: 82
-const SCANCODE_KP_DIVIDE: 84
-const SCANCODE_KP_MULTIPLY: 85
-const SCANCODE_KP_MINUS: 86
-const SCANCODE_KP_PLUS: 87
-const SCANCODE_KP_ENTER: 88
-const SCANCODE_KP_1: 89
-const SCANCODE_KP_2: 90
-const SCANCODE_KP_3: 91
-const SCANCODE_KP_4: 92
-const SCANCODE_KP_5: 93
-const SCANCODE_KP_6: 94
-const SCANCODE_KP_7: 95
-const SCANCODE_KP_8: 96
-const SCANCODE_KP_9: 97
-const SCANCODE_KP_0: 98
-const SCANCODE_KP_PERIOD: 99
-const SCANCODE_LCTRL: 224
-const SCANCODE_LSHIFT: 225
-const SCANCODE_LALT: 226
-const SCANCODE_LGUI: 227
-const SCANCODE_RCTRL: 228
-const SCANCODE_RSHIFT: 229
-const SCANCODE_RALT: 230
-const SCANCODE_RGUI: 231
+
+// Keyboard button states
+export const BUTTON_HELD = i32: 0x01
+export const BUTTON_PRESSED = i32: 0x02
+export const BUTTON_RELEASED = i32: 0x04
+
+// SDL3 scancodes
+export const SCANCODE_A = i32: 4
+export const SCANCODE_B = i32: 5
+export const SCANCODE_C = i32: 6
+export const SCANCODE_D = i32: 7
+export const SCANCODE_E = i32: 8
+export const SCANCODE_F = i32: 9
+export const SCANCODE_G = i32: 10
+export const SCANCODE_H = i32: 11
+export const SCANCODE_I = i32: 12
+export const SCANCODE_J = i32: 13
+export const SCANCODE_K = i32: 14
+export const SCANCODE_L = i32: 15
+export const SCANCODE_M = i32: 16
+export const SCANCODE_N = i32: 17
+export const SCANCODE_O = i32: 18
+export const SCANCODE_P = i32: 19
+export const SCANCODE_Q = i32: 20
+export const SCANCODE_R = i32: 21
+export const SCANCODE_S = i32: 22
+export const SCANCODE_T = i32: 23
+export const SCANCODE_U = i32: 24
+export const SCANCODE_V = i32: 25
+export const SCANCODE_W = i32: 26
+export const SCANCODE_X = i32: 27
+export const SCANCODE_Y = i32: 28
+export const SCANCODE_Z = i32: 29
+export const SCANCODE_1 = i32: 30
+export const SCANCODE_2 = i32: 31
+export const SCANCODE_3 = i32: 32
+export const SCANCODE_4 = i32: 33
+export const SCANCODE_5 = i32: 34
+export const SCANCODE_6 = i32: 35
+export const SCANCODE_7 = i32: 36
+export const SCANCODE_8 = i32: 37
+export const SCANCODE_9 = i32: 38
+export const SCANCODE_0 = i32: 39
+export const SCANCODE_RETURN = i32: 40
+export const SCANCODE_ESCAPE = i32: 41
+export const SCANCODE_BACKSPACE = i32: 42
+export const SCANCODE_TAB = i32: 43
+export const SCANCODE_SPACE = i32: 44
+export const SCANCODE_HOME = i32: 74
+export const SCANCODE_PAGEUP = i32: 75
+export const SCANCODE_DELETE = i32: 76
+export const SCANCODE_END = i32: 77
+export const SCANCODE_PAGEDOWN = i32: 78
+export const SCANCODE_RIGHT = i32: 79
+export const SCANCODE_LEFT = i32: 80
+export const SCANCODE_DOWN = i32: 81
+export const SCANCODE_UP = i32: 82
+export const SCANCODE_KP_DIVIDE = i32: 84
+export const SCANCODE_KP_MULTIPLY = i32: 85
+export const SCANCODE_KP_MINUS = i32: 86
+export const SCANCODE_KP_PLUS = i32: 87
+export const SCANCODE_KP_ENTER = i32: 88
+export const SCANCODE_KP_1 = i32: 89
+export const SCANCODE_KP_2 = i32: 90
+export const SCANCODE_KP_3 = i32: 91
+export const SCANCODE_KP_4 = i32: 92
+export const SCANCODE_KP_5 = i32: 93
+export const SCANCODE_KP_6 = i32: 94
+export const SCANCODE_KP_7 = i32: 95
+export const SCANCODE_KP_8 = i32: 96
+export const SCANCODE_KP_9 = i32: 97
+export const SCANCODE_KP_0 = i32: 98
+export const SCANCODE_KP_PERIOD = i32: 99
+export const SCANCODE_LCTRL = i32: 224
+export const SCANCODE_LSHIFT = i32: 225
+export const SCANCODE_LALT = i32: 226
+export const SCANCODE_LGUI = i32: 227
+export const SCANCODE_RCTRL = i32: 228
+export const SCANCODE_RSHIFT = i32: 229
+export const SCANCODE_RALT = i32: 230
+export const SCANCODE_RGUI = i32: 231
