@@ -7,28 +7,11 @@
 
 #define POLYGON_BATCH_SIZE 2048
 
-typedef struct
-{
-	b2Transform transform;
-	b2Vec2      p1, p2, p3, p4, p5, p6, p7, p8;
-	int         count;
-	float       radius;
-	RGBA8       color;
-} Polygon;
 
-ARRAY_DECLARE(Polygon);
+
 ARRAY_INLINE(Polygon);
 ARRAY_SOURCE(Polygon);
 
-struct Polygons
-{
-	PolygonArray polygons;
-	GLuint       vaoId;
-	GLuint       vboIds[2];
-	GLuint       programId;
-	GLint        projectionUniform;
-	GLint        pixelScaleUniform;
-};
 
 Polygons *CreatePolygons(const DrawCreateInfo *createInfo)
 {

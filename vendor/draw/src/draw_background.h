@@ -3,9 +3,18 @@
 
 #pragma once
 
-#include "draw_types.h"
+#include "draw.h"
+#include "draw_internal.h"
 
-typedef struct Background Background;
+typedef struct
+{
+	GLuint vaoId;
+	GLuint vboId;
+	GLuint programId;
+	GLint  timeUniform;
+	GLint  resolutionUniform;
+	GLint  baseColorUniform;
+} Background;
 
 #ifdef __cplusplus
 extern "C" {

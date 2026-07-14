@@ -5,15 +5,7 @@
 
 #include "draw_internal.h"
 
-struct Background
-{
-	GLuint vaoId;
-	GLuint vboId;
-	GLuint programId;
-	GLint  timeUniform;
-	GLint  resolutionUniform;
-	GLint  baseColorUniform;
-};
+
 
 Background *CreateBackground(const DrawCreateInfo *createInfo)
 {

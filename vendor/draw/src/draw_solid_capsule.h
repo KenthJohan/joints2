@@ -3,9 +3,30 @@
 
 #pragma once
 
-#include "draw_types.h"
+#include "draw.h"
+#include "container.h"
+#include "draw_internal.h"
 
-typedef struct Capsules Capsules;
+typedef struct
+{
+	b2Transform transform;
+	float       radius;
+	float       length;
+	RGBA8       rgba;
+} Capsule;
+
+ARRAY_DECLARE(Capsule);
+
+
+typedef struct
+{
+	CapsuleArray capsules;
+	GLuint       vaoId;
+	GLuint       vboIds[2];
+	GLuint       programId;
+	GLint        projectionUniform;
+	GLint        pixelScaleUniform;
+} Capsules;
 
 #ifdef __cplusplus
 extern "C" {

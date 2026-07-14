@@ -10,8 +10,6 @@
 #include "container.h"
 #include "shader.h"
 
-#include "draw_types.h"
-
 #include "box2d/constants.h"
 #include "box2d/math_functions.h"
 

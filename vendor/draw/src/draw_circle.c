@@ -7,40 +7,22 @@
 
 #define CIRCLE_BATCH_SIZE 2048
 
-typedef struct
-{
-	b2Vec2 position;
-	float  radius;
-	RGBA8  rgba;
-} CircleData;
-
-ARRAY_DECLARE(CircleData);
 ARRAY_INLINE(CircleData);
 ARRAY_SOURCE(CircleData);
 
-struct CircleRender
-{
-	CircleDataArray circles;
-	GLuint          vaoId;
-	GLuint          vboIds[2];
-	GLuint          programId;
-	GLint           projectionUniform;
-	GLint           pixelScaleUniform;
-};
-
 CircleRender *CreateCircles(const DrawCreateInfo *createInfo)
 {
-	CircleRender *render     = malloc(sizeof(CircleRender));
-	*render                  = (CircleRender){0};
-	render->circles          = CircleDataArray_Create(CIRCLE_BATCH_SIZE);
-	render->programId        = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_CIRCLE_VERTEX],
+	CircleRender *render      = malloc(sizeof(CircleRender));
+	*render                   = (CircleRender){0};
+	render->circles           = CircleDataArray_Create(CIRCLE_BATCH_SIZE);
+	render->programId         = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_CIRCLE_VERTEX],
 	createInfo->shaders[DRAW_SHADER_CIRCLE_FRAGMENT]);
 	render->projectionUniform = glGetUniformLocation(render->programId, "projectionMatrix");
 	render->pixelScaleUniform = glGetUniformLocation(render->programId, "pixelScale");
-	int vertexAttribute      = 0;
-	int positionInstance     = 1;
-	int radiusInstance       = 2;
-	int colorInstance        = 3;
+	int vertexAttribute       = 0;
+	int positionInstance      = 1;
+	int radiusInstance        = 2;
+	int colorInstance         = 3;
 
 	glGenVertexArrays(1, &render->vaoId);
 	glGenBuffers(2, render->vboIds);

@@ -3,9 +3,31 @@
 
 #pragma once
 
-#include "draw_types.h"
+#include "draw.h"
+#include "container.h"
+#include "draw_internal.h"
 
-typedef struct Polygons Polygons;
+typedef struct
+{
+	b2Transform transform;
+	b2Vec2      p1, p2, p3, p4, p5, p6, p7, p8;
+	int         count;
+	float       radius;
+	RGBA8       color;
+} Polygon;
+
+ARRAY_DECLARE(Polygon);
+
+
+typedef struct
+{
+	PolygonArray polygons;
+	GLuint       vaoId;
+	GLuint       vboIds[2];
+	GLuint       programId;
+	GLint        projectionUniform;
+	GLint        pixelScaleUniform;
+} Polygons;
 
 #ifdef __cplusplus
 extern "C" {

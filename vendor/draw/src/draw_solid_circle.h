@@ -3,9 +3,28 @@
 
 #pragma once
 
-#include "draw_types.h"
+#include "draw.h"
+#include "container.h"
+#include "draw_internal.h"
 
-typedef struct SolidCircles SolidCircles;
+typedef struct
+{
+	b2Transform transform;
+	float       radius;
+	RGBA8       rgba;
+} SolidCircle;
+
+ARRAY_DECLARE(SolidCircle);
+
+typedef struct
+{
+	SolidCircleArray circles;
+	GLuint           vaoId;
+	GLuint           vboIds[2];
+	GLuint           programId;
+	GLint            projectionUniform;
+	GLint            pixelScaleUniform;
+} SolidCircles;
 
 #ifdef __cplusplus
 extern "C" {

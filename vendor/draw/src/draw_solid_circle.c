@@ -7,26 +7,9 @@
 
 #define SOLID_CIRCLE_BATCH_SIZE 2048
 
-typedef struct
-{
-	b2Transform transform;
-	float       radius;
-	RGBA8       rgba;
-} SolidCircle;
-
-ARRAY_DECLARE(SolidCircle);
 ARRAY_INLINE(SolidCircle);
 ARRAY_SOURCE(SolidCircle);
 
-struct SolidCircles
-{
-	SolidCircleArray circles;
-	GLuint           vaoId;
-	GLuint           vboIds[2];
-	GLuint           programId;
-	GLint            projectionUniform;
-	GLint            pixelScaleUniform;
-};
 
 SolidCircles *CreateSolidCircles(const DrawCreateInfo *createInfo)
 {

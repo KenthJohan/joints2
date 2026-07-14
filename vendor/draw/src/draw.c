@@ -4,6 +4,14 @@
 #include "draw.h"
 
 #include "draw_internal.h"
+#include "draw_background.h"
+#include "draw_point.h"
+#include "draw_line.h"
+#include "draw_circle.h"
+#include "draw_solid_circle.h"
+#include "draw_solid_capsule.h"
+#include "draw_solid_polygon.h"
+#include "draw_text.h"
 
 #include <string.h>
 

@@ -7,35 +7,19 @@
 
 #define LINE_BATCH_SIZE (2 * 2048)
 
-typedef struct
-{
-	b2Vec2 position;
-	RGBA8  rgba;
-} VertexData;
-
-ARRAY_DECLARE(VertexData);
-ARRAY_INLINE(VertexData);
-ARRAY_SOURCE(VertexData);
-
-struct LineRender
-{
-	VertexDataArray points;
-	GLuint          vaoId;
-	GLuint          vboId;
-	GLuint          programId;
-	GLint           projectionUniform;
-};
+ARRAY_INLINE(LineData);
+ARRAY_SOURCE(LineData);
 
 LineRender *CreateLineRender(const DrawCreateInfo *createInfo)
 {
-	LineRender *render       = malloc(sizeof(LineRender));
-	*render                  = (LineRender){0};
-	render->points           = VertexDataArray_Create(LINE_BATCH_SIZE);
-	render->programId        = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_LINE_VERTEX],
+	LineRender *render        = malloc(sizeof(LineRender));
+	*render                   = (LineRender){0};
+	render->points            = LineDataArray_Create(LINE_BATCH_SIZE);
+	render->programId         = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_LINE_VERTEX],
 	createInfo->shaders[DRAW_SHADER_LINE_FRAGMENT]);
 	render->projectionUniform = glGetUniformLocation(render->programId, "projectionMatrix");
-	int vertexAttribute      = 0;
-	int colorAttribute       = 1;
+	int vertexAttribute       = 0;
+	int colorAttribute        = 1;
 
 	glGenVertexArrays(1, &render->vaoId);
 	glGenBuffers(1, &render->vboId);
@@ -45,10 +29,10 @@ LineRender *CreateLineRender(const DrawCreateInfo *createInfo)
 	glEnableVertexAttribArray(colorAttribute);
 
 	glBindBuffer(GL_ARRAY_BUFFER, render->vboId);
-	glBufferData(GL_ARRAY_BUFFER, LINE_BATCH_SIZE * sizeof(VertexData), NULL, GL_DYNAMIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, LINE_BATCH_SIZE * sizeof(LineData), NULL, GL_DYNAMIC_DRAW);
 
-	glVertexAttribPointer(vertexAttribute, 2, GL_FLOAT, GL_FALSE, sizeof(VertexData), (void *)offsetof(VertexData, position));
-	glVertexAttribPointer(colorAttribute, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(VertexData), (void *)offsetof(VertexData, rgba));
+	glVertexAttribPointer(vertexAttribute, 2, GL_FLOAT, GL_FALSE, sizeof(LineData), (void *)offsetof(LineData, position));
+	glVertexAttribPointer(colorAttribute, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(LineData), (void *)offsetof(LineData, rgba));
 
 	CheckOpenGL();
 
@@ -73,15 +57,15 @@ void DestroyLineRender(LineRender *render)
 		glDeleteProgram(render->programId);
 	}
 
-	VertexDataArray_Destroy(&render->points);
+	LineDataArray_Destroy(&render->points);
 	free(render);
 }
 
 void AddLine(LineRender *render, b2Vec2 p1, b2Vec2 p2, b2HexColor c)
 {
 	RGBA8 rgba = MakeRGBA8(c, 1.0f);
-	VertexDataArray_Push(&render->points, (VertexData){p1, rgba});
-	VertexDataArray_Push(&render->points, (VertexData){p2, rgba});
+	LineDataArray_Push(&render->points, (LineData){p1, rgba});
+	LineDataArray_Push(&render->points, (LineData){p2, rgba});
 }
 
 void FlushLines(LineRender *render, const float *projectionMatrix)
@@ -104,7 +88,7 @@ void FlushLines(LineRender *render, const float *projectionMatrix)
 	int base = 0;
 	while (count > 0) {
 		int batchCount = b2MinInt(count, LINE_BATCH_SIZE);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, batchCount * sizeof(VertexData), render->points.data + base);
+		glBufferSubData(GL_ARRAY_BUFFER, 0, batchCount * sizeof(LineData), render->points.data + base);
 		glDrawArrays(GL_LINES, 0, batchCount);
 
 		CheckOpenGL();

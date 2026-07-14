@@ -7,25 +7,8 @@
 
 #define POINT_BATCH_SIZE 2048
 
-typedef struct
-{
-	b2Vec2 position;
-	float  size;
-	RGBA8  rgba;
-} PointData;
-
-ARRAY_DECLARE(PointData);
 ARRAY_INLINE(PointData);
 ARRAY_SOURCE(PointData);
-
-struct PointRender
-{
-	PointDataArray points;
-	GLuint         vaoId;
-	GLuint         vboId;
-	GLuint         programId;
-	GLint          projectionUniform;
-};
 
 PointRender *CreatePointDrawData(const DrawCreateInfo *createInfo)
 {

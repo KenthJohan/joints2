@@ -3,9 +3,30 @@
 
 #pragma once
 
-#include "draw_types.h"
+#include "draw.h"
+#include "container.h"
 
-typedef struct CircleRender CircleRender;
+#include "draw_internal.h"
+
+typedef struct
+{
+	b2Vec2 position;
+	float  radius;
+	RGBA8  rgba;
+} CircleData;
+
+ARRAY_DECLARE(CircleData);
+
+
+typedef struct
+{
+	CircleDataArray circles;
+	GLuint          vaoId;
+	GLuint          vboIds[2];
+	GLuint          programId;
+	GLint           projectionUniform;
+	GLint           pixelScaleUniform;
+} CircleRender;
 
 #ifdef __cplusplus
 extern "C" {

@@ -3,9 +3,28 @@
 
 #pragma once
 
-#include "draw_types.h"
+#include "draw.h"
+#include "container.h"
+#include "draw_internal.h"
 
-typedef struct LineRender LineRender;
+typedef struct
+{
+	b2Vec2 position;
+	RGBA8  rgba;
+} LineData;
+
+ARRAY_DECLARE(LineData);
+
+
+typedef struct 
+{
+	LineDataArray points;
+	GLuint          vaoId;
+	GLuint          vboId;
+	GLuint          programId;
+	GLint           projectionUniform;
+} LineRender;
+
 
 #ifdef __cplusplus
 extern "C" {

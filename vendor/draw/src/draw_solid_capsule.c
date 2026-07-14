@@ -7,27 +7,10 @@
 
 #define CAPSULE_BATCH_SIZE 2048
 
-typedef struct
-{
-	b2Transform transform;
-	float       radius;
-	float       length;
-	RGBA8       rgba;
-} Capsule;
 
-ARRAY_DECLARE(Capsule);
 ARRAY_INLINE(Capsule);
 ARRAY_SOURCE(Capsule);
 
-struct Capsules
-{
-	CapsuleArray capsules;
-	GLuint       vaoId;
-	GLuint       vboIds[2];
-	GLuint       programId;
-	GLint        projectionUniform;
-	GLint        pixelScaleUniform;
-};
 
 Capsules *CreateCapsules(const DrawCreateInfo *createInfo)
 {

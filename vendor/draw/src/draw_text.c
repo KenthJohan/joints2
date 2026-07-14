@@ -1,8 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Erin Catto
 // SPDX-License-Identifier: MIT
 
-#define STB_TRUETYPE_IMPLEMENTATION
-#include "stb_truetype.h"
 
 #include "draw_text.h"
 
@@ -10,35 +8,13 @@
 
 #define TEXT_BATCH_VERTEX_COUNT (6 * 1024)
 #define TEXT_FIRST_CHAR         32
-#define TEXT_CHAR_COUNT         96
 #define TEXT_ATLAS_WIDTH        512
 #define TEXT_ATLAS_HEIGHT       512
 #define TEXT_BAKE_FONT_SIZE     32.0f
 
-typedef struct
-{
-	b2Vec2 position;
-	b2Vec2 uv;
-	RGBA8  rgba;
-} TextVertex;
-
-ARRAY_DECLARE(TextVertex);
 ARRAY_INLINE(TextVertex);
 ARRAY_SOURCE(TextVertex);
 
-struct TextRender
-{
-	TextVertexArray vertices;
-	stbtt_bakedchar glyphs[TEXT_CHAR_COUNT];
-	GLuint          vaoId;
-	GLuint          vboId;
-	GLuint          textureId;
-	GLuint          programId;
-	GLint           projectionUniform;
-	GLint           textureUniform;
-	float           lineHeight;
-	int             initialized;
-};
 
 static unsigned char *sReadBinaryFile(const char *path, size_t *outSize)
 {

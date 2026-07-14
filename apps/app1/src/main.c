@@ -13,12 +13,12 @@
 #include <EgWindows.h>
 #include <EgWindowsSdl.h>
 #include <EgWindowsSdlGl.h>
+#include <EgFs.h>
 #include <EgCameras.h>
 
 #include "fs.h"
 #include "b2DebugDraw_init.h"
 #include "b2.h"
-#include "gcamera.h"
 #include "AppDraw.h"
 
 int main(int argc, char *argv[])
@@ -37,6 +37,7 @@ int main(int argc, char *argv[])
 	ECS_IMPORT(world, EgWindowsSdl);
 	ECS_IMPORT(world, EgWindowsSdlGl);
 	ECS_IMPORT(world, EgCameras);
+	ECS_IMPORT(world, EgFs);
 	ECS_IMPORT(world, AppDraw);
 
 	ecs_log_set_level(0);
