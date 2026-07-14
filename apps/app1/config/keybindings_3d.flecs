@@ -7,8 +7,8 @@ using eg.buttons
 
 camera_rotate_dx {
     eg.buttons.Binding : {
-        key0:BUTTONSET_KEYBOARD | SCANCODE_UP, 
-        key1:BUTTONSET_KEYBOARD | SCANCODE_DOWN, 
+        key0:SCANCODE_UP, 
+        key1:SCANCODE_DOWN, 
         mask:BUTTON_HELD, 
         entity:cameras.cam0, 
         component:Rotate3, 
