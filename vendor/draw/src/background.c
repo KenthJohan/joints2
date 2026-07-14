@@ -5,15 +5,13 @@
 
 #include "internal.h"
 
-
-
 background_t *background_init(const draw_create_info_t *createInfo)
 {
 	background_t *background = malloc(sizeof(background_t));
-	*background            = (background_t){0};
+	*background              = (background_t){0};
 
 	background->programId         = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_BACKGROUND_VERTEX],
-	createInfo->shaders[DRAW_SHADER_BACKGROUND_FRAGMENT]);
+	        createInfo->shaders[DRAW_SHADER_BACKGROUND_FRAGMENT]);
 	background->timeUniform       = glGetUniformLocation(background->programId, "time");
 	background->resolutionUniform = glGetUniformLocation(background->programId, "resolution");
 	background->baseColorUniform  = glGetUniformLocation(background->programId, "baseColor");

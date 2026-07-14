@@ -31,9 +31,8 @@ typedef struct draw_create_info_t {
 	const char *shaders[DRAW_SHADER_COUNT];
 } draw_create_info_t;
 
-
 draw_t *draw_init(const draw_create_info_t *createInfo);
-void  draw_destroy(draw_t *draw);
+void    draw_destroy(draw_t *draw);
 
 void draw_screen_string(draw_t *draw, float x, float y, b2HexColor color, const char *string, ...);
 

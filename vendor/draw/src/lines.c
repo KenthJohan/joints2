@@ -9,11 +9,11 @@
 
 lines_t *lines_init(const draw_create_info_t *createInfo)
 {
-	lines_t *render        = malloc(sizeof(lines_t));
-	*render                   = (lines_t){0};
+	lines_t *render = malloc(sizeof(lines_t));
+	*render         = (lines_t){0};
 	ecs_vec_init_t(NULL, &render->points, lines_data_t, LINE_BATCH_SIZE);
 	render->programId         = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_LINE_VERTEX],
-	createInfo->shaders[DRAW_SHADER_LINE_FRAGMENT]);
+	        createInfo->shaders[DRAW_SHADER_LINE_FRAGMENT]);
 	render->projectionUniform = glGetUniformLocation(render->programId, "projectionMatrix");
 	int vertexAttribute       = 0;
 	int colorAttribute        = 1;
@@ -60,7 +60,7 @@ void lines_destroy(lines_t *render)
 
 void lines_add(lines_t *render, b2Vec2 p1, b2Vec2 p2, b2HexColor c)
 {
-	RGBA8 rgba = MakeRGBA8(c, 1.0f);
+	RGBA8 rgba                                               = MakeRGBA8(c, 1.0f);
 	ecs_vec_append_t(NULL, &render->points, lines_data_t)[0] = (lines_data_t){p1, rgba};
 	ecs_vec_append_t(NULL, &render->points, lines_data_t)[0] = (lines_data_t){p2, rgba};
 }
@@ -68,7 +68,7 @@ void lines_add(lines_t *render, b2Vec2 p1, b2Vec2 p2, b2HexColor c)
 void lines_flush(lines_t *render, const float *projectionMatrix)
 {
 	lines_data_t *points = ecs_vec_first_t(&render->points, lines_data_t);
-	int32_t count = ecs_vec_count(&render->points);
+	int32_t       count  = ecs_vec_count(&render->points);
 	if (count == 0) {
 		return;
 	}

@@ -7,14 +7,13 @@
 
 #define CIRCLE_BATCH_SIZE 2048
 
-
 circles_t *circles_init(const draw_create_info_t *createInfo)
 {
-	circles_t *render      = malloc(sizeof(circles_t));
-	*render                   = (circles_t){0};
+	circles_t *render = malloc(sizeof(circles_t));
+	*render           = (circles_t){0};
 	ecs_vec_init_t(NULL, &render->circles, circles_data_t, CIRCLE_BATCH_SIZE);
 	render->programId         = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_CIRCLE_VERTEX],
-	createInfo->shaders[DRAW_SHADER_CIRCLE_FRAGMENT]);
+	        createInfo->shaders[DRAW_SHADER_CIRCLE_FRAGMENT]);
 	render->projectionUniform = glGetUniformLocation(render->programId, "projectionMatrix");
 	render->pixelScaleUniform = glGetUniformLocation(render->programId, "pixelScale");
 	int vertexAttribute       = 0;
@@ -77,14 +76,14 @@ void circles_destroy(circles_t *render)
 
 void circles_add(circles_t *render, b2Vec2 center, float radius, b2HexColor color)
 {
-	RGBA8 rgba = MakeRGBA8(color, 1.0f);
+	RGBA8 rgba                                                  = MakeRGBA8(color, 1.0f);
 	ecs_vec_append_t(NULL, &render->circles, circles_data_t)[0] = (circles_data_t){center, radius, rgba};
 }
 
 void circles_flush(circles_t *render, float pixelScale, const float *projectionMatrix)
 {
 	circles_data_t *circles = ecs_vec_first_t(&render->circles, circles_data_t);
-	int32_t count = ecs_vec_count(&render->circles);
+	int32_t         count   = ecs_vec_count(&render->circles);
 	if (count == 0) {
 		return;
 	}

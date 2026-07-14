@@ -16,19 +16,19 @@
 #include <string.h>
 
 typedef struct draw_t {
-	background_t  *background;
-	points_t *points;
-	lines_t  *lines;
-	circles_t *hollowCircles;
-	solid_circles_t *circles;
-	solid_capsules_t    *capsules;
-	solid_polygons_t    *polygons;
-	text_t  *text;
+	background_t     *background;
+	points_t         *points;
+	lines_t          *lines;
+	circles_t        *hollowCircles;
+	solid_circles_t  *circles;
+	solid_capsules_t *capsules;
+	solid_polygons_t *polygons;
+	text_t           *text;
 } draw_t;
 
 draw_t *draw_init(const draw_create_info_t *createInfo)
 {
-	draw_t *draw          = malloc(sizeof(draw_t));
+	draw_t *draw        = malloc(sizeof(draw_t));
 	*draw               = (draw_t){0};
 	draw->background    = background_init(createInfo);
 	draw->points        = points_init(createInfo);
@@ -89,8 +89,8 @@ void draw_polygon(draw_t *draw, b2WorldTransform transform, const b2Vec2 *vertic
 
 void draw_solid_circle(draw_t *draw, b2WorldTransform transform, b2Vec2 center, float radius, b2HexColor color)
 {
-	b2WorldTransform xf = {b2TransformWorldPoint(transform, center), transform.q};
-	b2Transform localTransform = {b2ToVec2(xf.p), xf.q};
+	b2WorldTransform xf             = {b2TransformWorldPoint(transform, center), transform.q};
+	b2Transform      localTransform = {b2ToVec2(xf.p), xf.q};
 	solid_circles_add(draw->circles, localTransform, radius, color);
 }
 

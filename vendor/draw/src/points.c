@@ -9,15 +9,15 @@
 
 points_t *points_init(const draw_create_info_t *createInfo)
 {
-	points_t *render      = malloc(sizeof(points_t));
-	*render                  = (points_t){0};
+	points_t *render = malloc(sizeof(points_t));
+	*render          = (points_t){0};
 	ecs_vec_init_t(NULL, &render->points, points_data_t, POINT_BATCH_SIZE);
-	render->programId        = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_POINT_VERTEX],
-	createInfo->shaders[DRAW_SHADER_POINT_FRAGMENT]);
+	render->programId         = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_POINT_VERTEX],
+	        createInfo->shaders[DRAW_SHADER_POINT_FRAGMENT]);
 	render->projectionUniform = glGetUniformLocation(render->programId, "projectionMatrix");
-	int vertexAttribute      = 0;
-	int sizeAttribute        = 1;
-	int colorAttribute       = 2;
+	int vertexAttribute       = 0;
+	int sizeAttribute         = 1;
+	int colorAttribute        = 2;
 
 	glGenVertexArrays(1, &render->vaoId);
 	glGenBuffers(1, &render->vboId);
@@ -63,14 +63,14 @@ void points_destroy(points_t *render)
 
 void points_add(points_t *render, b2Vec2 v, float size, b2HexColor c)
 {
-	RGBA8 rgba = MakeRGBA8(c, 1.0f);
+	RGBA8 rgba                                                = MakeRGBA8(c, 1.0f);
 	ecs_vec_append_t(NULL, &render->points, points_data_t)[0] = (points_data_t){v, size, rgba};
 }
 
 void points_flush(points_t *render, const float *projectionMatrix)
 {
 	points_data_t *points = ecs_vec_first_t(&render->points, points_data_t);
-	int32_t count = ecs_vec_count(&render->points);
+	int32_t        count  = ecs_vec_count(&render->points);
 	if (count == 0) {
 		return;
 	}

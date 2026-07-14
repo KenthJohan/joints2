@@ -7,14 +7,13 @@
 
 #define CAPSULE_BATCH_SIZE 2048
 
-
 solid_capsules_t *solid_capsules_init(const draw_create_info_t *createInfo)
 {
-	solid_capsules_t *render         = malloc(sizeof(solid_capsules_t));
+	solid_capsules_t *render = malloc(sizeof(solid_capsules_t));
 	*render                  = (solid_capsules_t){0};
 	ecs_vec_init_t(NULL, &render->capsules, solid_capsules_data_t, CAPSULE_BATCH_SIZE);
-	render->programId        = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_VERTEX],
-	createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_FRAGMENT]);
+	render->programId         = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_VERTEX],
+	        createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_FRAGMENT]);
 	render->projectionUniform = glGetUniformLocation(render->programId, "projectionMatrix");
 	render->pixelScaleUniform = glGetUniformLocation(render->programId, "pixelScale");
 
@@ -95,14 +94,14 @@ void solid_capsules_add(solid_capsules_t *render, b2Vec2 p1, b2Vec2 p2, float ra
 	transform.q.c = axis.x;
 	transform.q.s = axis.y;
 
-	RGBA8 rgba = MakeRGBA8(c, 1.0f);
+	RGBA8 rgba                                                          = MakeRGBA8(c, 1.0f);
 	ecs_vec_append_t(NULL, &render->capsules, solid_capsules_data_t)[0] = (solid_capsules_data_t){transform, radius, length, rgba};
 }
 
 void solid_capsules_flush(solid_capsules_t *render, float pixelScale, const float *projectionMatrix)
 {
 	solid_capsules_data_t *capsules = ecs_vec_first_t(&render->capsules, solid_capsules_data_t);
-	int32_t count = ecs_vec_count(&render->capsules);
+	int32_t                count    = ecs_vec_count(&render->capsules);
 	if (count == 0) {
 		return;
 	}

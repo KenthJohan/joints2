@@ -7,14 +7,13 @@
 
 #define POLYGON_BATCH_SIZE 2048
 
-
 solid_polygons_t *solid_polygons_init(const draw_create_info_t *createInfo)
 {
-	solid_polygons_t *render         = malloc(sizeof(solid_polygons_t));
+	solid_polygons_t *render = malloc(sizeof(solid_polygons_t));
 	*render                  = (solid_polygons_t){0};
 	ecs_vec_init_t(NULL, &render->polygons, solid_polygons_data_t, 10 * POLYGON_BATCH_SIZE);
-	render->programId        = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_VERTEX],
-	createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_FRAGMENT]);
+	render->programId         = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_VERTEX],
+	        createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_FRAGMENT]);
 	render->projectionUniform = glGetUniformLocation(render->programId, "projectionMatrix");
 	render->pixelScaleUniform = glGetUniformLocation(render->programId, "pixelScale");
 
@@ -97,8 +96,8 @@ void solid_polygons_destroy(solid_polygons_t *render)
 
 void solid_polygons_add(solid_polygons_t *render, b2Transform transform, const b2Vec2 *points, int count, float radius, b2HexColor color)
 {
-	solid_polygons_data_t data   = {};
-	data.transform = transform;
+	solid_polygons_data_t data = {};
+	data.transform             = transform;
 
 	int     n  = count < 8 ? count : 8;
 	b2Vec2 *ps = &data.p1;
@@ -116,7 +115,7 @@ void solid_polygons_add(solid_polygons_t *render, b2Transform transform, const b
 void solid_polygons_flush(solid_polygons_t *render, float pixelScale, const float *projectionMatrix)
 {
 	solid_polygons_data_t *polygons = ecs_vec_first_t(&render->polygons, solid_polygons_data_t);
-	int32_t count = ecs_vec_count(&render->polygons);
+	int32_t                count    = ecs_vec_count(&render->polygons);
 	if (count == 0) {
 		return;
 	}

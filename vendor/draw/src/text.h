@@ -17,8 +17,6 @@ typedef struct
 	RGBA8  rgba;
 } text_vertex_t;
 
-
-
 typedef struct {
 	ecs_vec_t       vertices;
 	stbtt_bakedchar glyphs[TEXT_CHAR_COUNT];
@@ -37,9 +35,9 @@ extern "C" {
 #endif
 
 text_t *text_init(const draw_create_info_t *createInfo);
-void        text_destroy(text_t *render);
-void        text_add(text_t *render, float x, float y, float fontSize, b2HexColor color, const char *string);
-void        text_flush(text_t *render, const float *projectionMatrix);
+void    text_destroy(text_t *render);
+void    text_add(text_t *render, float x, float y, float fontSize, b2HexColor color, const char *string);
+void    text_flush(text_t *render, const float *projectionMatrix);
 
 #ifdef __cplusplus
 }

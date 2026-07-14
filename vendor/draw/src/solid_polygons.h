@@ -16,15 +16,14 @@ typedef struct
 	RGBA8       color;
 } solid_polygons_data_t;
 
-
 typedef struct
 {
-	ecs_vec_t    polygons;
-	GLuint       vaoId;
-	GLuint       vboIds[2];
-	GLuint       programId;
-	GLint        projectionUniform;
-	GLint        pixelScaleUniform;
+	ecs_vec_t polygons;
+	GLuint    vaoId;
+	GLuint    vboIds[2];
+	GLuint    programId;
+	GLint     projectionUniform;
+	GLint     pixelScaleUniform;
 } solid_polygons_t;
 
 #ifdef __cplusplus
@@ -32,9 +31,9 @@ extern "C" {
 #endif
 
 solid_polygons_t *solid_polygons_init(const draw_create_info_t *createInfo);
-void      solid_polygons_destroy(solid_polygons_t *render);
-void      solid_polygons_add(solid_polygons_t *render, b2Transform transform, const b2Vec2 *points, int count, float radius, b2HexColor color);
-void      solid_polygons_flush(solid_polygons_t *render, float pixelScale, const float *projectionMatrix);
+void              solid_polygons_destroy(solid_polygons_t *render);
+void              solid_polygons_add(solid_polygons_t *render, b2Transform transform, const b2Vec2 *points, int count, float radius, b2HexColor color);
+void              solid_polygons_flush(solid_polygons_t *render, float pixelScale, const float *projectionMatrix);
 
 #ifdef __cplusplus
 }

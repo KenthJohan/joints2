@@ -7,14 +7,13 @@
 
 #define SOLID_CIRCLE_BATCH_SIZE 2048
 
-
 solid_circles_t *solid_circles_init(const draw_create_info_t *createInfo)
 {
-	solid_circles_t *render     = malloc(sizeof(solid_circles_t));
-	*render                  = (solid_circles_t){0};
+	solid_circles_t *render = malloc(sizeof(solid_circles_t));
+	*render                 = (solid_circles_t){0};
 	ecs_vec_init_t(NULL, &render->circles, solid_circles_data_t, SOLID_CIRCLE_BATCH_SIZE);
-	render->programId        = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_VERTEX],
-	createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_FRAGMENT]);
+	render->programId         = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_VERTEX],
+	        createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_FRAGMENT]);
 	render->projectionUniform = glGetUniformLocation(render->programId, "projectionMatrix");
 	render->pixelScaleUniform = glGetUniformLocation(render->programId, "pixelScale");
 
@@ -78,14 +77,14 @@ void solid_circles_destroy(solid_circles_t *render)
 
 void solid_circles_add(solid_circles_t *render, b2Transform transform, float radius, b2HexColor color)
 {
-	RGBA8 rgba = MakeRGBA8(color, 1.0f);
+	RGBA8 rgba                                                        = MakeRGBA8(color, 1.0f);
 	ecs_vec_append_t(NULL, &render->circles, solid_circles_data_t)[0] = (solid_circles_data_t){transform, radius, rgba};
 }
 
 void solid_circles_flush(solid_circles_t *render, float pixelScale, const float *projectionMatrix)
 {
 	solid_circles_data_t *circles = ecs_vec_first_t(&render->circles, solid_circles_data_t);
-	int32_t count = ecs_vec_count(&render->circles);
+	int32_t               count   = ecs_vec_count(&render->circles);
 	if (count == 0) {
 		return;
 	}

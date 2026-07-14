@@ -1,7 +1,6 @@
 // SPDX-FileCopyrightText: 2023 Erin Catto
 // SPDX-License-Identifier: MIT
 
-
 #include "text.h"
 
 #include "internal.h"
@@ -11,7 +10,6 @@
 #define TEXT_ATLAS_WIDTH        512
 #define TEXT_ATLAS_HEIGHT       512
 #define TEXT_BAKE_FONT_SIZE     32.0f
-
 
 static unsigned char *sReadBinaryFile(const char *path, size_t *outSize)
 {
@@ -70,11 +68,11 @@ static unsigned char *sLoadSystemFont(size_t *outSize)
 
 text_t *text_init(const draw_create_info_t *createInfo)
 {
-	text_t *render       = malloc(sizeof(text_t));
-	*render                  = (text_t){0};
+	text_t *render = malloc(sizeof(text_t));
+	*render        = (text_t){0};
 	ecs_vec_init_t(NULL, &render->vertices, text_vertex_t, TEXT_BATCH_VERTEX_COUNT);
-	render->programId        = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_TEXT_VERTEX],
-	createInfo->shaders[DRAW_SHADER_TEXT_FRAGMENT]);
+	render->programId         = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_TEXT_VERTEX],
+	        createInfo->shaders[DRAW_SHADER_TEXT_FRAGMENT]);
 	render->projectionUniform = glGetUniformLocation(render->programId, "projectionMatrix");
 	render->textureUniform    = glGetUniformLocation(render->programId, "glyphAtlas");
 	render->lineHeight        = TEXT_BAKE_FONT_SIZE * 1.2f;
@@ -225,7 +223,7 @@ void text_add(text_t *render, float x, float y, float fontSize, b2HexColor color
 void text_flush(text_t *render, const float *projectionMatrix)
 {
 	text_vertex_t *vertices = ecs_vec_first_t(&render->vertices, text_vertex_t);
-	int32_t count = ecs_vec_count(&render->vertices);
+	int32_t        count    = ecs_vec_count(&render->vertices);
 	if (count == 0 || render->initialized == 0) {
 		return;
 	}

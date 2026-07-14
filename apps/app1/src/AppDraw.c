@@ -53,18 +53,15 @@ static void Test_Render(ecs_iter_t *it)
 	EgCamerasState *camera = ecs_field_shared(it, EgCamerasState, 2);
 	for (int i = 0; i < it->count; ++i, ++draw) {
 		// Placeholder for rendering logic. This function will be called every frame to handle rendering tasks.
-		//printf("Test_Render called with %d entities\n", it->count);
+		// printf("Test_Render called with %d entities\n", it->count);
 
-		
 		/*
 		b2WorldTransform transform = {{1.0f, 0.0f}, {1.0f, 0.0f}};
 		draw_solid_circle(draw->draw, transform, (b2Pos){0.0f, 0.0f}, 10.0f, b2_colorRed);
 		*/
 
 		float pixelScale = 100.1f; // Placeholder for pixel scale, can be adjusted based on window size or other factors
-		draw_flush(draw->draw, pixelScale, (float*)&camera->vp);
-		
-
+		draw_flush(draw->draw, pixelScale, (float *)&camera->vp);
 	}
 }
 
