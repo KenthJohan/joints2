@@ -64,3 +64,14 @@ quit {
     }
 }
 
+mouse_hit_tag {}
+mouse_hit_focus {}
+
+obind {
+    eg.buttons.ObliqueBinding : {
+        term:mouse_hit_tag, 
+        key:MOUSE_LEFT, 
+        mask:BUTTON_HELD, 
+        add:mouse_hit_focus
+    }
+}

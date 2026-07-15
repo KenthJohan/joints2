@@ -11,7 +11,7 @@ debug_draw {
     (flecs.core.DependsOn, eg.windows.window1.draw1)
 }
 
-mouse_hit_tag {}
+
 
 
 b2world {
@@ -19,7 +19,8 @@ b2world {
     (flecs.core.DependsOn, debug_draw)
 
     // Uses Position2 component in `cameras.cam0.mouse_unproject`
-    (eg.b2.OverlapChecking, cameras.cam0.mouse_unproject) : {addtag: mouse_hit_tag}
+    // This will add the `mouse_hit_tag` to any body that overlaps with the mouse position
+    (eg.b2.OverlapChecking, cameras.cam0.mouse_unproject) : {addtag: keybindings.mouse_hit_tag}
 }
 
 b2world.ground {
