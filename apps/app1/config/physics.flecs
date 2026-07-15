@@ -15,6 +15,9 @@ debug_draw {
 b2world {
     eg.b2.WorldDef : {gravity_x: 0, gravity_y: -10}
     (flecs.core.DependsOn, debug_draw)
+    overlap_checking {
+        (eg.b2.OverlapChecking, cameras.cam0.mouse_unproject)
+    }
 }
 
 b2world.ground {
@@ -37,11 +40,12 @@ b2world.box2 {
     eg.spatials.Position2 : {0.1, 9.0}
     eg.b2.Box : {half_width:1, half_height:1, density:1, friction:0.3}
 }
-*/
+
 
 b2world.box3 {
     eg.b2.BodyDef : {type : $BODY_DYNAMIC}
     eg.spatials.Position2 : {10, 9.0}
     eg.b2.Box : {half_width:1, half_height:1, density:1, friction:0.3}
-    (eg.b2.TargetTransform, eg.windows.window1.mouse)
+    (eg.b2.TargetTransform, cameras.cam0.mouse_unproject)
 }
+*/

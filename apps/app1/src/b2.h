@@ -35,6 +35,10 @@ typedef struct {
 	b2DebugDraw debugDraw;
 } EgB2DebugDraw;
 
+typedef struct {
+	int dummy;
+} EgB2OverlapChecking;
+
 extern ECS_COMPONENT_DECLARE(EgB2World);
 extern ECS_COMPONENT_DECLARE(EgB2WorldDef);
 extern ECS_COMPONENT_DECLARE(EgB2Body);
@@ -42,6 +46,7 @@ extern ECS_COMPONENT_DECLARE(EgB2BodyDef);
 extern ECS_COMPONENT_DECLARE(EgB2Box);
 extern ECS_COMPONENT_DECLARE(EgB2DebugDrawDef);
 extern ECS_COMPONENT_DECLARE(EgB2DebugDraw);
+extern ECS_COMPONENT_DECLARE(EgB2OverlapChecking);
 extern ECS_TAG_DECLARE(EgB2TargetTransform);
 
 void EgB2Import(ecs_world_t *world);

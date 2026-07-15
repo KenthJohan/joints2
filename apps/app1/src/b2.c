@@ -1,7 +1,9 @@
 #include "b2.h"
 #include <EgSpatials.h>
+#include <EgCameras.h>
 #include "AppDraw.h"
 #include "b2DebugDraw_init.h"
+#include <ecsx.h>
 
 ECS_COMPONENT_DECLARE(EgB2World);
 ECS_COMPONENT_DECLARE(EgB2WorldDef);
@@ -10,6 +12,7 @@ ECS_COMPONENT_DECLARE(EgB2BodyDef);
 ECS_COMPONENT_DECLARE(EgB2Box);
 ECS_COMPONENT_DECLARE(EgB2DebugDrawDef);
 ECS_COMPONENT_DECLARE(EgB2DebugDraw);
+ECS_COMPONENT_DECLARE(EgB2OverlapChecking);
 ECS_TAG_DECLARE(EgB2TargetTransform);
 
 static void EgB2World_Create(ecs_iter_t *it)
@@ -104,9 +107,54 @@ static void EgB2Body_TargetTransform(ecs_iter_t *it)
 	Position2 *p    = ecs_field(it, Position2, 1); // shared, up
 	for (int i = 0; i < it->count; ++i, ++body) {
 		b2Vec2 targetPosition = {p->x, p->y};
+		// printf("Setting target transform for body %llu to position (%.3f, %.3f)\n", (unsigned long long)it->entities[i], targetPosition.x, targetPosition.y);
 		b2Body_SetTargetTransform(body->id, (b2WorldTransform){targetPosition, b2Rot_identity}, timeStep, true);
 	}
 	ecs_log_set_level(-1);
+}
+
+typedef struct
+{
+	b2Pos    point;
+	b2BodyId bodyId;
+} QueryContext;
+
+bool QueryCallback(b2ShapeId shapeId, void *context)
+{
+	QueryContext *queryContext = (QueryContext *)context;
+
+	b2BodyId   bodyId   = b2Shape_GetBody(shapeId);
+	b2BodyType bodyType = b2Body_GetType(bodyId);
+	if (bodyType != b2_dynamicBody) {
+		// continue query
+		return true;
+	}
+
+	bool overlap = b2Shape_TestPoint(shapeId, queryContext->point);
+	if (overlap) {
+		// found shape
+		queryContext->bodyId = bodyId;
+		return false;
+	}
+
+	return true;
+}
+
+static void System_Overlap_Checking(ecs_iter_t *it)
+{
+	EgB2World *w = ecs_field_shared(it, EgB2World, 0);
+	Position2 *p = ecs_field_shared(it, Position2, 1);
+	for (int i = 0; i < it->count; ++i, ++w) {
+		b2Vec2       d            = {0.001f, 0.001f};
+		b2AABB       box          = {b2Neg(d), d};
+		QueryContext queryContext = {{p->x, p->y}, b2_nullBodyId};
+		b2World_OverlapAABB(w->id, queryContext.point, box, b2DefaultQueryFilter(), QueryCallback, &queryContext);
+		if (B2_IS_NON_NULL(queryContext.bodyId)) {
+			printf("Overlap found at position (%.3f, %.3f) with body ID %d\n", queryContext.point.x, queryContext.point.y, queryContext.bodyId.index1);
+		} else {
+			printf("No overlap found at position (%.3f, %.3f)\n", queryContext.point.x, queryContext.point.y);
+		}
+	}
 }
 
 void EgB2Import(ecs_world_t *world)
@@ -115,6 +163,7 @@ void EgB2Import(ecs_world_t *world)
 	ecs_set_name_prefix(world, "EgB2");
 
 	ECS_IMPORT(world, EgSpatials);
+	ECS_IMPORT(world, EgCameras);
 	ECS_IMPORT(world, AppDraw);
 
 	ECS_COMPONENT_DEFINE(world, EgB2World);
@@ -124,8 +173,10 @@ void EgB2Import(ecs_world_t *world)
 	ECS_COMPONENT_DEFINE(world, EgB2Box);
 	ECS_COMPONENT_DEFINE(world, EgB2DebugDrawDef);
 	ECS_COMPONENT_DEFINE(world, EgB2DebugDraw);
+	ECS_COMPONENT_DEFINE(world, EgB2OverlapChecking);
 	ECS_TAG_DEFINE(world, EgB2TargetTransform);
 	ecs_add_id(world, EgB2TargetTransform, EcsTraversable);
+	ecs_add_id(world, ecs_id(EgB2OverlapChecking), EcsTraversable);
 
 	ecs_system(world,
 	{.entity  = ecs_entity(world, {.name = "EgB2World_Create", .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),
@@ -182,6 +233,16 @@ void EgB2Import(ecs_world_t *world)
 	{
 	{.id = ecs_id(EgB2Body), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(Position2), .trav = EgB2TargetTransform, .src.id = EcsUp, .inout = EcsIn},
+	}});
+
+	ecs_system(world,
+	{.entity  = ecs_entity(world, {.name = "System_Overlap_Checking", .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),
+	.callback = System_Overlap_Checking,
+	.query.terms =
+	{
+	{.id = ecs_id(EgB2World), .trav = EcsChildOf, .src.id = EcsUp, .inout = EcsIn},
+	//{.id = ecs_pair(ecs_id(Position2), ecs_id(EgCamerasUnproject)), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
+	{.id = ecs_id(Position2), .trav = ecs_id(EgB2OverlapChecking), .src.id = EcsUp, .inout = EcsIn},
 	}});
 
 	ecs_observer(world,
