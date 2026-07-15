@@ -140,9 +140,18 @@ bool QueryCallback(b2ShapeId shapeId, void *context)
 	return true;
 }
 
-static void System_Overlap_Checking(ecs_iter_t *it)
+static void System_Overlap_Checking_Clear(ecs_iter_t *it)
 {
-	EgB2World *w = ecs_field_shared(it, EgB2World, 0);
+	EgB2Body            *b = ecs_field_self(it, EgB2Body, 0);
+	EgB2OverlapChecking *c = ecs_field_shared(it, EgB2OverlapChecking, 1);
+	EgB2World           *w = ecs_field_shared(it, EgB2World, 2);
+	for (int i = 0; i < it->count; ++i) {
+	}
+}
+
+static void System_Overlap_Checking_Update(ecs_iter_t *it)
+{
+	EgB2World *w = ecs_field_self(it, EgB2World, 0);
 	Position2 *p = ecs_field_shared(it, Position2, 1);
 	for (int i = 0; i < it->count; ++i, ++w) {
 		b2Vec2       d            = {0.001f, 0.001f};
@@ -236,12 +245,21 @@ void EgB2Import(ecs_world_t *world)
 	}});
 
 	ecs_system(world,
-	{.entity  = ecs_entity(world, {.name = "System_Overlap_Checking", .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),
-	.callback = System_Overlap_Checking,
+	{.entity  = ecs_entity(world, {.name = "System_Overlap_Checking_Clear", .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),
+	.callback = System_Overlap_Checking_Clear,
 	.query.terms =
 	{
+	{.id = ecs_id(EgB2Body), .src.id = EcsSelf, .inout = EcsIn},
+	{.id = ecs_pair(ecs_id(EgB2OverlapChecking), EcsWildcard), .trav = EcsChildOf, .src.id = EcsUp, .inout = EcsIn},
 	{.id = ecs_id(EgB2World), .trav = EcsChildOf, .src.id = EcsUp, .inout = EcsIn},
-	//{.id = ecs_pair(ecs_id(Position2), ecs_id(EgCamerasUnproject)), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
+	}});
+
+	ecs_system(world,
+	{.entity  = ecs_entity(world, {.name = "System_Overlap_Checking_Update", .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),
+	.callback = System_Overlap_Checking_Update,
+	.query.terms =
+	{
+	{.id = ecs_id(EgB2World), .inout = EcsIn},
 	{.id = ecs_id(Position2), .trav = ecs_id(EgB2OverlapChecking), .src.id = EcsUp, .inout = EcsIn},
 	}});
 
@@ -249,6 +267,14 @@ void EgB2Import(ecs_world_t *world)
 	{.query   = {.terms = {{.id = ecs_id(EgB2World)}}},
 	.events   = {EcsOnRemove},
 	.callback = EgB2World_Destroy});
+
+
+	ecs_struct_init(world,
+	&(ecs_struct_desc_t){
+	.entity  = ecs_id(EgB2OverlapChecking),
+	.members = {
+	{.name = "addtag", .type = ecs_id(ecs_entity_t)},
+	}});
 
 	ecs_struct_init(world,
 	&(ecs_struct_desc_t){

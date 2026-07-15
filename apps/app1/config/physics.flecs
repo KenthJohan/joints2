@@ -15,9 +15,7 @@ debug_draw {
 b2world {
     eg.b2.WorldDef : {gravity_x: 0, gravity_y: -10}
     (flecs.core.DependsOn, debug_draw)
-    overlap_checking {
-        (eg.b2.OverlapChecking, cameras.cam0.mouse_unproject)
-    }
+    (eg.b2.OverlapChecking, cameras.cam0.mouse_unproject)
 }
 
 b2world.ground {
