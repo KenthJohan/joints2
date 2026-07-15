@@ -149,11 +149,11 @@ static void System_Overlap_Checking_Clear(ecs_iter_t *it)
 	(void)b;
 	(void)w;
 	for (int i = 0; i < it->count; ++i) {
-		if (!ecs_is_valid(it->world, c->addtag)) {
-			ecs_warn("addtag entity %jX is not valid", c->addtag);
-			continue; // Skip if the addtag entity is not valid
+		if (!ecs_is_valid(it->world, c->tag)) {
+			ecs_warn("tag entity %jX is not valid", c->tag);
+			continue; // Skip if the tag entity is not valid
 		}
-		ecs_remove_id(it->world, it->entities[i], c->addtag);
+		ecs_remove_id(it->world, it->entities[i], c->tag);
 	}
 }
 
@@ -171,9 +171,9 @@ static void System_Overlap_Checking_Update(ecs_iter_t *it)
 			continue; // No overlap found, continue to next entity
 		}
 		// printf("Overlap found at position (%.3f, %.3f) with body ID %d\n", queryContext.point.x, queryContext.point.y, queryContext.bodyId.index1);
-		if (!ecs_is_valid(it->world, c->addtag)) {
-			ecs_warn("addtag entity %jX is not valid", c->addtag);
-			continue; // Skip if the addtag entity is not valid
+		if (!ecs_is_valid(it->world, c->tag)) {
+			ecs_warn("tag entity %jX is not valid", c->tag);
+			continue; // Skip if the tag entity is not valid
 		}
 		ecs_entity_t body_entity = (ecs_entity_t)(uintptr_t)b2Body_GetUserData(queryContext.bodyId);
 		if (!ecs_is_valid(it->world, body_entity)) {
@@ -181,7 +181,7 @@ static void System_Overlap_Checking_Update(ecs_iter_t *it)
 			continue; // Skip invalid entities
 		}
 		// printf("name %s\n", ecs_get_name(it->world, body_entity));
-		ecs_add_id(it->world, body_entity, c->addtag);
+		ecs_add_id(it->world, body_entity, c->tag);
 	}
 }
 
@@ -292,7 +292,7 @@ void EgB2Import(ecs_world_t *world)
 	&(ecs_struct_desc_t){
 	.entity  = ecs_id(EgB2OverlapChecking),
 	.members = {
-	{.name = "addtag", .type = ecs_id(ecs_entity_t)},
+	{.name = "tag", .type = ecs_id(ecs_entity_t)},
 	}});
 
 	ecs_struct_init(world,

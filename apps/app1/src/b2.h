@@ -36,7 +36,7 @@ typedef struct {
 } EgB2DebugDraw;
 
 typedef struct {
-	ecs_entity_t addtag; ///< Adds this tag to the entity when an overlap is detected
+	ecs_entity_t tag; ///< Adds this tag to the entity when an overlap is detected and removes it when no overlap is detected
 } EgB2OverlapChecking;
 
 extern ECS_COMPONENT_DECLARE(EgB2World);

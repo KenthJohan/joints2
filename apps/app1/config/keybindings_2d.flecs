@@ -8,8 +8,8 @@ using eg.buttons
 
 camera_rotate_dz {
     eg.buttons.Binding : {
-        key0:MOUSE_X1, 
-        key1:MOUSE_X2, 
+        button0:MOUSE_X1, 
+        button1:MOUSE_X2, 
         mask:$BUTTON_HELD, 
         entity:cameras.cam0, 
         component:Rotate3, 
@@ -20,8 +20,8 @@ camera_rotate_dz {
 
 camera_move_dx {
     eg.buttons.Binding : {
-        key0:SCANCODE_D, 
-        key1:SCANCODE_A, 
+        button0:SCANCODE_D, 
+        button1:SCANCODE_A, 
         mask:BUTTON_HELD, 
         entity:cameras.cam0, 
         component:Velocity3, 
@@ -32,8 +32,8 @@ camera_move_dx {
 
 camera_move_dy {
     eg.buttons.Binding : {
-        key0:SCANCODE_W, 
-        key1:SCANCODE_S, 
+        button0:SCANCODE_W, 
+        button1:SCANCODE_S, 
         mask:BUTTON_HELD, 
         entity:cameras.cam0, 
         component:Velocity3, 
@@ -44,8 +44,8 @@ camera_move_dy {
 
 camera_move_dz {
     eg.buttons.Binding : {
-        key0:SCANCODE_KP_MINUS, 
-        key1:SCANCODE_KP_PLUS, 
+        button0:SCANCODE_KP_MINUS, 
+        button1:SCANCODE_KP_PLUS, 
         mask:BUTTON_HELD, 
         entity:cameras.cam0, 
         component:Velocity3, 
@@ -56,7 +56,7 @@ camera_move_dz {
 
 quit {
     eg.buttons.ActionToggleEntity : {
-        key:SCANCODE_ESCAPE, 
+        button:SCANCODE_ESCAPE, 
         mask:BUTTON_PRESSED, 
         entity:eg.windows.window1, 
         relation:0, 
@@ -67,11 +67,13 @@ quit {
 mouse_hit_tag {}
 mouse_hit_focus {}
 
-obind {
-    eg.buttons.ObliqueBinding : {
-        term:mouse_hit_tag, 
-        key:MOUSE_LEFT, 
-        mask:BUTTON_HELD, 
-        add:mouse_hit_focus
+obind1 {
+    // Add the `mouse_hit_focus` tag to any entity that has the `mouse_hit_tag` and the left mouse button is held down.
+    // This creates two systems, one to clear the tag and one to add it, that run on every frame.
+    ObliqueBinding : {
+        term: mouse_hit_tag, 
+        button: MOUSE_LEFT, 
+        mask: BUTTON_HELD, 
+        tag: mouse_hit_focus
     }
 }

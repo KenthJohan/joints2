@@ -20,7 +20,7 @@ b2world {
 
     // Uses Position2 component in `cameras.cam0.mouse_unproject`
     // This will add the `mouse_hit_tag` to any body that overlaps with the mouse position
-    (eg.b2.OverlapChecking, cameras.cam0.mouse_unproject) : {addtag: keybindings.mouse_hit_tag}
+    (eg.b2.OverlapChecking, cameras.cam0.mouse_unproject) : {tag: keybindings.mouse_hit_tag}
 }
 
 b2world.ground {
