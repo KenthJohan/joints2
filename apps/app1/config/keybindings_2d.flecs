@@ -70,7 +70,7 @@ mouse_hit_focus {}
 obind1 {
     // Add the `mouse_hit_focus` tag to any entity that has the `mouse_hit_tag` and the left mouse button is held down.
     // This creates two systems, one to clear the tag and one to add it, that run on every frame.
-    ObliqueBinding : {
+    TermBinding : {
         term: mouse_hit_tag, 
         button: MOUSE_LEFT, 
         mask: BUTTON_HELD, 
