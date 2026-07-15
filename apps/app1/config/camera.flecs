@@ -21,4 +21,15 @@ cam0 {
 
     Rotate3 : {0, 0, 0}
     Velocity3 : {0, 0, 0}
+
+    mouse_unproject {
+        eg.cameras.Unproject
+        Position2 : {0, 0}
+        (flecs.core.DependsOn, eg.windows.window1.mouse_normalized)
+    }
+
+
 }
+
+
+

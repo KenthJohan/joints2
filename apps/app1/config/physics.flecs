@@ -31,8 +31,17 @@ b2world.box1 {
     eg.b2.Box : {half_width:1, half_height:1, density:1, friction:0.3}
 }
 
+/*/
 b2world.box2 {
     eg.b2.BodyDef : {type : $BODY_DYNAMIC}
     eg.spatials.Position2 : {0.1, 9.0}
     eg.b2.Box : {half_width:1, half_height:1, density:1, friction:0.3}
+}
+*/
+
+b2world.box3 {
+    eg.b2.BodyDef : {type : $BODY_DYNAMIC}
+    eg.spatials.Position2 : {10, 9.0}
+    eg.b2.Box : {half_width:1, half_height:1, density:1, friction:0.3}
+    (eg.b2.TargetTransform, eg.windows.window1.mouse)
 }

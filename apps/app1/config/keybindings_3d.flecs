@@ -83,7 +83,7 @@ quit {
         mask:BUTTON_PRESSED, 
         entity:eg.windows.window1, 
         relation:0, 
-        toggle:eg.windows.EventCloseRequest
+        toggle:eg.windows.CloseRequest
     }
 }
 

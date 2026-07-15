@@ -42,5 +42,6 @@ extern ECS_COMPONENT_DECLARE(EgB2BodyDef);
 extern ECS_COMPONENT_DECLARE(EgB2Box);
 extern ECS_COMPONENT_DECLARE(EgB2DebugDrawDef);
 extern ECS_COMPONENT_DECLARE(EgB2DebugDraw);
+extern ECS_TAG_DECLARE(EgB2TargetTransform);
 
 void EgB2Import(ecs_world_t *world);

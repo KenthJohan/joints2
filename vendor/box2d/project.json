@@ -11,7 +11,9 @@
 		"export-symbols": true,
 		"static": true,
 		"defines": [],
-		"cflags": [],
+		"cflags": [
+			"-Wno-unused-value"
+		],
 		"lib": []
 	}
 }

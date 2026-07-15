@@ -20,4 +20,9 @@ window1 {
         Position2
         eg.windows.Mouse
     }
+
+    mouse_normalized {
+        (eg.spatials.Position2, eg.spatials.Normalized) : {0,0}
+        eg.windows.Mouse
+    }
 }

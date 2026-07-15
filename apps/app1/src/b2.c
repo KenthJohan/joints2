@@ -10,6 +10,7 @@ ECS_COMPONENT_DECLARE(EgB2BodyDef);
 ECS_COMPONENT_DECLARE(EgB2Box);
 ECS_COMPONENT_DECLARE(EgB2DebugDrawDef);
 ECS_COMPONENT_DECLARE(EgB2DebugDraw);
+ECS_TAG_DECLARE(EgB2TargetTransform);
 
 static void EgB2World_Create(ecs_iter_t *it)
 {
@@ -95,6 +96,19 @@ static void EgB2World_Draw(ecs_iter_t *it)
 	}
 }
 
+static void EgB2Body_TargetTransform(ecs_iter_t *it)
+{
+	float timeStep = 1.0f / 60.0f;
+	ecs_log_set_level(0);
+	EgB2Body  *body = ecs_field(it, EgB2Body, 0);  // self
+	Position2 *p    = ecs_field(it, Position2, 1); // shared, up
+	for (int i = 0; i < it->count; ++i, ++body) {
+		b2Vec2 targetPosition = {p->x, p->y};
+		b2Body_SetTargetTransform(body->id, (b2WorldTransform){targetPosition, b2Rot_identity}, timeStep, true);
+	}
+	ecs_log_set_level(-1);
+}
+
 void EgB2Import(ecs_world_t *world)
 {
 	ECS_MODULE(world, EgB2);
@@ -110,6 +124,8 @@ void EgB2Import(ecs_world_t *world)
 	ECS_COMPONENT_DEFINE(world, EgB2Box);
 	ECS_COMPONENT_DEFINE(world, EgB2DebugDrawDef);
 	ECS_COMPONENT_DEFINE(world, EgB2DebugDraw);
+	ECS_TAG_DEFINE(world, EgB2TargetTransform);
+	ecs_add_id(world, EgB2TargetTransform, EcsTraversable);
 
 	ecs_system(world,
 	{.entity  = ecs_entity(world, {.name = "EgB2World_Create", .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),
@@ -157,6 +173,15 @@ void EgB2Import(ecs_world_t *world)
 	{
 	{.id = ecs_id(EgB2World), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(EgB2DebugDraw), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
+	}});
+
+	ecs_system(world,
+	{.entity  = ecs_entity(world, {.name = "EgB2Body_TargetTransform", .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),
+	.callback = EgB2Body_TargetTransform,
+	.query.terms =
+	{
+	{.id = ecs_id(EgB2Body), .src.id = EcsSelf, .inout = EcsIn},
+	{.id = ecs_id(Position2), .trav = EgB2TargetTransform, .src.id = EcsUp, .inout = EcsIn},
 	}});
 
 	ecs_observer(world,
