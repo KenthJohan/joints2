@@ -145,24 +145,43 @@ static void System_Overlap_Checking_Clear(ecs_iter_t *it)
 	EgB2Body            *b = ecs_field_self(it, EgB2Body, 0);
 	EgB2OverlapChecking *c = ecs_field_shared(it, EgB2OverlapChecking, 1);
 	EgB2World           *w = ecs_field_shared(it, EgB2World, 2);
+
+	(void)b;
+	(void)w;
 	for (int i = 0; i < it->count; ++i) {
+		if (!ecs_is_valid(it->world, c->addtag)) {
+			ecs_warn("addtag entity %jX is not valid", c->addtag);
+			continue; // Skip if the addtag entity is not valid
+		}
+		ecs_remove_id(it->world, it->entities[i], c->addtag);
 	}
 }
 
 static void System_Overlap_Checking_Update(ecs_iter_t *it)
 {
-	EgB2World *w = ecs_field_self(it, EgB2World, 0);
-	Position2 *p = ecs_field_shared(it, Position2, 1);
+	EgB2World           *w = ecs_field_self(it, EgB2World, 0);
+	EgB2OverlapChecking *c = ecs_field_self(it, EgB2OverlapChecking, 1);
+	Position2           *p = ecs_field_shared(it, Position2, 2);
 	for (int i = 0; i < it->count; ++i, ++w) {
 		b2Vec2       d            = {0.001f, 0.001f};
 		b2AABB       box          = {b2Neg(d), d};
 		QueryContext queryContext = {{p->x, p->y}, b2_nullBodyId};
 		b2World_OverlapAABB(w->id, queryContext.point, box, b2DefaultQueryFilter(), QueryCallback, &queryContext);
-		if (B2_IS_NON_NULL(queryContext.bodyId)) {
-			printf("Overlap found at position (%.3f, %.3f) with body ID %d\n", queryContext.point.x, queryContext.point.y, queryContext.bodyId.index1);
-		} else {
-			printf("No overlap found at position (%.3f, %.3f)\n", queryContext.point.x, queryContext.point.y);
+		if (!B2_IS_NON_NULL(queryContext.bodyId)) {
+			continue; // No overlap found, continue to next entity
 		}
+		// printf("Overlap found at position (%.3f, %.3f) with body ID %d\n", queryContext.point.x, queryContext.point.y, queryContext.bodyId.index1);
+		if (!ecs_is_valid(it->world, c->addtag)) {
+			ecs_warn("addtag entity %jX is not valid", c->addtag);
+			continue; // Skip if the addtag entity is not valid
+		}
+		ecs_entity_t body_entity = (ecs_entity_t)(uintptr_t)b2Body_GetUserData(queryContext.bodyId);
+		if (!ecs_is_valid(it->world, body_entity)) {
+			ecs_warn("Entity %jX is not valid", body_entity);
+			continue; // Skip invalid entities
+		}
+		// printf("name %s\n", ecs_get_name(it->world, body_entity));
+		ecs_add_id(it->world, body_entity, c->addtag);
 	}
 }
 
@@ -260,6 +279,7 @@ void EgB2Import(ecs_world_t *world)
 	.query.terms =
 	{
 	{.id = ecs_id(EgB2World), .inout = EcsIn},
+	{.id = ecs_pair(ecs_id(EgB2OverlapChecking), EcsWildcard), .inout = EcsIn},
 	{.id = ecs_id(Position2), .trav = ecs_id(EgB2OverlapChecking), .src.id = EcsUp, .inout = EcsIn},
 	}});
 
@@ -267,7 +287,6 @@ void EgB2Import(ecs_world_t *world)
 	{.query   = {.terms = {{.id = ecs_id(EgB2World)}}},
 	.events   = {EcsOnRemove},
 	.callback = EgB2World_Destroy});
-
 
 	ecs_struct_init(world,
 	&(ecs_struct_desc_t){

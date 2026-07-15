@@ -11,11 +11,15 @@ debug_draw {
     (flecs.core.DependsOn, eg.windows.window1.draw1)
 }
 
+mouse_hit_tag {}
+
 
 b2world {
     eg.b2.WorldDef : {gravity_x: 0, gravity_y: -10}
     (flecs.core.DependsOn, debug_draw)
-    (eg.b2.OverlapChecking, cameras.cam0.mouse_unproject)
+
+    // Uses Position2 component in `cameras.cam0.mouse_unproject`
+    (eg.b2.OverlapChecking, cameras.cam0.mouse_unproject) : {addtag: mouse_hit_tag}
 }
 
 b2world.ground {
