@@ -9,7 +9,7 @@
 
 typedef struct
 {
-	b2Vec2 position;
+	draw_vec2_t position;
 	RGBA8  rgba;
 } lines_data_t;
 
@@ -28,7 +28,7 @@ extern "C" {
 
 lines_t *lines_init(const draw_create_info_t *createInfo);
 void     lines_destroy(lines_t *render);
-void     lines_add(lines_t *render, b2Vec2 p1, b2Vec2 p2, b2HexColor c);
+void     lines_add(lines_t *render, draw_vec2_t p1, draw_vec2_t p2, draw_color_t c);
 void     lines_flush(lines_t *render, const float *projectionMatrix);
 
 #ifdef __cplusplus

@@ -23,7 +23,7 @@ background_t *background_init(const draw_create_info_t *createInfo)
 	glBindVertexArray(background->vaoId);
 	glEnableVertexAttribArray(vertexAttribute);
 
-	b2Vec2 vertices[] = {{-1.0f, 1.0f}, {-1.0f, -1.0f}, {1.0f, 1.0f}, {1.0f, -1.0f}};
+	draw_vec2_t vertices[] = {{-1.0f, 1.0f}, {-1.0f, -1.0f}, {1.0f, 1.0f}, {1.0f, -1.0f}};
 	glBindBuffer(GL_ARRAY_BUFFER, background->vboId);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 	glVertexAttribPointer(vertexAttribute, 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));

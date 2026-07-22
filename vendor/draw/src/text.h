@@ -12,8 +12,8 @@
 
 typedef struct
 {
-	b2Vec2 position;
-	b2Vec2 uv;
+	draw_vec2_t position;
+	draw_vec2_t uv;
 	RGBA8  rgba;
 } text_vertex_t;
 
@@ -36,7 +36,7 @@ extern "C" {
 
 text_t *text_init(const draw_create_info_t *createInfo);
 void    text_destroy(text_t *render);
-void    text_add(text_t *render, float x, float y, float fontSize, b2HexColor color, const char *string);
+void    text_add(text_t *render, float x, float y, float fontSize, draw_color_t color, const char *string);
 void    text_flush(text_t *render, const float *projectionMatrix);
 
 #ifdef __cplusplus

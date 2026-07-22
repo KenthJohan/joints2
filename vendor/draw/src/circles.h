@@ -10,7 +10,7 @@
 
 typedef struct
 {
-	b2Vec2 position;
+	draw_vec2_t position;
 	float  radius;
 	RGBA8  rgba;
 } circles_data_t;
@@ -31,7 +31,7 @@ extern "C" {
 
 circles_t *circles_init(const draw_create_info_t *createInfo);
 void       circles_destroy(circles_t *render);
-void       circles_add(circles_t *render, b2Vec2 center, float radius, b2HexColor color);
+void       circles_add(circles_t *render, draw_vec2_t center, float radius, draw_color_t color);
 void       circles_flush(circles_t *render, float pixelScale, const float *projectionMatrix);
 
 #ifdef __cplusplus

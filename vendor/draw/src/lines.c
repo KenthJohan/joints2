@@ -58,7 +58,7 @@ void lines_destroy(lines_t *render)
 	free(render);
 }
 
-void lines_add(lines_t *render, b2Vec2 p1, b2Vec2 p2, b2HexColor c)
+void lines_add(lines_t *render, draw_vec2_t p1, draw_vec2_t p2, draw_color_t c)
 {
 	RGBA8 rgba                                               = MakeRGBA8(c, 1.0f);
 	ecs_vec_append_t(NULL, &render->points, lines_data_t)[0] = (lines_data_t){p1, rgba};
@@ -85,7 +85,7 @@ void lines_flush(lines_t *render, const float *projectionMatrix)
 
 	int base = 0;
 	while (count > 0) {
-		int batchCount = b2MinInt(count, LINE_BATCH_SIZE);
+		int batchCount = draw_min_int(count, LINE_BATCH_SIZE);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, batchCount * sizeof(lines_data_t), points + base);
 		glDrawArrays(GL_LINES, 0, batchCount);
 

@@ -32,7 +32,7 @@ solid_circles_t *solid_circles_init(const draw_create_info_t *createInfo)
 	glEnableVertexAttribArray(colorInstance);
 
 	float  a          = 1.1f;
-	b2Vec2 vertices[] = {{-a, -a}, {a, -a}, {-a, a}, {a, -a}, {a, a}, {-a, a}};
+	draw_vec2_t vertices[] = {{-a, -a}, {a, -a}, {-a, a}, {a, -a}, {a, a}, {-a, a}};
 	glBindBuffer(GL_ARRAY_BUFFER, render->vboIds[0]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 	glVertexAttribPointer(vertexAttribute, 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
@@ -75,7 +75,7 @@ void solid_circles_destroy(solid_circles_t *render)
 	free(render);
 }
 
-void solid_circles_add(solid_circles_t *render, b2Transform transform, float radius, b2HexColor color)
+void solid_circles_add(solid_circles_t *render, draw_transform_t transform, float radius, draw_color_t color)
 {
 	RGBA8 rgba                                                        = MakeRGBA8(color, 1.0f);
 	ecs_vec_append_t(NULL, &render->circles, solid_circles_data_t)[0] = (solid_circles_data_t){transform, radius, rgba};
@@ -100,7 +100,7 @@ void solid_circles_flush(solid_circles_t *render, float pixelScale, const float 
 
 	int base = 0;
 	while (count > 0) {
-		int batchCount = b2MinInt(count, SOLID_CIRCLE_BATCH_SIZE);
+		int batchCount = draw_min_int(count, SOLID_CIRCLE_BATCH_SIZE);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, batchCount * sizeof(solid_circles_data_t), circles + base);
 		glDrawArraysInstanced(GL_TRIANGLES, 0, 6, batchCount);
 

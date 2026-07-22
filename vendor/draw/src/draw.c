@@ -26,6 +26,11 @@ typedef struct draw_t {
 	text_t           *text;
 } draw_t;
 
+static draw_transform_t make_transform(float tx, float ty, float rotCos, float rotSin)
+{
+	return (draw_transform_t){{tx, ty}, {rotCos, rotSin}};
+}
+
 draw_t *draw_init(const draw_create_info_t *createInfo)
 {
 	draw_t *draw        = malloc(sizeof(draw_t));
@@ -57,72 +62,80 @@ void draw_destroy(draw_t *draw)
 	text_destroy(draw->text);
 	free(draw);
 }
-void draw_point(draw_t *draw, b2Pos p, float size, b2HexColor color)
+
+void draw_point(draw_t *draw, float x, float y, float size, draw_color_t color)
 {
-	points_add(draw->points, b2ToVec2(p), size, color);
+	points_add(draw->points, (draw_vec2_t){x, y}, size, color);
 }
 
-void draw_line(draw_t *draw, b2Pos p1, b2Pos p2, b2HexColor color)
+void draw_line(draw_t *draw, float x1, float y1, float x2, float y2, draw_color_t color)
 {
-	lines_add(draw->lines, b2ToVec2(p1), b2ToVec2(p2), color);
+	lines_add(draw->lines, (draw_vec2_t){x1, y1}, (draw_vec2_t){x2, y2}, color);
 }
 
-void draw_circle(draw_t *draw, b2Pos center, float radius, b2HexColor color)
+void draw_circle(draw_t *draw, float centerX, float centerY, float radius, draw_color_t color)
 {
-	circles_add(draw->hollowCircles, b2ToVec2(center), radius, color);
+	circles_add(draw->hollowCircles, (draw_vec2_t){centerX, centerY}, radius, color);
 }
 
-void draw_capsule(draw_t *draw, b2Pos p1, b2Pos p2, float radius, b2HexColor color)
+void draw_capsule(draw_t *draw, float x1, float y1, float x2, float y2, float radius, draw_color_t color)
 {
-	solid_capsules_add(draw->capsules, b2ToVec2(p1), b2ToVec2(p2), radius, color);
+	solid_capsules_add(draw->capsules, (draw_vec2_t){x1, y1}, (draw_vec2_t){x2, y2}, radius, color);
 }
 
-void draw_polygon(draw_t *draw, b2WorldTransform transform, const b2Vec2 *vertices, int vertexCount, b2HexColor color)
+void draw_polygon(draw_t *draw, float tx, float ty, float rotCos, float rotSin, const float *verticesXY, int vertexCount, draw_color_t color)
 {
-	b2Vec2 p1 = b2TransformWorldPoint(transform, vertices[vertexCount - 1]);
+	draw_transform_t transform = make_transform(tx, ty, rotCos, rotSin);
+	draw_vec2_t      p1        = draw_transform_point(transform, (draw_vec2_t){verticesXY[2 * (vertexCount - 1)], verticesXY[2 * (vertexCount - 1) + 1]});
 	for (int i = 0; i < vertexCount; ++i) {
-		b2Vec2 p2 = b2TransformWorldPoint(transform, vertices[i]);
+		draw_vec2_t local = {verticesXY[2 * i], verticesXY[2 * i + 1]};
+		draw_vec2_t p2    = draw_transform_point(transform, local);
 		lines_add(draw->lines, p1, p2, color);
 		p1 = p2;
 	}
 }
 
-void draw_solid_circle(draw_t *draw, b2WorldTransform transform, b2Vec2 center, float radius, b2HexColor color)
+void draw_solid_circle(draw_t *draw, float tx, float ty, float rotCos, float rotSin, float centerX, float centerY, float radius,
+draw_color_t color)
 {
-	b2WorldTransform xf             = {b2TransformWorldPoint(transform, center), transform.q};
-	b2Transform      localTransform = {b2ToVec2(xf.p), xf.q};
+	draw_transform_t transform      = make_transform(tx, ty, rotCos, rotSin);
+	draw_vec2_t      center         = {centerX, centerY};
+	draw_transform_t localTransform = {draw_transform_point(transform, center), transform.q};
 	solid_circles_add(draw->circles, localTransform, radius, color);
 }
 
-void draw_solid_polygon(draw_t *draw, b2WorldTransform transform, const b2Vec2 *vertices, int vertexCount, float radius,
-b2HexColor color)
+void draw_solid_polygon(draw_t *draw, float tx, float ty, float rotCos, float rotSin, const float *verticesXY, int vertexCount, float radius,
+draw_color_t color)
 {
-	b2Transform localTransform = {b2ToVec2(transform.p), transform.q};
-	solid_polygons_add(draw->polygons, localTransform, vertices, vertexCount, radius, color);
+	assert(vertexCount <= DRAW_MAX_POLYGON_VERTICES);
+
+	draw_transform_t transform = make_transform(tx, ty, rotCos, rotSin);
+	draw_vec2_t      vertices[DRAW_MAX_POLYGON_VERTICES];
+	for (int i = 0; i < vertexCount; ++i) {
+		vertices[i] = (draw_vec2_t){verticesXY[2 * i], verticesXY[2 * i + 1]};
+	}
+	solid_polygons_add(draw->polygons, transform, vertices, vertexCount, radius, color);
 }
 
-void draw_transform(draw_t *draw, b2WorldTransform transform, float scale)
+void draw_transform(draw_t *draw, float tx, float ty, float rotCos, float rotSin, float scale)
 {
-	b2Transform xf = {b2ToVec2(transform.p), transform.q};
+	draw_transform_t xf = make_transform(tx, ty, rotCos, rotSin);
 
-	b2Vec2 p1 = xf.p;
+	draw_vec2_t p1 = xf.p;
 
-	b2Vec2 p2 = b2MulAdd(p1, scale, b2Rot_GetXAxis(xf.q));
-	lines_add(draw->lines, p1, p2, b2_colorRed);
+	draw_vec2_t p2 = draw_vec2_mul_add(p1, scale, draw_rot_get_x_axis(xf.q));
+	lines_add(draw->lines, p1, p2, DRAW_COLOR_RED);
 
-	p2 = b2MulAdd(p1, scale, b2Rot_GetYAxis(xf.q));
-	lines_add(draw->lines, p1, p2, b2_colorGreen);
+	p2 = draw_vec2_mul_add(p1, scale, draw_rot_get_y_axis(xf.q));
+	lines_add(draw->lines, p1, p2, DRAW_COLOR_GREEN);
 }
 
-void draw_bounds(draw_t *draw, b2AABB aabb, b2HexColor color)
+void draw_bounds(draw_t *draw, float minX, float minY, float maxX, float maxY, draw_color_t color)
 {
-	b2Vec2 lower = aabb.lowerBound;
-	b2Vec2 upper = aabb.upperBound;
-
-	b2Vec2 p1 = lower;
-	b2Vec2 p2 = {upper.x, lower.y};
-	b2Vec2 p3 = upper;
-	b2Vec2 p4 = {lower.x, upper.y};
+	draw_vec2_t p1 = {minX, minY};
+	draw_vec2_t p2 = {maxX, minY};
+	draw_vec2_t p3 = {maxX, maxY};
+	draw_vec2_t p4 = {minX, maxY};
 
 	lines_add(draw->lines, p1, p2, color);
 	lines_add(draw->lines, p2, p3, color);
@@ -130,7 +143,7 @@ void draw_bounds(draw_t *draw, b2AABB aabb, b2HexColor color)
 	lines_add(draw->lines, p4, p1, color);
 }
 
-void draw_screen_string(draw_t *draw, float x, float y, b2HexColor color, const char *string, ...)
+void draw_screen_string(draw_t *draw, float x, float y, draw_color_t color, const char *string, ...)
 {
 	char    buffer[2048] = {0};
 	va_list args;
@@ -141,15 +154,14 @@ void draw_screen_string(draw_t *draw, float x, float y, b2HexColor color, const 
 	text_add(draw->text, x, y, 0.5f, color, buffer);
 }
 
-void draw_string(draw_t *draw, b2Pos p, b2HexColor color, const char *string, ...)
+void draw_string(draw_t *draw, float x, float y, draw_color_t color, const char *string, ...)
 {
 	char    buffer[2048] = {0};
 	va_list args;
 	va_start(args, string);
 	vsnprintf(buffer, sizeof(buffer), string, args);
 	va_end(args);
-	b2Vec2 textPos = b2ToVec2(p);
-	text_add(draw->text, textPos.x, textPos.y, 0.5f, color, buffer);
+	text_add(draw->text, x, y, 0.5f, color, buffer);
 }
 
 static void SetProjectionZBias(float *dst, const float *src, float zBias)

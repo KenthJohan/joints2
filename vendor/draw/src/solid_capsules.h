@@ -9,10 +9,10 @@
 
 typedef struct
 {
-	b2Transform transform;
-	float       radius;
-	float       length;
-	RGBA8       rgba;
+	draw_transform_t transform;
+	float            radius;
+	float            length;
+	RGBA8            rgba;
 } solid_capsules_data_t;
 
 typedef struct
@@ -31,7 +31,7 @@ extern "C" {
 
 solid_capsules_t *solid_capsules_init(const draw_create_info_t *createInfo);
 void              solid_capsules_destroy(solid_capsules_t *render);
-void              solid_capsules_add(solid_capsules_t *render, b2Vec2 p1, b2Vec2 p2, float radius, b2HexColor c);
+void              solid_capsules_add(solid_capsules_t *render, draw_vec2_t p1, draw_vec2_t p2, float radius, draw_color_t c);
 void              solid_capsules_flush(solid_capsules_t *render, float pixelScale, const float *projectionMatrix);
 
 #ifdef __cplusplus

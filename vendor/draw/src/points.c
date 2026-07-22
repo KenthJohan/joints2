@@ -61,7 +61,7 @@ void points_destroy(points_t *render)
 	free(render);
 }
 
-void points_add(points_t *render, b2Vec2 v, float size, b2HexColor c)
+void points_add(points_t *render, draw_vec2_t v, float size, draw_color_t c)
 {
 	RGBA8 rgba                                                = MakeRGBA8(c, 1.0f);
 	ecs_vec_append_t(NULL, &render->points, points_data_t)[0] = (points_data_t){v, size, rgba};
@@ -84,7 +84,7 @@ void points_flush(points_t *render, const float *projectionMatrix)
 
 	int base = 0;
 	while (count > 0) {
-		int batchCount = b2MinInt(count, POINT_BATCH_SIZE);
+		int batchCount = draw_min_int(count, POINT_BATCH_SIZE);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, batchCount * sizeof(points_data_t), points + base);
 		glDrawArrays(GL_POINTS, 0, batchCount);
 

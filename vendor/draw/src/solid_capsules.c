@@ -34,7 +34,7 @@ solid_capsules_t *solid_capsules_init(const draw_create_info_t *createInfo)
 	glEnableVertexAttribArray(colorInstance);
 
 	float  a          = 1.1f;
-	b2Vec2 vertices[] = {{-a, -a}, {a, -a}, {-a, a}, {a, -a}, {a, a}, {-a, a}};
+	draw_vec2_t vertices[] = {{-a, -a}, {a, -a}, {-a, a}, {a, -a}, {a, a}, {-a, a}};
 	glBindBuffer(GL_ARRAY_BUFFER, render->vboIds[0]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 	glVertexAttribPointer(vertexAttribute, 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
@@ -79,18 +79,18 @@ void solid_capsules_destroy(solid_capsules_t *render)
 	free(render);
 }
 
-void solid_capsules_add(solid_capsules_t *render, b2Vec2 p1, b2Vec2 p2, float radius, b2HexColor c)
+void solid_capsules_add(solid_capsules_t *render, draw_vec2_t p1, draw_vec2_t p2, float radius, draw_color_t c)
 {
-	b2Vec2 d      = b2Sub(p2, p1);
-	float  length = b2Length(d);
+	draw_vec2_t d      = draw_vec2_sub(p2, p1);
+	float       length = draw_vec2_length(d);
 	if (length < 0.001f) {
 		printf("WARNING: sample app: capsule too short!\n");
 		return;
 	}
 
-	b2Vec2      axis = {d.x / length, d.y / length};
-	b2Transform transform;
-	transform.p   = b2Lerp(p1, p2, 0.5f);
+	draw_vec2_t      axis = {d.x / length, d.y / length};
+	draw_transform_t transform;
+	transform.p   = draw_vec2_lerp(p1, p2, 0.5f);
 	transform.q.c = axis.x;
 	transform.q.s = axis.y;
 
@@ -117,7 +117,7 @@ void solid_capsules_flush(solid_capsules_t *render, float pixelScale, const floa
 
 	int base = 0;
 	while (count > 0) {
-		int batchCount = b2MinInt(count, CAPSULE_BATCH_SIZE);
+		int batchCount = draw_min_int(count, CAPSULE_BATCH_SIZE);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, batchCount * sizeof(solid_capsules_data_t), capsules + base);
 		glDrawArraysInstanced(GL_TRIANGLES, 0, 6, batchCount);
 

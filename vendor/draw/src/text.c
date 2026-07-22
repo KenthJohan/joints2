@@ -170,7 +170,7 @@ static void AddGlyphQuad(text_t *render, stbtt_aligned_quad q, RGBA8 rgba)
 	ecs_vec_append_t(NULL, &render->vertices, text_vertex_t)[0] = (text_vertex_t){{q.x0, q.y1}, {q.s0, q.t1}, rgba};
 }
 
-void text_add(text_t *render, float x, float y, float fontSize, b2HexColor color, const char *string)
+void text_add(text_t *render, float x, float y, float fontSize, draw_color_t color, const char *string)
 {
 	if (render->initialized == 0 || string == NULL) {
 		return;
@@ -242,7 +242,7 @@ void text_flush(text_t *render, const float *projectionMatrix)
 
 	int base = 0;
 	while (count > 0) {
-		int batchCount = b2MinInt(count, TEXT_BATCH_VERTEX_COUNT);
+		int batchCount = draw_min_int(count, TEXT_BATCH_VERTEX_COUNT);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, batchCount * sizeof(text_vertex_t), vertices + base);
 		glDrawArrays(GL_TRIANGLES, 0, batchCount);
 

@@ -9,9 +9,9 @@
 
 typedef struct
 {
-	b2Transform transform;
-	float       radius;
-	RGBA8       rgba;
+	draw_transform_t transform;
+	float            radius;
+	RGBA8            rgba;
 } solid_circles_data_t;
 
 typedef struct
@@ -30,7 +30,7 @@ extern "C" {
 
 solid_circles_t *solid_circles_init(const draw_create_info_t *createInfo);
 void             solid_circles_destroy(solid_circles_t *render);
-void             solid_circles_add(solid_circles_t *render, b2Transform transform, float radius, b2HexColor color);
+void             solid_circles_add(solid_circles_t *render, draw_transform_t transform, float radius, draw_color_t color);
 void             solid_circles_flush(solid_circles_t *render, float pixelScale, const float *projectionMatrix);
 
 #ifdef __cplusplus

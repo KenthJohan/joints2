@@ -9,11 +9,11 @@
 
 typedef struct
 {
-	b2Transform transform;
-	b2Vec2      p1, p2, p3, p4, p5, p6, p7, p8;
-	int         count;
-	float       radius;
-	RGBA8       color;
+	draw_transform_t transform;
+	draw_vec2_t      p1, p2, p3, p4, p5, p6, p7, p8;
+	int              count;
+	float            radius;
+	RGBA8            color;
 } solid_polygons_data_t;
 
 typedef struct
@@ -32,7 +32,7 @@ extern "C" {
 
 solid_polygons_t *solid_polygons_init(const draw_create_info_t *createInfo);
 void              solid_polygons_destroy(solid_polygons_t *render);
-void              solid_polygons_add(solid_polygons_t *render, b2Transform transform, const b2Vec2 *points, int count, float radius, b2HexColor color);
+void              solid_polygons_add(solid_polygons_t *render, draw_transform_t transform, const draw_vec2_t *points, int count, float radius, draw_color_t color);
 void              solid_polygons_flush(solid_polygons_t *render, float pixelScale, const float *projectionMatrix);
 
 #ifdef __cplusplus

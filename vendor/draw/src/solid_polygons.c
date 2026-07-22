@@ -42,7 +42,7 @@ solid_polygons_t *solid_polygons_init(const draw_create_info_t *createInfo)
 	glEnableVertexAttribArray(instanceColor);
 
 	float  a          = 1.1f;
-	b2Vec2 vertices[] = {{-a, -a}, {a, -a}, {-a, a}, {a, -a}, {a, a}, {-a, a}};
+	draw_vec2_t vertices[] = {{-a, -a}, {a, -a}, {-a, a}, {a, -a}, {a, a}, {-a, a}};
 	glBindBuffer(GL_ARRAY_BUFFER, render->vboIds[0]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
 	glVertexAttribPointer(vertexAttribute, 2, GL_FLOAT, GL_FALSE, 0, BUFFER_OFFSET(0));
@@ -94,13 +94,13 @@ void solid_polygons_destroy(solid_polygons_t *render)
 	free(render);
 }
 
-void solid_polygons_add(solid_polygons_t *render, b2Transform transform, const b2Vec2 *points, int count, float radius, b2HexColor color)
+void solid_polygons_add(solid_polygons_t *render, draw_transform_t transform, const draw_vec2_t *points, int count, float radius, draw_color_t color)
 {
 	solid_polygons_data_t data = {};
 	data.transform             = transform;
 
 	int     n  = count < 8 ? count : 8;
-	b2Vec2 *ps = &data.p1;
+	draw_vec2_t *ps = &data.p1;
 	for (int i = 0; i < n; ++i) {
 		ps[i] = points[i];
 	}
@@ -131,7 +131,7 @@ void solid_polygons_flush(solid_polygons_t *render, float pixelScale, const floa
 
 	int base = 0;
 	while (count > 0) {
-		int batchCount = b2MinInt(count, POLYGON_BATCH_SIZE);
+		int batchCount = draw_min_int(count, POLYGON_BATCH_SIZE);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, batchCount * sizeof(solid_polygons_data_t), polygons + base);
 		glDrawArraysInstanced(GL_TRIANGLES, 0, 6, batchCount);
 		CheckOpenGL();

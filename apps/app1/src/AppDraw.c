@@ -103,7 +103,7 @@ void AppDrawPrintPositional_Draw(ecs_iter_t *it)
 	Position2      *p = ecs_field_self(it, Position2, 1);
 	for (int i = 0; i < it->count; i++) {
 		char const *name = ecs_get_name(it->world, it->entities[i]);
-		draw_string(d->draw, (b2Pos){p->x, p->y}, b2_colorViolet, "%s", name);
+		draw_string(d->draw, p->x, p->y, 0xEE82EEu, "%s", name);
 	}
 }
 
