@@ -15,6 +15,9 @@ ECS_COMPONENT_DECLARE(EgB2DebugDraw);
 ECS_COMPONENT_DECLARE(EgB2OverlapChecking);
 ECS_TAG_DECLARE(EgB2TargetTransform);
 
+ECS_COMPONENT_DECLARE(b2BodyId);
+ECS_COMPONENT_DECLARE(b2ShapeId);
+
 static void EgB2World_Create(ecs_iter_t *it)
 {
 	ecs_log_set_level(0);
@@ -31,30 +34,35 @@ static void EgB2World_Create(ecs_iter_t *it)
 static void EgB2Body_Create(ecs_iter_t *it)
 {
 	ecs_log_set_level(0);
-	EgB2World   *bw  = ecs_field(it, EgB2World, 0);   // shared,up
-	Position2   *pos = ecs_field(it, Position2, 1);   // self
-	EgB2BodyDef *def = ecs_field(it, EgB2BodyDef, 2); // self
-	EgB2Box     *box = ecs_field(it, EgB2Box, 3);     // self
+	EgB2World   *bw  = ecs_field_shared(it, EgB2World, 0); //
+	Position2   *pos = ecs_field_self(it, Position2, 1);   //
+	EgB2BodyDef *def = ecs_field_self(it, EgB2BodyDef, 2); //
+	EgB2Box     *box = ecs_field_self(it, EgB2Box, 3);     // Optional
 	for (int i = 0; i < it->count; ++i, ++def, ++pos, ++box) {
-		b2BodyDef body_def   = b2DefaultBodyDef();
-		body_def.type        = def->type;
-		body_def.position    = (b2Pos){pos->x, pos->y};
-		body_def.userData    = (void *)(uintptr_t)it->entities[i]; // Use the ECS entity as user data
-		b2BodyId   body_id   = b2CreateBody(bw->id, &body_def);
-		b2Polygon  poly      = b2MakeBox(box->half_width, box->half_height);
-		b2ShapeDef shape_def = b2DefaultShapeDef();
-		if (body_def.type == b2_dynamicBody) {
-			if (box->density <= 0.0f) {
-				ecs_warn("EgB2Box density is %.3f for entity %llu (zero/negative values are allowed but can disable gravity response on dynamic bodies)", box->density, (unsigned long long)it->entities[i]);
+		EgB2Body  out      = {0};
+		b2BodyDef body_def = b2DefaultBodyDef();
+		body_def.type      = def->type;
+		body_def.position  = (b2Pos){pos->x, pos->y};
+		body_def.userData  = (void *)(uintptr_t)it->entities[i]; // Use the ECS entity as user data
+		out.body           = b2CreateBody(bw->id, &body_def);
+		if (box) {
+			b2Polygon  poly      = b2MakeBox(box->half_width, box->half_height);
+			b2ShapeDef shape_def = b2DefaultShapeDef();
+			if (body_def.type == b2_dynamicBody) {
+				if (box->density <= 0.0f) {
+					ecs_warn("EgB2Box density is %.3f for entity %llu (zero/negative values are allowed but can disable gravity response on dynamic bodies)", box->density, (unsigned long long)it->entities[i]);
+				}
+				if (box->friction <= 0.0f) {
+					ecs_warn("EgB2Box friction is %.3f for entity %llu (zero/negative values are allowed)", box->friction, (unsigned long long)it->entities[i]);
+				}
 			}
-			if (box->friction <= 0.0f) {
-				ecs_warn("EgB2Box friction is %.3f for entity %llu (zero/negative values are allowed)", box->friction, (unsigned long long)it->entities[i]);
-			}
+			shape_def.density           = box->density;
+			shape_def.material.friction = box->friction;
+			out.shape                   = b2CreatePolygonShape(out.body, &shape_def, &poly);
+		} else {
+			out.shape = b2_nullShapeId; // No shape created
 		}
-		shape_def.density           = box->density;
-		shape_def.material.friction = box->friction;
-		b2ShapeId shape_id          = b2CreatePolygonShape(body_id, &shape_def, &poly);
-		ecs_set(it->world, it->entities[i], EgB2Body, {body_id, shape_id});
+		ecs_set_ptr(it->world, it->entities[i], EgB2Body, &out);
 	}
 	ecs_log_set_level(-1);
 }
@@ -108,7 +116,7 @@ static void EgB2Body_TargetTransform(ecs_iter_t *it)
 	for (int i = 0; i < it->count; ++i, ++body) {
 		b2Vec2 targetPosition = {p->x, p->y};
 		// printf("Setting target transform for body %llu to position (%.3f, %.3f)\n", (unsigned long long)it->entities[i], targetPosition.x, targetPosition.y);
-		b2Body_SetTargetTransform(body->id, (b2WorldTransform){targetPosition, b2Rot_identity}, timeStep, true);
+		b2Body_SetTargetTransform(body->body, (b2WorldTransform){targetPosition, b2Rot_identity}, timeStep, true);
 	}
 	ecs_log_set_level(-1);
 }
@@ -175,6 +183,7 @@ static void System_Overlap_Checking_Update(ecs_iter_t *it)
 			ecs_warn("tag entity %jX is not valid", c->tag);
 			continue; // Skip if the tag entity is not valid
 		}
+
 		ecs_entity_t body_entity = (ecs_entity_t)(uintptr_t)b2Body_GetUserData(queryContext.bodyId);
 		if (!ecs_is_valid(it->world, body_entity)) {
 			ecs_warn("Entity %jX is not valid", body_entity);
@@ -182,6 +191,17 @@ static void System_Overlap_Checking_Update(ecs_iter_t *it)
 		}
 		// printf("name %s\n", ecs_get_name(it->world, body_entity));
 		ecs_add_id(it->world, body_entity, c->tag);
+	}
+}
+
+static void System_Get_Position(ecs_iter_t *it)
+{
+	EgB2Body  *b = ecs_field_self(it, EgB2Body, 0);
+	Position2 *p = ecs_field_self(it, Position2, 1);
+	for (int i = 0; i < it->count; ++i, ++b, ++p) {
+		b2Vec2 pos = b2Body_GetPosition(b->body);
+		p->x       = pos.x;
+		p->y       = pos.y;
 	}
 }
 
@@ -206,6 +226,67 @@ void EgB2Import(ecs_world_t *world)
 	ecs_add_id(world, EgB2TargetTransform, EcsTraversable);
 	ecs_add_id(world, ecs_id(EgB2OverlapChecking), EcsTraversable);
 
+	ECS_COMPONENT_DEFINE(world, b2BodyId);
+	ECS_COMPONENT_DEFINE(world, b2ShapeId);
+
+	ecs_struct_init(world,
+	&(ecs_struct_desc_t){
+	.entity  = ecs_id(b2BodyId),
+	.members = {
+	{.name = "index1", .type = ecs_id(ecs_i32_t)},
+	{.name = "world0", .type = ecs_id(ecs_u16_t)},
+	{.name = "generation", .type = ecs_id(ecs_u16_t)},
+	}});
+
+	ecs_struct_init(world,
+	&(ecs_struct_desc_t){
+	.entity  = ecs_id(b2ShapeId),
+	.members = {
+	{.name = "index1", .type = ecs_id(ecs_i32_t)},
+	{.name = "world0", .type = ecs_id(ecs_u16_t)},
+	{.name = "generation", .type = ecs_id(ecs_u16_t)},
+	}});
+
+	ecs_struct_init(world,
+	&(ecs_struct_desc_t){
+	.entity  = ecs_id(EgB2OverlapChecking),
+	.members = {
+	{.name = "tag", .type = ecs_id(ecs_entity_t)},
+	}});
+
+	ecs_struct_init(world,
+	&(ecs_struct_desc_t){
+	.entity  = ecs_id(EgB2WorldDef),
+	.members = {
+	{.name = "gravity_x", .type = ecs_id(ecs_f32_t)},
+	{.name = "gravity_y", .type = ecs_id(ecs_f32_t)},
+	}});
+
+	ecs_struct_init(world,
+	&(ecs_struct_desc_t){
+	.entity  = ecs_id(EgB2BodyDef),
+	.members = {
+	{.name = "type", .type = ecs_id(ecs_i32_t)},
+	}});
+
+	ecs_struct_init(world,
+	&(ecs_struct_desc_t){
+	.entity  = ecs_id(EgB2Body),
+	.members = {
+	{.name = "body", .type = ecs_id(b2BodyId)},
+	{.name = "shape", .type = ecs_id(b2ShapeId)},
+	}});
+
+	ecs_struct_init(world,
+	&(ecs_struct_desc_t){
+	.entity  = ecs_id(EgB2Box),
+	.members = {
+	{.name = "half_width", .type = ecs_id(ecs_f32_t)},
+	{.name = "half_height", .type = ecs_id(ecs_f32_t)},
+	{.name = "density", .type = ecs_id(ecs_f32_t)},
+	{.name = "friction", .type = ecs_id(ecs_f32_t)},
+	}});
+
 	ecs_system(world,
 	{.entity  = ecs_entity(world, {.name = "EgB2World_Create", .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),
 	.callback = EgB2World_Create,
@@ -223,7 +304,7 @@ void EgB2Import(ecs_world_t *world)
 	{.id = ecs_id(EgB2World), .trav = EcsChildOf, .src.id = EcsUp, .inout = EcsIn},
 	{.id = ecs_id(Position2), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(EgB2BodyDef), .src.id = EcsSelf, .inout = EcsIn},
-	{.id = ecs_id(EgB2Box), .src.id = EcsSelf, .inout = EcsIn},
+	{.id = ecs_id(EgB2Box), .src.id = EcsSelf, .inout = EcsIn, .oper = EcsOptional},
 	{.id = ecs_id(EgB2Body), .oper = EcsNot}, // Adds this
 	}});
 
@@ -283,40 +364,17 @@ void EgB2Import(ecs_world_t *world)
 	{.id = ecs_id(Position2), .trav = ecs_id(EgB2OverlapChecking), .src.id = EcsUp, .inout = EcsIn},
 	}});
 
+	ecs_system(world,
+	{.entity  = ecs_entity(world, {.name = "System_Get_Position", .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),
+	.callback = System_Get_Position,
+	.query.terms =
+	{
+	{.id = ecs_id(EgB2Body), .src.id = EcsSelf, .inout = EcsIn},
+	{.id = ecs_id(Position2), .src.id = EcsSelf, .inout = EcsOut},
+	}});
+
 	ecs_observer(world,
 	{.query   = {.terms = {{.id = ecs_id(EgB2World)}}},
 	.events   = {EcsOnRemove},
 	.callback = EgB2World_Destroy});
-
-	ecs_struct_init(world,
-	&(ecs_struct_desc_t){
-	.entity  = ecs_id(EgB2OverlapChecking),
-	.members = {
-	{.name = "tag", .type = ecs_id(ecs_entity_t)},
-	}});
-
-	ecs_struct_init(world,
-	&(ecs_struct_desc_t){
-	.entity  = ecs_id(EgB2WorldDef),
-	.members = {
-	{.name = "gravity_x", .type = ecs_id(ecs_f32_t)},
-	{.name = "gravity_y", .type = ecs_id(ecs_f32_t)},
-	}});
-
-	ecs_struct_init(world,
-	&(ecs_struct_desc_t){
-	.entity  = ecs_id(EgB2BodyDef),
-	.members = {
-	{.name = "type", .type = ecs_id(ecs_i32_t)},
-	}});
-
-	ecs_struct_init(world,
-	&(ecs_struct_desc_t){
-	.entity  = ecs_id(EgB2Box),
-	.members = {
-	{.name = "half_width", .type = ecs_id(ecs_f32_t)},
-	{.name = "half_height", .type = ecs_id(ecs_f32_t)},
-	{.name = "density", .type = ecs_id(ecs_f32_t)},
-	{.name = "friction", .type = ecs_id(ecs_f32_t)},
-	}});
 }

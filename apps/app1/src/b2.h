@@ -16,8 +16,8 @@ typedef struct {
 } EgB2World;
 
 typedef struct {
-	b2BodyId  id;
-	b2ShapeId shapeId; // Optional: Store the shape ID associated with this body
+	b2BodyId  body;
+	b2ShapeId shape; // Optional: Store the shape ID associated with this body
 } EgB2Body;
 
 typedef struct {

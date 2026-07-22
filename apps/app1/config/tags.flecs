@@ -1,0 +1,6 @@
+@color #FF99FF
+tags {}
+module tags
+
+mouse_hover {}
+mouse_focus {}

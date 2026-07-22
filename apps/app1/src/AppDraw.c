@@ -2,11 +2,13 @@
 #include "fs.h"
 #include <EgWindows.h>
 #include <EgCameras.h>
+#include <EgSpatials.h>
 #include <ecsx.h>
 #include <draw.h>
 
 ECS_COMPONENT_DECLARE(AppDrawContext);
 ECS_COMPONENT_DECLARE(AppDrawContextCreate);
+ECS_COMPONENT_DECLARE(AppDrawPrintPositionalBinding);
 
 static bool BuildDrawCreateInfo(draw_create_info_t *createInfo)
 {
@@ -95,19 +97,68 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 	ecs_log_set_level(-1);
 }
 
+void AppDrawPrintPositional_Draw(ecs_iter_t *it)
+{
+	AppDrawContext *d = ecs_field_shared(it, AppDrawContext, 0);
+	Position2      *p = ecs_field_self(it, Position2, 1);
+	for (int i = 0; i < it->count; i++) {
+		char const *name = ecs_get_name(it->world, it->entities[i]);
+		draw_string(d->draw, (b2Pos){p->x, p->y}, b2_colorViolet, "%s", name);
+	}
+}
+
+void AppDrawPrintPositionalBinding_Observer(ecs_iter_t *it)
+{
+	AppDrawPrintPositionalBinding *o = ecs_field_self(it, AppDrawPrintPositionalBinding, 0);
+
+	for (int i = 0; i < it->count; i++) {
+		ecs_entity_t e    = it->entities[i];
+		char const  *name = ecs_get_name(it->world, e);
+		char         buffer[256];
+		snprintf(buffer, sizeof(buffer), "sys_%s_%s", name, ecs_get_name(it->world, o->term));
+		if (it->event == EcsOnSet) {
+			ecs_system(it->world,
+			{.entity  = ecs_entity(it->world, {.name = buffer, .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),
+			.callback = AppDrawPrintPositional_Draw,
+			.query.terms =
+			{
+			{.id = ecs_id(AppDrawContext), .src.id = o->draw_e, .inout = EcsIn},
+			{.id = ecs_id(Position2), .src.id = EcsSelf},
+			{.id = ecs_id(AppDrawPrintPositionalBinding), .src.id = e},
+			{.id = o->term, .src.id = EcsSelf},
+			}});
+		}
+	}
+}
+
 void AppDrawImport(ecs_world_t *world)
 {
 	ECS_MODULE(world, AppDraw);
 	ecs_set_name_prefix(world, "AppDraw");
 	ECS_IMPORT(world, EgWindows);
+	ECS_IMPORT(world, EgSpatials);
 
 	ECS_COMPONENT_DEFINE(world, AppDrawContext);
 	ECS_COMPONENT_DEFINE(world, AppDrawContextCreate);
+	ECS_COMPONENT_DEFINE(world, AppDrawPrintPositionalBinding);
 
 	ecs_struct(world,
 	{.entity = ecs_id(AppDrawContextCreate),
 	.members = {
 	{.name = "dummy", .type = ecs_id(ecs_i32_t)},
+	}});
+
+	ecs_struct(world,
+	{.entity = ecs_id(AppDrawContext),
+	.members = {
+	{.name = "draw", .type = ecs_id(ecs_uptr_t)},
+	}});
+
+	ecs_struct(world,
+	{.entity = ecs_id(AppDrawPrintPositionalBinding),
+	.members = {
+	{.name = "term", .type = ecs_id(ecs_id_t)},
+	{.name = "draw_e", .type = ecs_id(ecs_id_t)},
 	}});
 
 	ecs_system(world,
@@ -120,4 +171,9 @@ void AppDrawImport(ecs_world_t *world)
 	{.id = ecs_id(EgWindowsOpenGLContext), .trav = EcsChildOf, .src.id = EcsUp, .inout = EcsIn},
 	{.id = ecs_id(AppDrawContext), .oper = EcsNot}, // Adds this
 	}});
+
+	ecs_observer(world,
+	{.query   = {.terms = {{.id = ecs_id(AppDrawPrintPositionalBinding)}}},
+	.events   = {EcsOnSet},
+	.callback = AppDrawPrintPositionalBinding_Observer});
 }

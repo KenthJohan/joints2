@@ -26,3 +26,9 @@ window1 {
         eg.windows.Mouse
     }
 }
+
+
+
+debug_draw_print_hover {
+    app.draw.PrintPositionalBinding : {term: tags.mouse_hover, draw_e : eg.windows.window1.draw1}
+}

@@ -2,9 +2,9 @@
 physics {}
 module physics
 
-const BODY_STATIC: 0
-const BODY_KINEMATIC: 1
-const BODY_DYNAMIC: 2
+const BODY_STATIC: 0 /// zero mass, zero velocity, may be manually moved
+const BODY_KINEMATIC: 1 /// zero mass, velocity set by user, moved by solver
+const BODY_DYNAMIC: 2 /// positive mass, velocity determined by forces, moved by solver
 
 debug_draw {
     eg.b2.DebugDrawDef
@@ -20,7 +20,7 @@ b2world {
 
     // Uses Position2 component in `cameras.cam0.mouse_unproject`
     // This will add the `mouse_hit_tag` to any body that overlaps with the mouse position
-    (eg.b2.OverlapChecking, cameras.cam0.mouse_unproject) : {tag: keybindings.mouse_hit_tag}
+    (eg.b2.OverlapChecking, cameras.cam0.mouse_unproject) : {tag: tags.mouse_hover}
 }
 
 b2world.ground {
@@ -37,14 +37,21 @@ b2world.box1 {
     eg.b2.Box : {half_width:1, half_height:1, density:1, friction:0.3}
 }
 
-/*/
+
+b2world.dragbody {
+    eg.b2.BodyDef : {type : $BODY_KINEMATIC}
+    eg.spatials.Position2 : {0, -10}
+    // eg.b2.DragBody : {target: keybindings.mouse_hit_focus}
+}
+
+
 b2world.box2 {
     eg.b2.BodyDef : {type : $BODY_DYNAMIC}
     eg.spatials.Position2 : {0.1, 9.0}
     eg.b2.Box : {half_width:1, half_height:1, density:1, friction:0.3}
 }
 
-
+/*/
 b2world.box3 {
     eg.b2.BodyDef : {type : $BODY_DYNAMIC}
     eg.spatials.Position2 : {10, 9.0}
