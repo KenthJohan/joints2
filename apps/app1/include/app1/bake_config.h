@@ -28,6 +28,7 @@
 #include <EgWindowsSdlGl.h>
 #include <EgCameras.h>
 #include <EgButtons.h>
+#include <EgPhysics.h>
 #include <egmath.h>
 #include <draw.h>
 

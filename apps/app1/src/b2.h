@@ -3,15 +3,6 @@
 #include <flecs.h>
 
 typedef struct {
-	float gravity_x;
-	float gravity_y;
-} EgB2WorldDef;
-
-typedef struct {
-	ecs_i32_t type; // b2BodyType
-} EgB2BodyDef;
-
-typedef struct {
 	b2WorldId id;
 } EgB2World;
 
@@ -19,13 +10,6 @@ typedef struct {
 	b2BodyId  body;
 	b2ShapeId shape; // Optional: Store the shape ID associated with this body
 } EgB2Body;
-
-typedef struct {
-	float half_width;
-	float half_height;
-	float density;
-	float friction;
-} EgB2Box;
 
 typedef struct {
 	int dummy;
@@ -40,10 +24,7 @@ typedef struct {
 } EgB2OverlapChecking;
 
 extern ECS_COMPONENT_DECLARE(EgB2World);
-extern ECS_COMPONENT_DECLARE(EgB2WorldDef);
 extern ECS_COMPONENT_DECLARE(EgB2Body);
-extern ECS_COMPONENT_DECLARE(EgB2BodyDef);
-extern ECS_COMPONENT_DECLARE(EgB2Box);
 extern ECS_COMPONENT_DECLARE(EgB2DebugDrawDef);
 extern ECS_COMPONENT_DECLARE(EgB2DebugDraw);
 extern ECS_COMPONENT_DECLARE(EgB2OverlapChecking);

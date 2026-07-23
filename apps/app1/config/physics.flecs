@@ -15,7 +15,7 @@ debug_draw {
 
 
 b2world {
-    eg.b2.WorldDef : {gravity_x: 0, gravity_y: -10}
+    eg.physics.WorldDef : {gravity_x: 0, gravity_y: -10}
     (flecs.core.DependsOn, debug_draw)
 
     // Uses Position2 component in `cameras.cam0.mouse_unproject`
@@ -24,38 +24,38 @@ b2world {
 }
 
 b2world.ground {
-    eg.b2.BodyDef : {type : $BODY_STATIC}
+    eg.physics.BodyDef : {type : $BODY_STATIC}
     eg.spatials.Position2 : {0, -10}
-    eg.b2.Box : {half_width:50, half_height:10}
+    eg.physics.Box : {half_width:50, half_height:10}
 }
 
 
 
 b2world.box1 {
-    eg.b2.BodyDef : {type : $BODY_DYNAMIC}
+    eg.physics.BodyDef : {type : $BODY_DYNAMIC}
     eg.spatials.Position2 : {0, 4}
-    eg.b2.Box : {half_width:1, half_height:1, density:1, friction:0.3}
+    eg.physics.Box : {half_width:1, half_height:1, density:1, friction:0.3}
 }
 
 
 b2world.dragbody {
-    eg.b2.BodyDef : {type : $BODY_KINEMATIC}
+    eg.physics.BodyDef : {type : $BODY_KINEMATIC}
     eg.spatials.Position2 : {0, -10}
     // eg.b2.DragBody : {target: keybindings.mouse_hit_focus}
 }
 
 
 b2world.box2 {
-    eg.b2.BodyDef : {type : $BODY_DYNAMIC}
+    eg.physics.BodyDef : {type : $BODY_DYNAMIC}
     eg.spatials.Position2 : {0.1, 9.0}
-    eg.b2.Box : {half_width:1, half_height:1, density:1, friction:0.3}
+    eg.physics.Box : {half_width:1, half_height:1, density:1, friction:0.3}
 }
 
 /*/
 b2world.box3 {
-    eg.b2.BodyDef : {type : $BODY_DYNAMIC}
+    eg.physics.BodyDef : {type : $BODY_DYNAMIC}
     eg.spatials.Position2 : {10, 9.0}
-    eg.b2.Box : {half_width:1, half_height:1, density:1, friction:0.3}
+    eg.physics.Box : {half_width:1, half_height:1, density:1, friction:0.3}
     (eg.b2.TargetTransform, cameras.cam0.mouse_unproject)
 }
 */

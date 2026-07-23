@@ -14,6 +14,7 @@
 			"EgWindowsSdlGl",
 			"EgCameras",
 			"EgButtons",
+			"EgPhysics",
 			"egmath",
 			"box2d",
 			"draw"
@@ -35,6 +36,7 @@
 			"EgWindowsSdl",
 			"EgWindowsSdlGl",
 			"EgButtons",
+			"EgPhysics",
 			"EgFs",
 			"EgBase",
 			"EgGlslang",
