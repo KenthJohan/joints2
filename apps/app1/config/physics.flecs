@@ -19,7 +19,7 @@ b2world {
     (flecs.core.DependsOn, debug_draw)
 
     // Uses Position2 component in `cameras.cam0.mouse_unproject`
-    // This will add the `mouse_hit_tag` to any body that overlaps with the mouse position
+    // This will add the `tags.mouse_hover` to any body that overlaps with the mouse position
     (eg.b2.OverlapChecking, cameras.cam0.mouse_unproject) : {tag: tags.mouse_hover}
 }
 

@@ -8,7 +8,7 @@
 
 ECS_COMPONENT_DECLARE(AppDrawContext);
 ECS_COMPONENT_DECLARE(AppDrawContextCreate);
-ECS_COMPONENT_DECLARE(AppDrawPrintPositionalBinding);
+ECS_COMPONENT_DECLARE(AppDrawNameAtPositionRule);
 
 static bool BuildDrawCreateInfo(draw_create_info_t *createInfo)
 {
@@ -97,19 +97,20 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 	ecs_log_set_level(-1);
 }
 
-void AppDrawPrintPositional_Draw(ecs_iter_t *it)
+void AppDrawNameAtPosition_Draw(ecs_iter_t *it)
 {
-	AppDrawContext *d = ecs_field_shared(it, AppDrawContext, 0);
-	Position2      *p = ecs_field_self(it, Position2, 1);
+	AppDrawContext                *d = ecs_field_shared(it, AppDrawContext, 0);
+	Position2                     *p = ecs_field_self(it, Position2, 1);
+	AppDrawNameAtPositionRule     *b = ecs_field_shared(it, AppDrawNameAtPositionRule, 2);
 	for (int i = 0; i < it->count; i++) {
 		char const *name = ecs_get_name(it->world, it->entities[i]);
-		draw_string(d->draw, p->x, p->y, 0xEE82EEu, "%s", name);
+		draw_string(d->draw, p->x, p->y, b->color, "%s", name);
 	}
 }
 
-void AppDrawPrintPositionalBinding_Observer(ecs_iter_t *it)
+void AppDrawNameAtPositionRule_Observer(ecs_iter_t *it)
 {
-	AppDrawPrintPositionalBinding *o = ecs_field_self(it, AppDrawPrintPositionalBinding, 0);
+	AppDrawNameAtPositionRule *o = ecs_field_self(it, AppDrawNameAtPositionRule, 0);
 
 	for (int i = 0; i < it->count; i++) {
 		ecs_entity_t e    = it->entities[i];
@@ -119,12 +120,12 @@ void AppDrawPrintPositionalBinding_Observer(ecs_iter_t *it)
 		if (it->event == EcsOnSet) {
 			ecs_system(it->world,
 			{.entity  = ecs_entity(it->world, {.name = buffer, .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),
-			.callback = AppDrawPrintPositional_Draw,
+			.callback = AppDrawNameAtPosition_Draw,
 			.query.terms =
 			{
 			{.id = ecs_id(AppDrawContext), .src.id = o->draw_e, .inout = EcsIn},
 			{.id = ecs_id(Position2), .src.id = EcsSelf},
-			{.id = ecs_id(AppDrawPrintPositionalBinding), .src.id = e},
+			{.id = ecs_id(AppDrawNameAtPositionRule), .src.id = e},
 			{.id = o->term, .src.id = EcsSelf},
 			}});
 		}
@@ -140,7 +141,7 @@ void AppDrawImport(ecs_world_t *world)
 
 	ECS_COMPONENT_DEFINE(world, AppDrawContext);
 	ECS_COMPONENT_DEFINE(world, AppDrawContextCreate);
-	ECS_COMPONENT_DEFINE(world, AppDrawPrintPositionalBinding);
+	ECS_COMPONENT_DEFINE(world, AppDrawNameAtPositionRule);
 
 	ecs_struct(world,
 	{.entity = ecs_id(AppDrawContextCreate),
@@ -155,10 +156,11 @@ void AppDrawImport(ecs_world_t *world)
 	}});
 
 	ecs_struct(world,
-	{.entity = ecs_id(AppDrawPrintPositionalBinding),
+	{.entity = ecs_id(AppDrawNameAtPositionRule),
 	.members = {
 	{.name = "term", .type = ecs_id(ecs_id_t)},
 	{.name = "draw_e", .type = ecs_id(ecs_id_t)},
+	{.name = "color", .type = ecs_id(ecs_u32_t)},
 	}});
 
 	ecs_system(world,
@@ -173,7 +175,7 @@ void AppDrawImport(ecs_world_t *world)
 	}});
 
 	ecs_observer(world,
-	{.query   = {.terms = {{.id = ecs_id(AppDrawPrintPositionalBinding)}}},
+	{.query   = {.terms = {{.id = ecs_id(AppDrawNameAtPositionRule)}}},
 	.events   = {EcsOnSet},
-	.callback = AppDrawPrintPositionalBinding_Observer});
+	.callback = AppDrawNameAtPositionRule_Observer});
 }

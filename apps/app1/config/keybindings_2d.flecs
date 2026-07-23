@@ -67,7 +67,7 @@ quit {
 
 
 obind1 {
-    // Add the `mouse_hit_focus` tag to any entity that has the `mouse_hit_tag` and the left mouse button is held down.
+    // Add the `tags.mouse_focus` tag to any entity that has the `tags.mouse_hover` and the left mouse button is held down.
     // This creates two systems, one to clear the tag and one to add it, that run on every frame.
     TermBinding : {
         term: tags.mouse_hover, 

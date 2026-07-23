@@ -30,5 +30,9 @@ window1 {
 
 
 debug_draw_print_hover {
-    app.draw.PrintPositionalBinding : {term: tags.mouse_hover, draw_e : eg.windows.window1.draw1}
+    app.draw.NameAtPositionRule : {term: tags.mouse_hover, draw_e : eg.windows.window1.draw1, color: 0xFF99FF}
+}
+
+debug_draw_print_focus {
+    app.draw.NameAtPositionRule : {term: tags.mouse_focus, draw_e : eg.windows.window1.draw1, color: 0x66FFFF}
 }
