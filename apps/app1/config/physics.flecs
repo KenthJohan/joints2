@@ -1,13 +1,16 @@
 @color #FF99FF
 physics {}
 module physics
+using eg.physics
+using eg.shapes
+using eg.spatials
 
 const BODY_STATIC: 0 /// zero mass, zero velocity, may be manually moved
 const BODY_KINEMATIC: 1 /// zero mass, velocity set by user, moved by solver
 const BODY_DYNAMIC: 2 /// positive mass, velocity determined by forces, moved by solver
 
 debug_draw {
-    eg.b2.DebugDrawDef
+    app.draw.box2d.ContextCreate : {}
     (flecs.core.DependsOn, eg.windows.window1.draw1)
 }
 
@@ -20,45 +23,45 @@ b2world {
 
     // Uses Position2 component in `cameras.cam0.mouse_unproject`
     // This will add the `tags.mouse_hover` to any body that overlaps with the mouse position
-    (eg.b2.OverlapChecking, cameras.cam0.mouse_unproject) : {tag: tags.mouse_hover}
+    (eg.physics.box2d.OverlapChecking, cameras.cam0.mouse_unproject) : {tag: tags.mouse_hover}
 }
 
 b2world.ground {
-    eg.physics.BodyDef : {type : $BODY_STATIC}
-    eg.spatials.Position2 : {0, -10}
-    eg.physics.Box : {half_width:50, half_height:10}
-    eg.physics.ShapesDef : {density:0}
+    BodyDef : {type : $BODY_STATIC}
+    ShapesDef : {density:0, friction:0}
+    Position2 : {0, -5}
+    Rectangle : {w:50, h:10}
 }
 
 
 
 b2world.box1 {
-    eg.physics.BodyDef : {type : $BODY_DYNAMIC}
-    eg.physics.ShapesDef : {density:1}
-    eg.spatials.Position2 : {0, 4}
-    eg.physics.Box : {half_width:1, half_height:1, density:1, friction:0.3}
+    BodyDef : {type : $BODY_DYNAMIC}
+    ShapesDef : {density:1, friction:0.3}
+    Position2 : {0, 4}
+    Rectangle : {w:1, h:1}
 }
 
 
 b2world.dragbody {
-    eg.physics.BodyDef : {type : $BODY_KINEMATIC}
-    eg.spatials.Position2 : {0, -10}
+    BodyDef : {type : $BODY_KINEMATIC}
+    Position2 : {0, -10}
     // eg.b2.DragBody : {target: keybindings.mouse_hit_focus}
 }
 
 
 b2world.box2 {
-    eg.physics.BodyDef : {type : $BODY_DYNAMIC}
-    eg.physics.ShapesDef : {density:1}
-    eg.spatials.Position2 : {0.1, 9.0}
-    eg.physics.Box : {half_width:1, half_height:1, density:1, friction:0.3}
+    BodyDef : {type : $BODY_DYNAMIC}
+    ShapesDef : {density:1}
+    Position2 : {0.1, 9.0}
+    Rectangle : {w:1, h:1}
 }
 
-/*/
+/*
 b2world.box3 {
-    eg.physics.BodyDef : {type : $BODY_DYNAMIC}
-    eg.spatials.Position2 : {10, 9.0}
-    eg.physics.Box : {half_width:1, half_height:1, density:1, friction:0.3}
+    BodyDef : {type : $BODY_DYNAMIC}
+    Position2 : {10, 9.0}
+    Rectangle : {w:1, h:1, density:1, friction:0.3}
     (eg.b2.TargetTransform, cameras.cam0.mouse_unproject)
 }
 */

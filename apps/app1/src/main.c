@@ -15,10 +15,12 @@
 #include <EgWindowsSdlGl.h>
 #include <EgFs.h>
 #include <EgCameras.h>
+#include <EgPhysics.h>
+#include <EgPhysicsBox2d.h>
 
 #include "fs.h"
 #include "b2DebugDraw_init.h"
-#include "b2.h"
+#include "AppDrawBox2d.h"
 #include "AppDraw.h"
 
 int main(int argc, char *argv[])
@@ -32,13 +34,15 @@ int main(int argc, char *argv[])
 	ECS_IMPORT(world, EgShapes);
 	ECS_IMPORT(world, EgSpatials);
 	ECS_IMPORT(world, EgSpatialsSystems);
-	ECS_IMPORT(world, EgB2);
 	ECS_IMPORT(world, EgWindows);
 	ECS_IMPORT(world, EgWindowsSdl);
 	ECS_IMPORT(world, EgWindowsSdlGl);
 	ECS_IMPORT(world, EgCameras);
+	ECS_IMPORT(world, EgPhysics);
+	ECS_IMPORT(world, EgPhysicsBox2d);
 	ECS_IMPORT(world, EgFs);
 	ECS_IMPORT(world, AppDraw);
+	ECS_IMPORT(world, AppDrawBox2d);
 
 	ecs_log_set_level(0);
 	ecs_script_run_file(world, "config/tags.flecs");

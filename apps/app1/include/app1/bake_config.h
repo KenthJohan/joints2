@@ -29,6 +29,7 @@
 #include <EgCameras.h>
 #include <EgButtons.h>
 #include <EgPhysics.h>
+#include <EgPhysicsBox2d.h>
 #include <egmath.h>
 #include <draw.h>
 
