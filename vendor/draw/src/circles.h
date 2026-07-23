@@ -11,8 +11,8 @@
 typedef struct
 {
 	draw_vec2_t position;
-	float  radius;
-	RGBA8  rgba;
+	float       radius;
+	RGBA8       rgba;
 } circles_data_t;
 
 typedef struct

@@ -10,8 +10,8 @@
 typedef struct
 {
 	draw_vec2_t position;
-	float  size;
-	RGBA8  rgba;
+	float       size;
+	RGBA8       rgba;
 } points_data_t;
 
 typedef struct

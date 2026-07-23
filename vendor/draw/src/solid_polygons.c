@@ -41,7 +41,7 @@ solid_polygons_t *solid_polygons_init(const draw_create_info_t *createInfo)
 	glEnableVertexAttribArray(instanceRadius);
 	glEnableVertexAttribArray(instanceColor);
 
-	float  a          = 1.1f;
+	float       a          = 1.1f;
 	draw_vec2_t vertices[] = {{-a, -a}, {a, -a}, {-a, a}, {a, -a}, {a, a}, {-a, a}};
 	glBindBuffer(GL_ARRAY_BUFFER, render->vboIds[0]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
@@ -99,7 +99,7 @@ void solid_polygons_add(solid_polygons_t *render, draw_transform_t transform, co
 	solid_polygons_data_t data = {};
 	data.transform             = transform;
 
-	int     n  = count < 8 ? count : 8;
+	int          n  = count < 8 ? count : 8;
 	draw_vec2_t *ps = &data.p1;
 	for (int i = 0; i < n; ++i) {
 		ps[i] = points[i];

@@ -33,7 +33,7 @@ solid_capsules_t *solid_capsules_init(const draw_create_info_t *createInfo)
 	glEnableVertexAttribArray(lengthInstance);
 	glEnableVertexAttribArray(colorInstance);
 
-	float  a          = 1.1f;
+	float       a          = 1.1f;
 	draw_vec2_t vertices[] = {{-a, -a}, {a, -a}, {-a, a}, {a, -a}, {a, a}, {-a, a}};
 	glBindBuffer(GL_ARRAY_BUFFER, render->vboIds[0]);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);

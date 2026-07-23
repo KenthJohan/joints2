@@ -40,11 +40,10 @@ int main(int argc, char *argv[])
 	ECS_IMPORT(world, EgFs);
 	ECS_IMPORT(world, AppDraw);
 
-
 	ecs_log_set_level(0);
 	ecs_script_run_file(world, "config/tags.flecs");
 	ecs_log_set_level(-1);
-	
+
 	ecs_log_set_level(0);
 	ecs_script_run_file(world, "config/windows.flecs");
 	ecs_log_set_level(-1);

@@ -27,12 +27,14 @@ b2world.ground {
     eg.physics.BodyDef : {type : $BODY_STATIC}
     eg.spatials.Position2 : {0, -10}
     eg.physics.Box : {half_width:50, half_height:10}
+    eg.physics.ShapesDef : {density:0}
 }
 
 
 
 b2world.box1 {
     eg.physics.BodyDef : {type : $BODY_DYNAMIC}
+    eg.physics.ShapesDef : {density:1}
     eg.spatials.Position2 : {0, 4}
     eg.physics.Box : {half_width:1, half_height:1, density:1, friction:0.3}
 }
@@ -47,6 +49,7 @@ b2world.dragbody {
 
 b2world.box2 {
     eg.physics.BodyDef : {type : $BODY_DYNAMIC}
+    eg.physics.ShapesDef : {density:1}
     eg.spatials.Position2 : {0.1, 9.0}
     eg.physics.Box : {half_width:1, half_height:1, density:1, friction:0.3}
 }

@@ -14,7 +14,7 @@ typedef struct
 {
 	draw_vec2_t position;
 	draw_vec2_t uv;
-	RGBA8  rgba;
+	RGBA8       rgba;
 } text_vertex_t;
 
 typedef struct {

@@ -10,7 +10,7 @@
 typedef struct
 {
 	draw_vec2_t position;
-	RGBA8  rgba;
+	RGBA8       rgba;
 } lines_data_t;
 
 typedef struct
