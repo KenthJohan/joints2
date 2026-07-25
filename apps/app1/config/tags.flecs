@@ -3,4 +3,5 @@ tags {}
 module tags
 
 mouse_hover {}
+mouse_drag {}
 mouse_focus {}

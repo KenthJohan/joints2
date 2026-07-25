@@ -102,7 +102,7 @@ void AppDrawNameAtPosition_Draw(ecs_iter_t *it)
 	AppDrawContext            *d = ecs_field_shared(it, AppDrawContext, 0);
 	Position2                 *p = ecs_field_self(it, Position2, 1);
 	AppDrawNameAtPositionRule *b = ecs_field_shared(it, AppDrawNameAtPositionRule, 2);
-	for (int i = 0; i < it->count; i++) {
+	for (int i = 0; i < it->count; ++i, ++p) {
 		char const *name = ecs_get_name(it->world, it->entities[i]);
 		draw_string(d->draw, p->x, p->y, b->color, "%s", name);
 	}

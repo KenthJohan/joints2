@@ -10,7 +10,9 @@ camera_rotate_dz {
     eg.buttons.Binding : {
         button0:MOUSE_X1, 
         button1:MOUSE_X2, 
-        mask:$BUTTON_HELD, 
+        mask:BUTTON_HELD, 
+    }
+    eg.buttons.Incrementer : {
         entity:cameras.cam0, 
         component:Rotate3, 
         byte_offset:8, 
@@ -23,6 +25,8 @@ camera_move_dx {
         button0:SCANCODE_D, 
         button1:SCANCODE_A, 
         mask:BUTTON_HELD, 
+    }
+    eg.buttons.Incrementer : {
         entity:cameras.cam0, 
         component:Velocity3, 
         byte_offset:0, 
@@ -35,6 +39,8 @@ camera_move_dy {
         button0:SCANCODE_W, 
         button1:SCANCODE_S, 
         mask:BUTTON_HELD, 
+    }
+    eg.buttons.Incrementer : {
         entity:cameras.cam0, 
         component:Velocity3, 
         byte_offset:4, 
@@ -47,6 +53,8 @@ camera_move_dz {
         button0:SCANCODE_KP_MINUS, 
         button1:SCANCODE_KP_PLUS, 
         mask:BUTTON_HELD, 
+    }
+    eg.buttons.Incrementer : {
         entity:cameras.cam0, 
         component:Velocity3, 
         byte_offset:8, 
@@ -55,24 +63,71 @@ camera_move_dz {
 }
 
 quit {
-    eg.buttons.ActionToggleEntity : {
-        button:SCANCODE_ESCAPE, 
+    eg.buttons.Binding : {
+        button0:SCANCODE_ESCAPE, 
         mask:BUTTON_PRESSED, 
+    }
+    eg.buttons.ActionToggleEntity : {
         entity:eg.windows.window1, 
         relation:0, 
         toggle:eg.windows.CloseRequest
     }
 }
 
+// If the left mouse button is pressed,
+// remove the mouse_focus tag for the entity which has the mouse_focus tag
+unselect {
+    eg.buttons.Binding : {
+        button0:MOUSE_LEFT, 
+        mask:BUTTON_PRESSED
+    }
+    eg.buttons.EngageRule : {
+        term: tags.mouse_focus, 
+        tag: tags.mouse_focus,
+        add:false
+    }
+}
 
-
-obind1 {
-    // Add the `tags.mouse_focus` tag to any entity that has the `tags.mouse_hover` and the left mouse button is held down.
-    // This creates two systems, one to clear the tag and one to add it, that run on every frame.
-    TermBinding : {
+// If the left mouse button is pressed,
+// and the mouse is hovering over an entity,
+// add the mouse_focus tag to that entity
+select {
+    eg.buttons.Binding : {
+        button0:MOUSE_LEFT, 
+        mask:BUTTON_PRESSED
+    }
+    eg.buttons.EngageRule : {
         term: tags.mouse_hover, 
-        button: MOUSE_LEFT, 
-        mask: BUTTON_HELD, 
-        tag: tags.mouse_focus
+        tag: tags.mouse_focus,
+        add:true
+    }
+}
+
+// If the left mouse button is pressed,
+// and the mouse is hovering over an entity,
+// add the mouse_drag tag to that entity
+drag_begin {
+    eg.buttons.Binding : {
+        button0:MOUSE_LEFT, 
+        mask:BUTTON_PRESSED
+    }
+    eg.buttons.EngageRule : {
+        term: tags.mouse_hover, 
+        tag: tags.mouse_drag,
+        add:true
+    }
+}
+
+// If the left mouse button is released,
+// remove the mouse_drag tag for the entity which has the mouse_drag tag
+drag_end {
+    eg.buttons.Binding : {
+        button0:MOUSE_LEFT, 
+        mask:BUTTON_RELEASED
+    }
+    eg.buttons.EngageRule : {
+        term: tags.mouse_drag, 
+        tag: tags.mouse_drag,
+        add:false
     }
 }
