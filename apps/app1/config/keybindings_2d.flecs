@@ -75,7 +75,7 @@ quit {
 }
 
 // If the left mouse button is pressed,
-// remove the mouse_focus tag for the entity which has the mouse_focus tag
+// remove the mouse_focus tag for the entities which have the mouse_focus tag
 unselect {
     eg.buttons.Binding : {
         button0:MOUSE_LEFT, 
@@ -89,8 +89,7 @@ unselect {
 }
 
 // If the left mouse button is pressed,
-// and the mouse is hovering over an entity,
-// add the mouse_focus tag to that entity
+// add the mouse_focus tag for the entities which have the mouse_hover tag
 select {
     eg.buttons.Binding : {
         button0:MOUSE_LEFT, 
@@ -104,8 +103,7 @@ select {
 }
 
 // If the left mouse button is pressed,
-// and the mouse is hovering over an entity,
-// add the mouse_drag tag to that entity
+// add the mouse_drag tag for the entities which have the mouse_hover tag
 drag_begin {
     eg.buttons.Binding : {
         button0:MOUSE_LEFT, 
@@ -119,7 +117,7 @@ drag_begin {
 }
 
 // If the left mouse button is released,
-// remove the mouse_drag tag for the entity which has the mouse_drag tag
+// remove the mouse_drag tag for the entities which have the mouse_drag tag
 drag_end {
     eg.buttons.Binding : {
         button0:MOUSE_LEFT, 
