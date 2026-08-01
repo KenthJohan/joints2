@@ -5,9 +5,14 @@ using eg.physics
 using eg.shapes
 using eg.spatials
 
-const BODY_STATIC: 0 /// zero mass, zero velocity, may be manually moved
-const BODY_KINEMATIC: 1 /// zero mass, velocity set by user, moved by solver
-const BODY_DYNAMIC: 2 /// positive mass, velocity determined by forces, moved by solver
+// zero mass, zero velocity, may be manually moved
+const BODY_STATIC: i32 = 0
+
+// zero mass, velocity set by user, moved by solver
+const BODY_KINEMATIC: i32 = 1
+
+// positive mass, velocity determined by forces, moved by solver
+const BODY_DYNAMIC: i32 = 2
 
 debug_draw {
     app.draw.box2d.ContextCreate : {}

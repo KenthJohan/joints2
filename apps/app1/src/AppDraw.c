@@ -119,10 +119,10 @@ void AppDrawNameAtPositionRule_Observer(ecs_iter_t *it)
 		snprintf(buffer, sizeof(buffer), "sys_%s_%s", name, ecs_get_name(it->world, o->term));
 		if (it->event == EcsOnSet) {
 			ecs_system(it->world,
-			{.entity  = ecs_entity(it->world, {.name = buffer, .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),
-			.callback = AppDrawNameAtPosition_Draw,
-			.query.terms =
-			{
+			{.entity     = ecs_entity(it->world, {.name = buffer}),
+			.phase       = EcsOnUpdate,
+			.callback    = AppDrawNameAtPosition_Draw,
+			.query.terms = {
 			{.id = ecs_id(AppDrawContext), .src.id = o->draw_e, .inout = EcsIn},
 			{.id = ecs_id(Position2), .src.id = EcsSelf},
 			{.id = ecs_id(AppDrawNameAtPositionRule), .src.id = e},
@@ -164,15 +164,9 @@ void AppDrawImport(ecs_world_t *world)
 	}});
 
 	ecs_system(world,
-	{.entity   = ecs_entity(world, {.name = "AppDrawContext_Create", .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),
-	.callback  = AppDrawContext_Create,
-	.immediate = true,
-	.query.terms =
-	{
-	{.id = ecs_id(AppDrawContextCreate), .src.id = EcsSelf, .inout = EcsIn},
-	{.id = ecs_id(EgWindowsOpenGLContext), .trav = EcsChildOf, .src.id = EcsUp, .inout = EcsIn},
-	{.id = ecs_id(AppDrawContext), .oper = EcsNot}, // Adds this
-	}});
+	{.entity = ecs_entity(world, {.name = "AppDrawContext_Create"}), .phase = EcsOnUpdate, .callback = AppDrawContext_Create, .immediate = true, .query.terms = {
+	                                                                                                                                             {.id = ecs_id(AppDrawContextCreate), .src.id = EcsSelf, .inout = EcsIn}, {.id = ecs_id(EgWindowsOpenGLContext), .trav = EcsChildOf, .src.id = EcsUp, .inout = EcsIn}, {.id = ecs_id(AppDrawContext), .oper = EcsNot}, // Adds this
+	                                                                                                                                             }});
 
 	ecs_observer(world,
 	{.query   = {.terms = {{.id = ecs_id(AppDrawNameAtPositionRule)}}},

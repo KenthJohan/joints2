@@ -47,20 +47,18 @@ void AppDrawBox2dImport(ecs_world_t *world)
 	ECS_COMPONENT_DEFINE(world, AppDrawBox2dContext);
 
 	ecs_system(world,
-	{.entity  = ecs_entity(world, {.name = "AppDrawBox2dContext_Create", .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),
-	.callback = AppDrawBox2dContext_Create,
-	.query.terms =
-	{
-	{.id = ecs_id(AppDrawContext), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
-	{.id = ecs_id(AppDrawBox2dContextCreate), .src.id = EcsSelf, .inout = EcsIn},
-	{.id = ecs_id(AppDrawBox2dContext), .oper = EcsNot}, // Adds this
+	{.entity     = ecs_entity(world, {.name = "AppDrawBox2dContext_Create"}),
+	.phase       = EcsOnUpdate,
+	.callback    = AppDrawBox2dContext_Create,
+	.query.terms = {
+	{.id = ecs_id(AppDrawContext), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn}, {.id = ecs_id(AppDrawBox2dContextCreate), .src.id = EcsSelf, .inout = EcsIn}, {.id = ecs_id(AppDrawBox2dContext), .oper = EcsNot}, // Adds this
 	}});
 
 	ecs_system(world,
-	{.entity  = ecs_entity(world, {.name = "b2WorldId_Draw", .add = ecs_ids(ecs_dependson(EcsOnUpdate))}),
-	.callback = b2WorldId_Draw,
-	.query.terms =
-	{
+	{.entity     = ecs_entity(world, {.name = "b2WorldId_Draw"}),
+	.phase       = EcsOnUpdate,
+	.callback    = b2WorldId_Draw,
+	.query.terms = {
 	{.id = ecs_id(b2WorldId), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(AppDrawBox2dContext), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
 	}});
