@@ -62,7 +62,7 @@ b2world.box2 {
     Rectangle : {w:1, h:1}
 }
 
-
+/*
 b2world.box3 {
     BodyDef : {type : $BODY_DYNAMIC}
     Position2 : {10, 9.0}
@@ -72,3 +72,4 @@ b2world.box3 {
     (eg.physics.TargetTransform, cameras.cam0.mouse_unproject)
 }
 
+*/

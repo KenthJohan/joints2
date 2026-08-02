@@ -1,10 +1,10 @@
 #include "AppDraw.h"
-#include "fs.h"
 #include <EgWindows.h>
 #include <EgCameras.h>
 #include <EgSpatials.h>
 #include <ecsx.h>
 #include <draw.h>
+#include <egmisc/eg_file.h>
 
 ECS_COMPONENT_DECLARE(AppDrawContext);
 ECS_COMPONENT_DECLARE(AppDrawContextCreate);
@@ -14,22 +14,22 @@ static bool BuildDrawCreateInfo(draw_create_info_t *createInfo)
 {
 	*createInfo = (draw_create_info_t){0};
 
-	createInfo->shaders[DRAW_SHADER_BACKGROUND_VERTEX]      = fs_read_allocated("data/background.vs");
-	createInfo->shaders[DRAW_SHADER_BACKGROUND_FRAGMENT]    = fs_read_allocated("data/background.fs");
-	createInfo->shaders[DRAW_SHADER_POINT_VERTEX]           = fs_read_allocated("data/point.vs");
-	createInfo->shaders[DRAW_SHADER_POINT_FRAGMENT]         = fs_read_allocated("data/point.fs");
-	createInfo->shaders[DRAW_SHADER_LINE_VERTEX]            = fs_read_allocated("data/line.vs");
-	createInfo->shaders[DRAW_SHADER_LINE_FRAGMENT]          = fs_read_allocated("data/line.fs");
-	createInfo->shaders[DRAW_SHADER_CIRCLE_VERTEX]          = fs_read_allocated("data/circle.vs");
-	createInfo->shaders[DRAW_SHADER_CIRCLE_FRAGMENT]        = fs_read_allocated("data/circle.fs");
-	createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_VERTEX]    = fs_read_allocated("data/solid_circle.vs");
-	createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_FRAGMENT]  = fs_read_allocated("data/solid_circle.fs");
-	createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_VERTEX]   = fs_read_allocated("data/solid_capsule.vs");
-	createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_FRAGMENT] = fs_read_allocated("data/solid_capsule.fs");
-	createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_VERTEX]   = fs_read_allocated("data/solid_polygon.vs");
-	createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_FRAGMENT] = fs_read_allocated("data/solid_polygon.fs");
-	createInfo->shaders[DRAW_SHADER_TEXT_VERTEX]            = fs_read_allocated("data/text.vs");
-	createInfo->shaders[DRAW_SHADER_TEXT_FRAGMENT]          = fs_read_allocated("data/text.fs");
+	createInfo->shaders[DRAW_SHADER_BACKGROUND_VERTEX]      = eg_file_load_alloc("data/background.vs", NULL);
+	createInfo->shaders[DRAW_SHADER_BACKGROUND_FRAGMENT]    = eg_file_load_alloc("data/background.fs", NULL);
+	createInfo->shaders[DRAW_SHADER_POINT_VERTEX]           = eg_file_load_alloc("data/point.vs", NULL);
+	createInfo->shaders[DRAW_SHADER_POINT_FRAGMENT]         = eg_file_load_alloc("data/point.fs", NULL);
+	createInfo->shaders[DRAW_SHADER_LINE_VERTEX]            = eg_file_load_alloc("data/line.vs", NULL);
+	createInfo->shaders[DRAW_SHADER_LINE_FRAGMENT]          = eg_file_load_alloc("data/line.fs", NULL);
+	createInfo->shaders[DRAW_SHADER_CIRCLE_VERTEX]          = eg_file_load_alloc("data/circle.vs", NULL);
+	createInfo->shaders[DRAW_SHADER_CIRCLE_FRAGMENT]        = eg_file_load_alloc("data/circle.fs", NULL);
+	createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_VERTEX]    = eg_file_load_alloc("data/solid_circle.vs", NULL);
+	createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_FRAGMENT]  = eg_file_load_alloc("data/solid_circle.fs", NULL);
+	createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_VERTEX]   = eg_file_load_alloc("data/solid_capsule.vs", NULL);
+	createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_FRAGMENT] = eg_file_load_alloc("data/solid_capsule.fs", NULL);
+	createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_VERTEX]   = eg_file_load_alloc("data/solid_polygon.vs", NULL);
+	createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_FRAGMENT] = eg_file_load_alloc("data/solid_polygon.fs", NULL);
+	createInfo->shaders[DRAW_SHADER_TEXT_VERTEX]            = eg_file_load_alloc("data/text.vs", NULL);
+	createInfo->shaders[DRAW_SHADER_TEXT_FRAGMENT]          = eg_file_load_alloc("data/text.fs", NULL);
 
 	for (int i = 0; i < DRAW_SHADER_COUNT; ++i) {
 		if (createInfo->shaders[i] == NULL) {

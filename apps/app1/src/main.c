@@ -18,7 +18,6 @@
 #include <EgPhysics.h>
 #include <EgPhysicsBox2d.h>
 
-#include "fs.h"
 #include "b2DebugDraw_init.h"
 #include "AppDrawBox2d.h"
 #include "AppDraw.h"
