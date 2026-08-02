@@ -48,19 +48,24 @@ b2world.box1 {
 }
 
 
-b2world.dragbody {
-    BodyDef : {type : $BODY_KINEMATIC}
-    Position2 : {0, -10}
-    // eg.b2.DragBody : {target: keybindings.mouse_hit_focus}
-}
-
-
 b2world.box2 {
     BodyDef : {type : $BODY_DYNAMIC}
     ShapesDef : {density:1}
     Position2 : {0.1, 9.0}
     Rectangle : {w:1, h:1}
 }
+
+
+b2world.dragbody {
+    BodyDef : {type : $BODY_KINEMATIC}
+    Position2 : {0, -10}
+    (eg.physics.TargetTransform, cameras.cam0.mouse_unproject)
+    joint {
+        (JointDef, b2world.box2) : {linear_hertz: 7.5, linear_damping: 1.0}
+    }
+    // eg.b2.DragBody : {target: keybindings.mouse_hit_focus}
+}
+
 
 /*
 b2world.box3 {

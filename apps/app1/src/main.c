@@ -13,7 +13,6 @@
 #include <EgWindows.h>
 #include <EgWindowsSdl.h>
 #include <EgWindowsSdlGl.h>
-#include <EgFs.h>
 #include <EgCameras.h>
 #include <EgPhysics.h>
 #include <EgPhysicsBox2d.h>
@@ -39,7 +38,6 @@ int main(int argc, char *argv[])
 	ECS_IMPORT(world, EgCameras);
 	ECS_IMPORT(world, EgPhysics);
 	ECS_IMPORT(world, EgPhysicsBox2d);
-	ECS_IMPORT(world, EgFs);
 	ECS_IMPORT(world, AppDraw);
 	ECS_IMPORT(world, AppDrawBox2d);
 
