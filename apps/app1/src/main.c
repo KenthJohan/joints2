@@ -2,8 +2,6 @@
 #include <stdint.h>
 #include <assert.h>
 #include <stdbool.h>
-#include <stdlib.h>
-#include <string.h>
 #include <flecs.h>
 #include <box2d/box2d.h>
 #include <draw.h>
@@ -17,7 +15,6 @@
 #include <EgPhysics.h>
 #include <EgPhysicsBox2d.h>
 
-#include "b2DebugDraw_init.h"
 #include "AppDrawBox2d.h"
 #include "AppDraw.h"
 

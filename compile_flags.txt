@@ -1,0 +1,7 @@
+-I/home/johansa/bake/include
+-D_DEBUG
+-DUNICODE
+-D_UNICODE
+-D_GNU_SOURCE
+-DFLECS_SCRIPT_MATH
+-std=c17
