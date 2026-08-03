@@ -28,7 +28,7 @@ b2world {
 
     // Uses Position2 component in `cameras.cam0.mouse_unproject`
     // This will add the `tags.mouse_hover` to any body that overlaps with the mouse position
-    (eg.physics.box2d.OverlapChecking, cameras.cam0.mouse_unproject) : {tag: tags.mouse_hover}
+    (OverlapChecking, cameras.cam0.mouse_unproject) : {tag: tags.mouse_hover}
 }
 
 b2world.ground {
@@ -56,13 +56,16 @@ b2world.box2 {
 }
 
 
+// Follows the mouse position:
 b2world.dragbody {
     BodyDef : {type : $BODY_KINEMATIC}
     Position2 : {0, -10}
     (eg.physics.TargetTransform, cameras.cam0.mouse_unproject)
-    hej {
-        //(JointDef, b2world.box2) : {linear_hertz: 7.5, linear_damping: 1.0}
+    /*
+    joint {
+        (JointDef, b2world.box2) : {linear_hertz: 7.5, linear_damping: 1.0}
     }
+    */
     // eg.b2.DragBody : {target: keybindings.mouse_hit_focus}
 }
 
@@ -70,7 +73,7 @@ b2world.dragbody {
 joint_apply_rule {
     // Reactively add or remove joint to physically drag the body when its being dragged by the mouse
     JointDef : {linear_hertz: 7.5, linear_damping: 1.0}
-    eg.physics.box2d.JointApplyRule : {body_a: b2world.dragbody, body_b_filter: tags.mouse_drag}
+    JointApplyRule : {body_a: b2world.dragbody, body_b_filter: tags.mouse_drag}
 }
 
 /*
