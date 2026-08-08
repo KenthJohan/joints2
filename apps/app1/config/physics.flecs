@@ -16,7 +16,7 @@ const BODY_DYNAMIC: i32 = 2
 
 debug_draw {
     app.draw.box2d.ContextCreate : {}
-    (flecs.core.DependsOn, eg.windows.window1.draw1)
+    (flecs.core.DependsOn, eg.windows.window1.drawctx_1)
 }
 
 

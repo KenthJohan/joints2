@@ -2,6 +2,7 @@
 #include <EgWindows.h>
 #include <EgCameras.h>
 #include <EgSpatials.h>
+#include <EgBase.h>
 #include <ecsx.h>
 #include <draw.h>
 #include <egmisc/eg_file.h>
@@ -108,6 +109,19 @@ void AppDrawNameAtPosition_Draw(ecs_iter_t *it)
 	}
 }
 
+static void AppDrawText_Draw(ecs_iter_t *it)
+{
+	AppDrawContext *d = ecs_field_shared(it, AppDrawContext, 0);
+	Position2      *p = ecs_field_self(it, Position2, 1);
+	EgBaseText     *t = ecs_field_self(it, EgBaseText, 2);
+
+	for (int i = 0; i < it->count; ++i, ++p, ++t) {
+		if (t->value && t->value[0] != '\0') {
+			draw_string(d->draw, p->x, p->y, 0xFFFFFFFFu, "%s", t->value);
+		}
+	}
+}
+
 void AppDrawNameAtPositionRule_Observer(ecs_iter_t *it)
 {
 	AppDrawNameAtPositionRule *o = ecs_field_self(it, AppDrawNameAtPositionRule, 0);
@@ -138,6 +152,7 @@ void AppDrawImport(ecs_world_t *world)
 	ecs_set_name_prefix(world, "AppDraw");
 	ECS_IMPORT(world, EgWindows);
 	ECS_IMPORT(world, EgSpatials);
+	ECS_IMPORT(world, EgBase);
 
 	ECS_COMPONENT_DEFINE(world, AppDrawContext);
 	ECS_COMPONENT_DEFINE(world, AppDrawContextCreate);
@@ -164,9 +179,25 @@ void AppDrawImport(ecs_world_t *world)
 	}});
 
 	ecs_system(world,
-	{.entity = ecs_entity(world, {.name = "AppDrawContext_Create"}), .phase = EcsOnUpdate, .callback = AppDrawContext_Create, .immediate = true, .query.terms = {
-	                                                                                                                                             {.id = ecs_id(AppDrawContextCreate), .src.id = EcsSelf, .inout = EcsIn}, {.id = ecs_id(EgWindowsOpenGLContext), .trav = EcsChildOf, .src.id = EcsUp, .inout = EcsIn}, {.id = ecs_id(AppDrawContext), .oper = EcsNot}, // Adds this
-	                                                                                                                                             }});
+	{.entity     = ecs_entity(world, {.name = "AppDrawContext_Create"}),
+	.phase       = EcsOnUpdate,
+	.callback    = AppDrawContext_Create,
+	.immediate   = true,
+	.query.terms = {
+	{.id = ecs_id(AppDrawContextCreate), .src.id = EcsSelf, .inout = EcsIn},
+	{.id = ecs_id(EgWindowsOpenGLContext), .trav = EcsChildOf, .src.id = EcsUp, .inout = EcsIn},
+	{.id = ecs_id(AppDrawContext), .oper = EcsNot}, // Adds this
+	}});
+
+	ecs_system(world,
+	{.entity     = ecs_entity(world, {.name = "AppDrawText_Draw"}),
+	.phase       = EcsOnUpdate,
+	.callback    = AppDrawText_Draw,
+	.query.terms = {
+	{.id = ecs_id(AppDrawContext), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
+	{.id = ecs_id(Position2), .src.id = EcsSelf, .inout = EcsIn},
+	{.id = ecs_id(EgBaseText), .src.id = EcsSelf, .inout = EcsIn},
+	}});
 
 	ecs_observer(world,
 	{.query   = {.terms = {{.id = ecs_id(AppDrawNameAtPositionRule)}}},

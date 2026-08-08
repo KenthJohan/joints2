@@ -1,5 +1,6 @@
 // Forward declare the camera so that it can be used in the window draw context
 cameras.cam0 {}
+cameras.cam_hud {}
 
 module eg.windows
 using eg.shapes
@@ -11,9 +12,14 @@ window1 {
     Rectangle : {1024, 1024}
     OpenGLContextCreate : {0}
 
-    draw1 {
+    drawctx_1 {
         app.draw.ContextCreate : {0}
         (flecs.core.DependsOn, cameras.cam0)
+    }
+
+    drawctx_hud {
+        app.draw.ContextCreate : {0}
+        (flecs.core.DependsOn, cameras.cam_hud)
     }
 
     mouse {
@@ -32,7 +38,7 @@ window1 {
 debug_draw_print_hover {
     app.draw.NameAtPositionRule : {
         term: tags.mouse_hover, 
-        draw_e : eg.windows.window1.draw1, 
+        draw_e : eg.windows.window1.drawctx_1,
         color: 0xFF99FF
     }
 }
@@ -40,7 +46,7 @@ debug_draw_print_hover {
 debug_draw_print_drag {
     app.draw.NameAtPositionRule : {
         term: tags.mouse_drag, 
-        draw_e : eg.windows.window1.draw1, 
+        draw_e : eg.windows.window1.drawctx_1, 
         color: 0x66FFFF
     }
 }
@@ -49,7 +55,7 @@ debug_draw_print_drag {
 debug_draw_print_focus {
     app.draw.NameAtPositionRule : {
         term: tags.mouse_focus, 
-        draw_e : eg.windows.window1.draw1, 
+        draw_e : eg.windows.window1.drawctx_1, 
         color: 0xFF9911
     }
 }

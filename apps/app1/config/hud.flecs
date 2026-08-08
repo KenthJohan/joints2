@@ -1,0 +1,16 @@
+@color #99FFCC
+hud {}
+module hud
+using eg.spatials
+
+hud_text_title {
+    Position2 : {-0.95, 0.9}
+    eg.base.Text : {value: "JOINTS2 HUD"}
+    (flecs.core.DependsOn, eg.windows.window1.drawctx_hud)
+}
+
+hud_text_hint {
+    Position2 : {-0.95, 0.78}
+    eg.base.Text : {value: "Drag bodies with mouse"}
+    (flecs.core.DependsOn, eg.windows.window1.drawctx_hud)
+}
