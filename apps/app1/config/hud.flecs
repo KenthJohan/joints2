@@ -4,13 +4,15 @@ module hud
 using eg.spatials
 
 hud_text_title {
-    Position2 : {-0.95, 0.9}
+    Position2 : {500, 470}
     eg.base.Text : {value: "JOINTS2 HUD"}
+    eg.base.Font : {font_size: 28}
     (flecs.core.DependsOn, eg.windows.window1.drawctx_hud)
 }
 
 hud_text_hint {
-    Position2 : {-0.95, 0.78}
+    Position2 : {5, 5}
     eg.base.Text : {value: "Drag bodies with mouse"}
+    eg.base.Font : {font_size: 18}
     (flecs.core.DependsOn, eg.windows.window1.drawctx_hud)
 }

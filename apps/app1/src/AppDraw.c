@@ -2,6 +2,7 @@
 #include <EgWindows.h>
 #include <EgCameras.h>
 #include <EgSpatials.h>
+#include <EgShapes.h>
 #include <EgBase.h>
 #include <ecsx.h>
 #include <draw.h>
@@ -105,19 +106,29 @@ void AppDrawNameAtPosition_Draw(ecs_iter_t *it)
 	AppDrawNameAtPositionRule *b = ecs_field_shared(it, AppDrawNameAtPositionRule, 2);
 	for (int i = 0; i < it->count; ++i, ++p) {
 		char const *name = ecs_get_name(it->world, it->entities[i]);
-		draw_string(d->draw, p->x, p->y, b->color, "%s", name);
+		draw_string(d->draw, p->x, p->y, 0.5f, b->color, "%s", name);
 	}
 }
 
 static void AppDrawText_Draw(ecs_iter_t *it)
 {
-	AppDrawContext *d = ecs_field_shared(it, AppDrawContext, 0);
-	Position2      *p = ecs_field_self(it, Position2, 1);
-	EgBaseText     *t = ecs_field_self(it, EgBaseText, 2);
+	AppDrawContext   *d   = ecs_field_shared(it, AppDrawContext, 0);
+	EgCamerasState   *cam = ecs_field_shared(it, EgCamerasState, 1);
+	Position2        *p   = ecs_field_self(it, Position2, 2);
+	EgBaseText       *t   = ecs_field_self(it, EgBaseText, 3);
+	EgBaseFont       *f   = ecs_field_self(it, EgBaseFont, 4);
+	EgShapesRectangle *r  = ecs_field_shared(it, EgShapesRectangle, 5);
 
-	for (int i = 0; i < it->count; ++i, ++p, ++t) {
+	for (int i = 0; i < it->count; ++i, ++p, ++t, ++f) {
 		if (t->value && t->value[0] != '\0') {
-			draw_string(d->draw, p->x, p->y, 0xFFFFFFFFu, "%s", t->value);
+			float font_size = f->font_size > 0.0f ? f->font_size : 24.0f;
+			if (cam->pixel_coords) {
+				float x = p->x - (0.5f * r->w);
+				float y = (0.5f * r->h) - p->y;
+				draw_string(d->draw, x, y, font_size, 0xFFFFFFFFu, "%s", t->value);
+			} else {
+				draw_string(d->draw, p->x, p->y, font_size, 0xFFFFFFFFu, "%s", t->value);
+			}
 		}
 	}
 }
@@ -195,8 +206,11 @@ void AppDrawImport(ecs_world_t *world)
 	.callback    = AppDrawText_Draw,
 	.query.terms = {
 	{.id = ecs_id(AppDrawContext), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
+	{.id = ecs_id(EgCamerasState), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
 	{.id = ecs_id(Position2), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(EgBaseText), .src.id = EcsSelf, .inout = EcsIn},
+	{.id = ecs_id(EgBaseFont), .src.id = EcsSelf, .inout = EcsIn},
+	{.id = ecs_id(EgShapesRectangle), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
 	}});
 
 	ecs_observer(world,

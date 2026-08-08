@@ -52,7 +52,7 @@ void DrawPointFcn(b2Pos p, float size, b2HexColor color, void *context)
 void DrawStringFcn(b2Pos p, const char *s, b2HexColor color, void *context)
 {
 	draw_t *draw = (draw_t *)(context);
-	draw_string(draw, (float)p.x, (float)p.y, color, "%s", s);
+	draw_string(draw, (float)p.x, (float)p.y, 0.5f, color, "%s", s);
 }
 
 void DrawBoundsFcn(b2AABB aabb, b2HexColor color, void *context)

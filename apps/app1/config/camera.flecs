@@ -36,13 +36,11 @@ cam0 {
 
 
 cam_hud {
-	eg.cameras.State : {fov: 90}
+    eg.cameras.State : {fov: 90, pixel_coords: true}
 	// Get window size component from the window entity to calculate aspect ratio
 	(flecs.core.DependsOn, eg.windows.window1)
-    // Pan in X/Y, keep Z fixed as camera distance.
-    // EgCameras applies the inverse translation internally, so the camera must
-    // sit at positive Z to look toward the origin with identity rotation.
-    Position3 : {0, 0, 1}
+    // z is updated from window rectangle height each frame by EgCameras.CameraUpdate.
+    Position3 : {0, 0, 512}
 
     // Quaternion order here is x, y, z, w
     // Identity rotation: no pitch, no yaw, no roll
