@@ -12,8 +12,9 @@ solid_capsules_t *solid_capsules_init(const draw_create_info_t *createInfo)
 	solid_capsules_t *render = malloc(sizeof(solid_capsules_t));
 	*render                  = (solid_capsules_t){0};
 	ecs_vec_init_t(NULL, &render->capsules, solid_capsules_data_t, CAPSULE_BATCH_SIZE);
-	render->programId         = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_VERTEX],
-	        createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_FRAGMENT]);
+	char const *vs            = createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_VERTEX];
+	char const *fs            = createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_FRAGMENT];
+	render->programId         = CreateProgramFromStrings(vs, fs);
 	render->projectionUniform = glGetUniformLocation(render->programId, "projectionMatrix");
 	render->pixelScaleUniform = glGetUniformLocation(render->programId, "pixelScale");
 

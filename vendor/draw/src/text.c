@@ -73,8 +73,9 @@ text_t *text_init(const draw_create_info_t *createInfo)
 	*render        = (text_t){0};
 	ecs_vec_init_t(NULL, &render->vertices, text_vertex_t, TEXT_BATCH_VERTEX_COUNT);
 	ecs_vec_init_t(NULL, &render->transforms, text_block_transform_t, TEXT_TRANSFORM_CAPACITY);
-	render->programId         = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_TEXT_VERTEX],
-	        createInfo->shaders[DRAW_SHADER_TEXT_FRAGMENT]);
+	char const *vs            = createInfo->shaders[DRAW_SHADER_TEXT_VERTEX];
+	char const *fs            = createInfo->shaders[DRAW_SHADER_TEXT_FRAGMENT];
+	render->programId         = CreateProgramFromStrings(vs, fs);
 	render->projectionUniform = glGetUniformLocation(render->programId, "projectionMatrix");
 	render->textureUniform    = glGetUniformLocation(render->programId, "glyphAtlas");
 	render->transformUniform  = glGetUniformLocation(render->programId, "transformBuffer");
@@ -218,12 +219,12 @@ void text_add(text_t *render, const m4f32 *transform, float fontSize, draw_color
 		return;
 	}
 
-	float startX  = 0.0f;
-	float cursorX = 0.0f;
-	float cursorY = 0.0f;
-	RGBA8 rgba    = MakeRGBA8(color, 1.0f);
-	text_block_transform_t blockTransform = MakeBlockTransform(transform);
-	float textBlockIndex = (float)ecs_vec_count(&render->transforms);
+	float                  startX                                          = 0.0f;
+	float                  cursorX                                         = 0.0f;
+	float                  cursorY                                         = 0.0f;
+	RGBA8                  rgba                                            = MakeRGBA8(color, 1.0f);
+	text_block_transform_t blockTransform                                  = MakeBlockTransform(transform);
+	float                  textBlockIndex                                  = (float)ecs_vec_count(&render->transforms);
 	ecs_vec_append_t(NULL, &render->transforms, text_block_transform_t)[0] = blockTransform;
 
 	for (const char *p = string; *p != '\0'; ++p) {
@@ -262,10 +263,10 @@ void text_add(text_t *render, const m4f32 *transform, float fontSize, draw_color
 
 void text_flush(text_t *render, const float *projectionMatrix)
 {
-	text_vertex_t *vertices = ecs_vec_first_t(&render->vertices, text_vertex_t);
-	int32_t        count    = ecs_vec_count(&render->vertices);
-	text_block_transform_t *transforms = ecs_vec_first_t(&render->transforms, text_block_transform_t);
-	int32_t               transformCount = ecs_vec_count(&render->transforms);
+	text_vertex_t          *vertices       = ecs_vec_first_t(&render->vertices, text_vertex_t);
+	int32_t                 count          = ecs_vec_count(&render->vertices);
+	text_block_transform_t *transforms     = ecs_vec_first_t(&render->transforms, text_block_transform_t);
+	int32_t                 transformCount = ecs_vec_count(&render->transforms);
 	if (count == 0 || render->initialized == 0) {
 		ecs_vec_clear(&render->transforms);
 		return;

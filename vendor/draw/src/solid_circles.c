@@ -12,8 +12,9 @@ solid_circles_t *solid_circles_init(const draw_create_info_t *createInfo)
 	solid_circles_t *render = malloc(sizeof(solid_circles_t));
 	*render                 = (solid_circles_t){0};
 	ecs_vec_init_t(NULL, &render->circles, solid_circles_data_t, SOLID_CIRCLE_BATCH_SIZE);
-	render->programId         = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_VERTEX],
-	        createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_FRAGMENT]);
+	char const * vs = createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_VERTEX];
+	char const * fs = createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_FRAGMENT];
+	render->programId         = CreateProgramFromStrings(vs, fs);
 	render->projectionUniform = glGetUniformLocation(render->programId, "projectionMatrix");
 	render->pixelScaleUniform = glGetUniformLocation(render->programId, "pixelScale");
 

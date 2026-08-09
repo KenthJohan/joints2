@@ -53,8 +53,8 @@ void DrawStringFcn(b2Pos p, const char *s, b2HexColor color, void *context)
 {
 	draw_t *draw = (draw_t *)(context);
 	m4f32 transform = M4_IDENTITY;
-	transform.c3[0] = (float)p.x;
-	transform.c3[1] = (float)p.y;
+	float o[3] = {(float)p.x, (float)p.y, 0.0f};
+	m4f32_translation3(&transform, o);
 	draw_string(draw, &transform, 0.5f, color, "%s", s);
 }
 

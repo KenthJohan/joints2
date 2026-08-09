@@ -12,8 +12,9 @@ solid_polygons_t *solid_polygons_init(const draw_create_info_t *createInfo)
 	solid_polygons_t *render = malloc(sizeof(solid_polygons_t));
 	*render                  = (solid_polygons_t){0};
 	ecs_vec_init_t(NULL, &render->polygons, solid_polygons_data_t, 10 * POLYGON_BATCH_SIZE);
-	render->programId         = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_VERTEX],
-	        createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_FRAGMENT]);
+	char const *vs            = createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_VERTEX];
+	char const *fs            = createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_FRAGMENT];
+	render->programId         = CreateProgramFromStrings(vs, fs);
 	render->projectionUniform = glGetUniformLocation(render->programId, "projectionMatrix");
 	render->pixelScaleUniform = glGetUniformLocation(render->programId, "pixelScale");
 
