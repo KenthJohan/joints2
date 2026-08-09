@@ -92,9 +92,11 @@ text_t *text_init(const draw_create_info_t *createInfo)
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
 	glEnableVertexAttribArray(2);
+	glEnableVertexAttribArray(3);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(text_vertex_t), (void *)offsetof(text_vertex_t, position));
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(text_vertex_t), (void *)offsetof(text_vertex_t, uv));
-	glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(text_vertex_t), (void *)offsetof(text_vertex_t, rgba));
+	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(text_vertex_t), (void *)offsetof(text_vertex_t, instanceTransform));
+	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(text_vertex_t), (void *)offsetof(text_vertex_t, uv));
+	glVertexAttribPointer(3, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(text_vertex_t), (void *)offsetof(text_vertex_t, rgba));
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
@@ -160,17 +162,31 @@ void text_destroy(text_t *render)
 	free(render);
 }
 
-static void AddGlyphQuad(text_t *render, stbtt_aligned_quad q, RGBA8 rgba)
+static void AddGlyphQuad(text_t *render, stbtt_aligned_quad q, text_instance_transform_t instanceTransform, RGBA8 rgba)
 {
-	ecs_vec_append_t(NULL, &render->vertices, text_vertex_t)[0] = (text_vertex_t){{q.x0, q.y0}, {q.s0, q.t0}, rgba};
-	ecs_vec_append_t(NULL, &render->vertices, text_vertex_t)[0] = (text_vertex_t){{q.x1, q.y0}, {q.s1, q.t0}, rgba};
-	ecs_vec_append_t(NULL, &render->vertices, text_vertex_t)[0] = (text_vertex_t){{q.x1, q.y1}, {q.s1, q.t1}, rgba};
-	ecs_vec_append_t(NULL, &render->vertices, text_vertex_t)[0] = (text_vertex_t){{q.x0, q.y0}, {q.s0, q.t0}, rgba};
-	ecs_vec_append_t(NULL, &render->vertices, text_vertex_t)[0] = (text_vertex_t){{q.x1, q.y1}, {q.s1, q.t1}, rgba};
-	ecs_vec_append_t(NULL, &render->vertices, text_vertex_t)[0] = (text_vertex_t){{q.x0, q.y1}, {q.s0, q.t1}, rgba};
+	ecs_vec_append_t(NULL, &render->vertices, text_vertex_t)[0] = (text_vertex_t){{q.x0, q.y0}, instanceTransform, {q.s0, q.t0}, rgba};
+	ecs_vec_append_t(NULL, &render->vertices, text_vertex_t)[0] = (text_vertex_t){{q.x1, q.y0}, instanceTransform, {q.s1, q.t0}, rgba};
+	ecs_vec_append_t(NULL, &render->vertices, text_vertex_t)[0] = (text_vertex_t){{q.x1, q.y1}, instanceTransform, {q.s1, q.t1}, rgba};
+	ecs_vec_append_t(NULL, &render->vertices, text_vertex_t)[0] = (text_vertex_t){{q.x0, q.y0}, instanceTransform, {q.s0, q.t0}, rgba};
+	ecs_vec_append_t(NULL, &render->vertices, text_vertex_t)[0] = (text_vertex_t){{q.x1, q.y1}, instanceTransform, {q.s1, q.t1}, rgba};
+	ecs_vec_append_t(NULL, &render->vertices, text_vertex_t)[0] = (text_vertex_t){{q.x0, q.y1}, instanceTransform, {q.s0, q.t1}, rgba};
 }
 
-void text_add(text_t *render, float x, float y, float fontSize, draw_color_t color, const char *string)
+static text_instance_transform_t MakeInstanceTransform(const m4f32 *transform)
+{
+	text_instance_transform_t instanceTransform = {0.0f, 0.0f, 1.0f, 0.0f};
+	if (transform == NULL) {
+		return instanceTransform;
+	}
+
+	instanceTransform.x = transform->c3[0];
+	instanceTransform.y = transform->c3[1];
+	instanceTransform.z = transform->c0[0];
+	instanceTransform.w = transform->c0[1];
+	return instanceTransform;
+}
+
+void text_add(text_t *render, const m4f32 *transform, float fontSize, draw_color_t color, const char *string)
 {
 	if (render->initialized == 0 || string == NULL) {
 		return;
@@ -181,9 +197,9 @@ void text_add(text_t *render, float x, float y, float fontSize, draw_color_t col
 		return;
 	}
 
-	float startX  = x;
-	float cursorX = x;
-	float cursorY = y;
+	float startX  = 0.0f;
+	float cursorX = 0.0f;
+	float cursorY = 0.0f;
 	RGBA8 rgba    = MakeRGBA8(color, 1.0f);
 
 	for (const char *p = string; *p != '\0'; ++p) {
@@ -207,16 +223,17 @@ void text_add(text_t *render, float x, float y, float fontSize, draw_color_t col
 		stbtt_GetBakedQuad(render->glyphs, TEXT_ATLAS_WIDTH, TEXT_ATLAS_HEIGHT, codepoint - TEXT_FIRST_CHAR, &cursorX,
 		&cursorY, &q, 1);
 
-		float dx0 = q.x0 - x;
-		float dy0 = q.y0 - y;
-		float dx1 = q.x1 - x;
-		float dy1 = q.y1 - y;
-		q.x0      = x + scale * dx0;
-		q.y0      = y - scale * dy0;
-		q.x1      = x + scale * dx1;
-		q.y1      = y - scale * dy1;
+		float dx0 = q.x0 - startX;
+		float dy0 = q.y0 - cursorY;
+		float dx1 = q.x1 - startX;
+		float dy1 = q.y1 - cursorY;
+		q.x0      = startX + scale * dx0;
+		q.y0      = cursorY - scale * dy0;
+		q.x1      = startX + scale * dx1;
+		q.y1      = cursorY - scale * dy1;
 
-		AddGlyphQuad(render, q, rgba);
+			text_instance_transform_t instanceTransform = MakeInstanceTransform(transform);
+		AddGlyphQuad(render, q, instanceTransform, rgba);
 	}
 }
 

@@ -143,14 +143,14 @@ void draw_bounds(draw_t *draw, float minX, float minY, float maxX, float maxY, d
 	lines_add(draw->lines, p4, p1, color);
 }
 
-void draw_string(draw_t *draw, float x, float y, float fontSize, draw_color_t color, const char *string, ...)
+void draw_string(draw_t *draw, const m4f32 *transform, float fontSize, draw_color_t color, const char *string, ...)
 {
 	char    buffer[2048] = {0};
 	va_list args;
 	va_start(args, string);
 	vsnprintf(buffer, sizeof(buffer), string, args);
 	va_end(args);
-	text_add(draw->text, x, y, fontSize, color, buffer);
+	text_add(draw->text, transform, fontSize, color, buffer);
 }
 
 static void SetProjectionZBias(float *dst, const float *src, float zBias)

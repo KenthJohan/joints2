@@ -4,6 +4,7 @@
 #pragma once
 
 #include <stdint.h>
+#include <egmath.h>
 
 typedef struct draw_t draw_t;
 typedef uint32_t      draw_color_t;
@@ -44,7 +45,7 @@ void draw_solid_circle(draw_t *draw, float tx, float ty, float rotCos, float rot
 void draw_solid_polygon(draw_t *draw, float tx, float ty, float rotCos, float rotSin, const float *verticesXY, int vertexCount, float radius, draw_color_t color);
 void draw_transform(draw_t *draw, float tx, float ty, float rotCos, float rotSin, float scale);
 void draw_bounds(draw_t *draw, float minX, float minY, float maxX, float maxY, draw_color_t color);
-void draw_string(draw_t *draw, float x, float y, float fontSize, draw_color_t color, const char *string, ...);
+void draw_string(draw_t *draw, const m4f32 *transform, float fontSize, draw_color_t color, const char *string, ...);
 
 void draw_flush(draw_t *draw, float pixelScale, const float *projectionMatrix);
 void draw_background(draw_t *draw, float width, float height);

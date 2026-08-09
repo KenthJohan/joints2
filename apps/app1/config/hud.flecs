@@ -3,15 +3,30 @@ hud {}
 module hud
 using eg.spatials
 
-hud_text_title {
-    Position2 : {500, 470}
+prefab transform {
+	RotateOrder1
+	Transformation
+	Position3World
+	Orientation
+	OrientationWorld
+	Scale3 : {x: 1, y: 1, z: 1}
+	Position3 : {x: 0, y: 0, z: 0}
+    Rotate3 : {0,0,0}
+}
+
+root : transform {
+
+}
+
+root.hud_text_title : transform {
+    Position3 : {500, 470, 0}
     eg.base.Text : {value: "JOINTS2 HUD"}
     eg.base.Font : {font_size: 28}
     (flecs.core.DependsOn, eg.windows.window1.drawctx_hud)
 }
 
-hud_text_hint {
-    Position2 : {5, 5}
+root.hud_text_hint : transform {
+    Position3 : {50, 50, 0}
     eg.base.Text : {value: "Drag bodies with mouse"}
     eg.base.Font : {font_size: 18}
     (flecs.core.DependsOn, eg.windows.window1.drawctx_hud)

@@ -106,29 +106,40 @@ void AppDrawNameAtPosition_Draw(ecs_iter_t *it)
 	AppDrawNameAtPositionRule *b = ecs_field_shared(it, AppDrawNameAtPositionRule, 2);
 	for (int i = 0; i < it->count; ++i, ++p) {
 		char const *name = ecs_get_name(it->world, it->entities[i]);
-		draw_string(d->draw, p->x, p->y, 0.5f, b->color, "%s", name);
+		m4f32 transform = M4_IDENTITY;
+		transform.c3[0] = p->x;
+		transform.c3[1] = p->y;
+		draw_string(d->draw, &transform, 0.5f, b->color, "%s", name);
 	}
 }
 
 static void AppDrawText_Draw(ecs_iter_t *it)
 {
-	AppDrawContext   *d   = ecs_field_shared(it, AppDrawContext, 0);
-	EgCamerasState   *cam = ecs_field_shared(it, EgCamerasState, 1);
-	Position2        *p   = ecs_field_self(it, Position2, 2);
-	EgBaseText       *t   = ecs_field_self(it, EgBaseText, 3);
-	EgBaseFont       *f   = ecs_field_self(it, EgBaseFont, 4);
-	EgShapesRectangle *r  = ecs_field_shared(it, EgShapesRectangle, 5);
+	AppDrawContext    *d   = ecs_field_shared(it, AppDrawContext, 0);
+	EgCamerasState    *cam = ecs_field_shared(it, EgCamerasState, 1);
+	Transformation    *p   = ecs_field_self(it, Transformation, 2);
+	EgBaseText        *t   = ecs_field_self(it, EgBaseText, 3);
+	EgBaseFont        *f   = ecs_field_self(it, EgBaseFont, 4);
+	EgShapesRectangle *r   = ecs_field_shared(it, EgShapesRectangle, 5);
 
 	for (int i = 0; i < it->count; ++i, ++p, ++t, ++f) {
-		if (t->value && t->value[0] != '\0') {
-			float font_size = f->font_size > 0.0f ? f->font_size : 24.0f;
-			if (cam->pixel_coords) {
-				float x = p->x - (0.5f * r->w);
-				float y = (0.5f * r->h) - p->y;
-				draw_string(d->draw, x, y, font_size, 0xFFFFFFFFu, "%s", t->value);
-			} else {
-				draw_string(d->draw, p->x, p->y, font_size, 0xFFFFFFFFu, "%s", t->value);
-			}
+		if (t->value == NULL) {
+			continue; // Skip empty strings
+		}
+		if (t->value[0] == '\0') {
+			continue; // Skip empty strings
+		}
+		float font_size = f->font_size > 0.0f ? f->font_size : 24.0f;
+		if (cam->pixel_coords) {
+			float x = p->matrix.c3[0] - (0.5f * r->w);
+			float y = (0.5f * r->h) - p->matrix.c3[1];
+			m4f32 transform = p->matrix;
+			transform.c3[0] = x;
+			transform.c3[1] = y;
+			draw_string(d->draw, &transform, font_size, 0xFFFFFFFFu, "%s", t->value);
+		} else {
+			m4f32 transform = p->matrix;
+			draw_string(d->draw, &transform, font_size, 0xFFFFFFFFu, "%s", t->value);
 		}
 	}
 }
@@ -207,7 +218,7 @@ void AppDrawImport(ecs_world_t *world)
 	.query.terms = {
 	{.id = ecs_id(AppDrawContext), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
 	{.id = ecs_id(EgCamerasState), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
-	{.id = ecs_id(Position2), .src.id = EcsSelf, .inout = EcsIn},
+	{.id = ecs_id(Transformation), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(EgBaseText), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(EgBaseFont), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(EgShapesRectangle), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},

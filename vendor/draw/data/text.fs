@@ -12,5 +12,6 @@ out vec4 color;
 void main(void)
 {
     float alpha = texture(glyphAtlas, f_uv).r;
-    color = vec4(f_color.rgb, f_color.a * alpha);
+    vec3 baseColor = vec3(1.0, 1.0, 1.0);
+    color = vec4(baseColor * (0.8 + 0.2 * alpha), max(f_color.a * alpha, 0.35));
 }

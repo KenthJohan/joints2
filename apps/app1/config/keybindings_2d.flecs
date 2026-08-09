@@ -62,3 +62,34 @@ camera_move_dz {
     }
 }
 
+/*
+rotate_text1 {
+    eg.buttons.Binding : {
+        button0:eg.buttons.SCANCODE_E, 
+        button1:eg.buttons.SCANCODE_Q, 
+        mask:eg.buttons.BUTTON_HELD 
+    }
+    eg.buttons.Incrementer : {
+        entity:hud.root, 
+        component:Rotate3, 
+        byte_offset:8, 
+        factor: 0.005
+    }
+}
+
+
+
+rotate_text2 {
+    eg.buttons.Binding : {
+        button0:eg.buttons.SCANCODE_T, 
+        button1:eg.buttons.SCANCODE_Y, 
+        mask:eg.buttons.BUTTON_HELD 
+    }
+    eg.buttons.Incrementer : {
+        entity:hud.root.hud_text_hint, 
+        component:Rotate3, 
+        byte_offset:8, 
+        factor: 0.005
+    }
+}
+*/

@@ -12,9 +12,18 @@
 
 typedef struct
 {
-	draw_vec2_t position;
-	draw_vec2_t uv;
-	RGBA8       rgba;
+	float x;
+	float y;
+	float z;
+	float w;
+} text_instance_transform_t;
+
+typedef struct
+{
+	draw_vec2_t            position;
+	text_instance_transform_t instanceTransform;
+	draw_vec2_t            uv;
+	RGBA8                  rgba;
 } text_vertex_t;
 
 typedef struct {
@@ -36,7 +45,7 @@ extern "C" {
 
 text_t *text_init(const draw_create_info_t *createInfo);
 void    text_destroy(text_t *render);
-void    text_add(text_t *render, float x, float y, float fontSize, draw_color_t color, const char *string);
+void    text_add(text_t *render, const m4f32 *transform, float fontSize, draw_color_t color, const char *string);
 void    text_flush(text_t *render, const float *projectionMatrix);
 
 #ifdef __cplusplus

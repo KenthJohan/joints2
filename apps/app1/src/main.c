@@ -39,6 +39,10 @@ int main(int argc, char *argv[])
 	ECS_IMPORT(world, AppDrawBox2d);
 
 	ecs_log_set_level(0);
+	ecs_script_run_file(world, "config/EgButtons.flecs");
+	ecs_log_set_level(-1);
+
+	ecs_log_set_level(0);
 	ecs_script_run_file(world, "config/tags.flecs");
 	ecs_log_set_level(-1);
 
@@ -55,19 +59,15 @@ int main(int argc, char *argv[])
 	ecs_log_set_level(-1);
 
 	ecs_log_set_level(0);
-	ecs_script_run_file(world, "config/EgButtons.flecs");
+	ecs_script_run_file(world, "config/physics.flecs");
 	ecs_log_set_level(-1);
-
+	
 	ecs_log_set_level(0);
 	ecs_script_run_file(world, "config/keybindings_2d.flecs");
 	ecs_log_set_level(-1);
 
 	ecs_log_set_level(0);
 	ecs_script_run_file(world, "config/keybindings_common.flecs");
-	ecs_log_set_level(-1);
-
-	ecs_log_set_level(0);
-	ecs_script_run_file(world, "config/physics.flecs");
 	ecs_log_set_level(-1);
 
 	// print offset of Velocity3 members:
