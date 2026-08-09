@@ -4,9 +4,10 @@
 #version 330
 
 uniform mat4 projectionMatrix;
+uniform samplerBuffer transformBuffer;
 
 layout(location = 0) in vec2 v_position;
-layout(location = 1) in vec4 v_instanceTransform;
+layout(location = 1) in float v_textBlockIndex;
 layout(location = 2) in vec2 v_uv;
 layout(location = 3) in vec4 v_color;
 
@@ -17,6 +18,7 @@ void main(void)
 {
     f_uv = v_uv;
     f_color = v_color;
+    vec4 v_instanceTransform = texelFetch(transformBuffer, int(v_textBlockIndex + 0.5));
     float x = v_instanceTransform.x;
     float y = v_instanceTransform.y;
     float c = v_instanceTransform.z;

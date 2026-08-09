@@ -14,27 +14,31 @@ typedef struct
 {
 	float x;
 	float y;
-	float z;
-	float w;
-} text_instance_transform_t;
+	float c;
+	float s;
+} text_block_transform_t;
 
 typedef struct
 {
-	draw_vec2_t            position;
-	text_instance_transform_t instanceTransform;
-	draw_vec2_t            uv;
-	RGBA8                  rgba;
+	draw_vec2_t position;
+	float       textBlockIndex;
+	draw_vec2_t uv;
+	RGBA8       rgba;
 } text_vertex_t;
 
 typedef struct {
 	ecs_vec_t       vertices;
+	ecs_vec_t       transforms;
 	stbtt_bakedchar glyphs[TEXT_CHAR_COUNT];
 	GLuint          vaoId;
 	GLuint          vboId;
+	GLuint          transformBufferId;
+	GLuint          transformTextureId;
 	GLuint          textureId;
 	GLuint          programId;
 	GLint           projectionUniform;
 	GLint           textureUniform;
+	GLint           transformUniform;
 	float           lineHeight;
 	int             initialized;
 } text_t;

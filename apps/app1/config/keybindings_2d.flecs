@@ -62,7 +62,7 @@ camera_move_dz {
     }
 }
 
-/*
+
 rotate_text1 {
     eg.buttons.Binding : {
         button0:eg.buttons.SCANCODE_E, 
@@ -92,4 +92,4 @@ rotate_text2 {
         factor: 0.005
     }
 }
-*/
+

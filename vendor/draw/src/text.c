@@ -10,6 +10,7 @@
 #define TEXT_ATLAS_WIDTH        512
 #define TEXT_ATLAS_HEIGHT       512
 #define TEXT_BAKE_FONT_SIZE     32.0f
+#define TEXT_TRANSFORM_CAPACITY 1024
 
 static unsigned char *sReadBinaryFile(const char *path, size_t *outSize)
 {
@@ -71,10 +72,12 @@ text_t *text_init(const draw_create_info_t *createInfo)
 	text_t *render = malloc(sizeof(text_t));
 	*render        = (text_t){0};
 	ecs_vec_init_t(NULL, &render->vertices, text_vertex_t, TEXT_BATCH_VERTEX_COUNT);
+	ecs_vec_init_t(NULL, &render->transforms, text_block_transform_t, TEXT_TRANSFORM_CAPACITY);
 	render->programId         = CreateProgramFromStrings(createInfo->shaders[DRAW_SHADER_TEXT_VERTEX],
 	        createInfo->shaders[DRAW_SHADER_TEXT_FRAGMENT]);
 	render->projectionUniform = glGetUniformLocation(render->programId, "projectionMatrix");
 	render->textureUniform    = glGetUniformLocation(render->programId, "glyphAtlas");
+	render->transformUniform  = glGetUniformLocation(render->programId, "transformBuffer");
 	render->lineHeight        = TEXT_BAKE_FONT_SIZE * 1.2f;
 
 	if (render->programId == 0) {
@@ -84,6 +87,8 @@ text_t *text_init(const draw_create_info_t *createInfo)
 
 	glGenVertexArrays(1, &render->vaoId);
 	glGenBuffers(1, &render->vboId);
+	glGenBuffers(1, &render->transformBufferId);
+	glGenTextures(1, &render->transformTextureId);
 
 	glBindVertexArray(render->vaoId);
 	glBindBuffer(GL_ARRAY_BUFFER, render->vboId);
@@ -94,12 +99,19 @@ text_t *text_init(const draw_create_info_t *createInfo)
 	glEnableVertexAttribArray(2);
 	glEnableVertexAttribArray(3);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(text_vertex_t), (void *)offsetof(text_vertex_t, position));
-	glVertexAttribPointer(1, 4, GL_FLOAT, GL_FALSE, sizeof(text_vertex_t), (void *)offsetof(text_vertex_t, instanceTransform));
+	glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, sizeof(text_vertex_t), (void *)offsetof(text_vertex_t, textBlockIndex));
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(text_vertex_t), (void *)offsetof(text_vertex_t, uv));
 	glVertexAttribPointer(3, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(text_vertex_t), (void *)offsetof(text_vertex_t, rgba));
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
+
+	glBindBuffer(GL_TEXTURE_BUFFER, render->transformBufferId);
+	glBufferData(GL_TEXTURE_BUFFER, TEXT_TRANSFORM_CAPACITY * sizeof(text_block_transform_t), NULL, GL_DYNAMIC_DRAW);
+	glBindTexture(GL_TEXTURE_BUFFER, render->transformTextureId);
+	glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, render->transformBufferId);
+	glBindTexture(GL_TEXTURE_BUFFER, 0);
+	glBindBuffer(GL_TEXTURE_BUFFER, 0);
 
 	size_t         fontSize = 0;
 	unsigned char *fontData = sLoadSystemFont(&fontSize);
@@ -150,6 +162,14 @@ void text_destroy(text_t *render)
 		glDeleteBuffers(1, &render->vboId);
 	}
 
+	if (render->transformTextureId) {
+		glDeleteTextures(1, &render->transformTextureId);
+	}
+
+	if (render->transformBufferId) {
+		glDeleteBuffers(1, &render->transformBufferId);
+	}
+
 	if (render->textureId) {
 		glDeleteTextures(1, &render->textureId);
 	}
@@ -159,31 +179,32 @@ void text_destroy(text_t *render)
 	}
 
 	ecs_vec_fini_t(NULL, &render->vertices, text_vertex_t);
+	ecs_vec_fini_t(NULL, &render->transforms, text_block_transform_t);
 	free(render);
 }
 
-static void AddGlyphQuad(text_t *render, stbtt_aligned_quad q, text_instance_transform_t instanceTransform, RGBA8 rgba)
+static void AddGlyphQuad(text_t *render, stbtt_aligned_quad q, float textBlockIndex, RGBA8 rgba)
 {
-	ecs_vec_append_t(NULL, &render->vertices, text_vertex_t)[0] = (text_vertex_t){{q.x0, q.y0}, instanceTransform, {q.s0, q.t0}, rgba};
-	ecs_vec_append_t(NULL, &render->vertices, text_vertex_t)[0] = (text_vertex_t){{q.x1, q.y0}, instanceTransform, {q.s1, q.t0}, rgba};
-	ecs_vec_append_t(NULL, &render->vertices, text_vertex_t)[0] = (text_vertex_t){{q.x1, q.y1}, instanceTransform, {q.s1, q.t1}, rgba};
-	ecs_vec_append_t(NULL, &render->vertices, text_vertex_t)[0] = (text_vertex_t){{q.x0, q.y0}, instanceTransform, {q.s0, q.t0}, rgba};
-	ecs_vec_append_t(NULL, &render->vertices, text_vertex_t)[0] = (text_vertex_t){{q.x1, q.y1}, instanceTransform, {q.s1, q.t1}, rgba};
-	ecs_vec_append_t(NULL, &render->vertices, text_vertex_t)[0] = (text_vertex_t){{q.x0, q.y1}, instanceTransform, {q.s0, q.t1}, rgba};
+	ecs_vec_append_t(NULL, &render->vertices, text_vertex_t)[0] = (text_vertex_t){{q.x0, q.y0}, textBlockIndex, {q.s0, q.t0}, rgba};
+	ecs_vec_append_t(NULL, &render->vertices, text_vertex_t)[0] = (text_vertex_t){{q.x1, q.y0}, textBlockIndex, {q.s1, q.t0}, rgba};
+	ecs_vec_append_t(NULL, &render->vertices, text_vertex_t)[0] = (text_vertex_t){{q.x1, q.y1}, textBlockIndex, {q.s1, q.t1}, rgba};
+	ecs_vec_append_t(NULL, &render->vertices, text_vertex_t)[0] = (text_vertex_t){{q.x0, q.y0}, textBlockIndex, {q.s0, q.t0}, rgba};
+	ecs_vec_append_t(NULL, &render->vertices, text_vertex_t)[0] = (text_vertex_t){{q.x1, q.y1}, textBlockIndex, {q.s1, q.t1}, rgba};
+	ecs_vec_append_t(NULL, &render->vertices, text_vertex_t)[0] = (text_vertex_t){{q.x0, q.y1}, textBlockIndex, {q.s0, q.t1}, rgba};
 }
 
-static text_instance_transform_t MakeInstanceTransform(const m4f32 *transform)
+static text_block_transform_t MakeBlockTransform(const m4f32 *transform)
 {
-	text_instance_transform_t instanceTransform = {0.0f, 0.0f, 1.0f, 0.0f};
+	text_block_transform_t blockTransform = {0.0f, 0.0f, 1.0f, 0.0f};
 	if (transform == NULL) {
-		return instanceTransform;
+		return blockTransform;
 	}
 
-	instanceTransform.x = transform->c3[0];
-	instanceTransform.y = transform->c3[1];
-	instanceTransform.z = transform->c0[0];
-	instanceTransform.w = transform->c0[1];
-	return instanceTransform;
+	blockTransform.x = transform->c3[0];
+	blockTransform.y = transform->c3[1];
+	blockTransform.c = transform->c0[0];
+	blockTransform.s = transform->c0[1];
+	return blockTransform;
 }
 
 void text_add(text_t *render, const m4f32 *transform, float fontSize, draw_color_t color, const char *string)
@@ -201,6 +222,9 @@ void text_add(text_t *render, const m4f32 *transform, float fontSize, draw_color
 	float cursorX = 0.0f;
 	float cursorY = 0.0f;
 	RGBA8 rgba    = MakeRGBA8(color, 1.0f);
+	text_block_transform_t blockTransform = MakeBlockTransform(transform);
+	float textBlockIndex = (float)ecs_vec_count(&render->transforms);
+	ecs_vec_append_t(NULL, &render->transforms, text_block_transform_t)[0] = blockTransform;
 
 	for (const char *p = string; *p != '\0'; ++p) {
 		int codepoint = (unsigned char)*p;
@@ -232,8 +256,7 @@ void text_add(text_t *render, const m4f32 *transform, float fontSize, draw_color
 		q.x1      = startX + scale * dx1;
 		q.y1      = cursorY - scale * dy1;
 
-			text_instance_transform_t instanceTransform = MakeInstanceTransform(transform);
-		AddGlyphQuad(render, q, instanceTransform, rgba);
+		AddGlyphQuad(render, q, textBlockIndex, rgba);
 	}
 }
 
@@ -241,7 +264,10 @@ void text_flush(text_t *render, const float *projectionMatrix)
 {
 	text_vertex_t *vertices = ecs_vec_first_t(&render->vertices, text_vertex_t);
 	int32_t        count    = ecs_vec_count(&render->vertices);
+	text_block_transform_t *transforms = ecs_vec_first_t(&render->transforms, text_block_transform_t);
+	int32_t               transformCount = ecs_vec_count(&render->transforms);
 	if (count == 0 || render->initialized == 0) {
+		ecs_vec_clear(&render->transforms);
 		return;
 	}
 
@@ -254,11 +280,22 @@ void text_flush(text_t *render, const float *projectionMatrix)
 	glBindTexture(GL_TEXTURE_2D, render->textureId);
 	glUniform1i(render->textureUniform, 0);
 
+	glActiveTexture(GL_TEXTURE1);
+	glBindBuffer(GL_TEXTURE_BUFFER, render->transformBufferId);
+	size_t transformUploadCount = (size_t)(transformCount > 0 ? transformCount : 1);
+	glBufferData(GL_TEXTURE_BUFFER, transformUploadCount * sizeof(text_block_transform_t),
+	transformCount > 0 ? transforms : NULL, GL_DYNAMIC_DRAW);
+	glBindTexture(GL_TEXTURE_BUFFER, render->transformTextureId);
+	glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, render->transformBufferId);
+	glUniform1i(render->transformUniform, 1);
+
 	glBindVertexArray(render->vaoId);
 	glBindBuffer(GL_ARRAY_BUFFER, render->vboId);
 
 	int base = 0;
 	while (count > 0) {
+		// Upload and draw one batch of text geometry: a chunk of triangle vertices
+		// for the current set of glyph quads.
 		int batchCount = draw_min_int(count, TEXT_BATCH_VERTEX_COUNT);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, batchCount * sizeof(text_vertex_t), vertices + base);
 		glDrawArrays(GL_TRIANGLES, 0, batchCount);
@@ -269,9 +306,14 @@ void text_flush(text_t *render, const float *projectionMatrix)
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
+	glBindBuffer(GL_TEXTURE_BUFFER, 0);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_BUFFER, 0);
+	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glUseProgram(0);
 	glDisable(GL_BLEND);
 
 	ecs_vec_clear(&render->vertices);
+	ecs_vec_clear(&render->transforms);
 }
