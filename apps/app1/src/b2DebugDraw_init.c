@@ -1,17 +1,18 @@
 #include "b2DebugDraw_init.h"
 #include <assert.h>
-#include <draw.h>
+#include <egg.h>
 #include <stddef.h>
 
-static AppDrawContext *sGetContext(void *context)
+static egg_t *sGetContext(void *context)
 {
-	return (AppDrawContext *)(context);
+	return (egg_t *)(context);
 }
 
 void DrawPolygonFcn(b2WorldTransform transform, const b2Vec2 *vertices, int vertexCount, b2HexColor color, void *context)
 {
-	AppDrawContext *draw = sGetContext(context);
-	draw_polygon(draw->draw, (float)transform.p.x, (float)transform.p.y, transform.q.c, transform.q.s, &vertices[0].x, vertexCount, color);
+	egg_t *egg = sGetContext(context);
+	assert(egg != NULL);
+	egg_draw_polygon(egg, (const egg_vec2_t *)vertices, vertexCount, (float)transform.p.x, (float)transform.p.y, transform.q.c, transform.q.s, color);
 }
 
 void DrawSolidPolygonFcn(b2WorldTransform transform, const b2Vec2 *vertices, int vertexCount, float radius, b2HexColor color, void *context)
@@ -21,63 +22,77 @@ void DrawSolidPolygonFcn(b2WorldTransform transform, const b2Vec2 *vertices, int
 	assert(offsetof(b2Vec2, y) == offsetof(egg_vec2_t, y));
 	assert(sizeof(b2Vec2) == sizeof(egg_vec2_t));
 
-	AppDrawContext *draw = sGetContext(context);
-	if (draw->egg != NULL) {
-		egg_draw_polygon(draw->egg, (const egg_vec2_t *)vertices, vertexCount, (float)transform.p.x, (float)transform.p.y,
-			transform.q.c, transform.q.s, color);
-	}
+	egg_t *egg = sGetContext(context);
+	assert(egg != NULL);
+	egg_draw_polygon(egg, (const egg_vec2_t *)vertices, vertexCount, (float)transform.p.x, (float)transform.p.y, transform.q.c, transform.q.s, color);
 }
 
 void DrawCircleFcn(b2Pos center, float radius, b2HexColor color, void *context)
 {
-	AppDrawContext *draw = sGetContext(context);
-	draw_circle(draw->draw, (float)center.x, (float)center.y, radius, color);
+	// Circle outline thickness uses pixel-size units.
+	egg_t *egg = sGetContext(context);
+	assert(egg != NULL);
+	egg_draw_circle_outline(egg, (float)center.x, (float)center.y, radius, 1.0f, color);
 }
 
 void DrawSolidCircleFcn(b2WorldTransform transform, b2Vec2 center, float radius, b2HexColor color, void *context)
 {
-	AppDrawContext *draw = sGetContext(context);
-	draw_solid_circle(draw->draw, (float)transform.p.x, (float)transform.p.y, transform.q.c, transform.q.s, center.x, center.y, radius, color);
+	egg_t *egg = sGetContext(context);
+	assert(egg != NULL);
+	egg_draw_circle(egg, (float)transform.p.x + center.x, (float)transform.p.y + center.y, radius, color);
 }
 
 void DrawSolidCapsuleFcn(b2Pos p1, b2Pos p2, float radius, b2HexColor color, void *context)
 {
-	AppDrawContext *draw = sGetContext(context);
-	draw_capsule(draw->draw, (float)p1.x, (float)p1.y, (float)p2.x, (float)p2.y, radius, color);
+	// Capsule outline thickness uses pixel-size units.
+	egg_t *egg = sGetContext(context);
+	assert(egg != NULL);
+	egg_draw_capsule_outline(egg, (float)p1.x, (float)p1.y, (float)p2.x, (float)p2.y, radius, 1.0f, color);
 }
 
 void DrawLineFcn(b2Pos p1, b2Pos p2, b2HexColor color, void *context)
 {
-	AppDrawContext *draw = sGetContext(context);
-	draw_line(draw->draw, (float)p1.x, (float)p1.y, (float)p2.x, (float)p2.y, color);
+	// Line thickness uses pixel-size units.
+	egg_t *egg = sGetContext(context);
+	assert(egg != NULL);
+	egg_draw_line(egg, (float)p1.x, (float)p1.y, (float)p2.x, (float)p2.y, 1.0f, color);
 }
 
 void DrawTransformFcn(b2WorldTransform transform, void *context)
 {
-	AppDrawContext *draw = sGetContext(context);
-	draw_transform(draw->draw, (float)transform.p.x, (float)transform.p.y, transform.q.c, transform.q.s, 1.0f);
+	egg_t *egg = sGetContext(context);
+	assert(egg != NULL);
+	egg_draw_transform(egg, (float)transform.p.x, (float)transform.p.y, transform.q.c, transform.q.s, 1.0f, 0xFFFF0000u);
 }
 
 void DrawPointFcn(b2Pos p, float size, b2HexColor color, void *context)
 {
-	AppDrawContext *draw = sGetContext(context);
-	draw_point(draw->draw, (float)p.x, (float)p.y, size, color);
+	// Point size uses pixel-size units.
+	egg_t *egg = sGetContext(context);
+	assert(egg != NULL);
+	egg_draw_point(egg, (float)p.x, (float)p.y, size, color);
 }
 
 void DrawStringFcn(b2Pos p, const char *s, b2HexColor color, void *context)
 {
-	AppDrawContext *draw = sGetContext(context);
-	egg_draw_text(draw->egg, (float)p.x, (float)p.y, 1.0f, 0.0f, 0.5f, color, s);
+	egg_t *egg = sGetContext(context);
+	if (egg != NULL) {
+		egg_draw_text(egg, (float)p.x, (float)p.y, 1.0f, 0.0f, 0.5f, color, s);
+	}
 }
 
 void DrawBoundsFcn(b2AABB aabb, b2HexColor color, void *context)
 {
-	AppDrawContext *draw = sGetContext(context);
-	draw_bounds(draw->draw, aabb.lowerBound.x, aabb.lowerBound.y, aabb.upperBound.x, aabb.upperBound.y, color);
+	egg_t *egg = sGetContext(context);
+	assert(egg != NULL);
+	egg_draw_bounds(egg, aabb.lowerBound.x, aabb.lowerBound.y, aabb.upperBound.x, aabb.upperBound.y, color);
 }
 
-void b2DebugDraw_init(b2DebugDraw *d, AppDrawContext *draw)
+void b2DebugDraw_init(b2DebugDraw *d, egg_t *egg)
 {
+	// Box2D debug draw callbacks receive world-space coordinates and sizes, so the egg
+	// renderer should interpret the incoming values in world units and convert them to
+	// pixel-space thickness/point radius using the camera-derived pixel scale.
 	d->DrawPolygonFcn           = DrawPolygonFcn;
 	d->DrawSolidPolygonFcn      = DrawSolidPolygonFcn;
 	d->DrawCircleFcn            = DrawCircleFcn;
@@ -88,7 +103,7 @@ void b2DebugDraw_init(b2DebugDraw *d, AppDrawContext *draw)
 	d->DrawPointFcn             = DrawPointFcn;
 	d->DrawStringFcn            = DrawStringFcn;
 	d->DrawBoundsFcn            = DrawBoundsFcn;
-	d->context                  = draw;
+	d->context                  = egg;
 	d->drawMass                 = true;
 	d->drawContacts             = true;
 	d->drawContactForces        = true;

@@ -1,11 +1,10 @@
 #pragma once
 #include <flecs.h>
-#include <draw.h>
 #include <egg.h>
 
 typedef struct {
-	draw_t *draw;
 	egg_t *egg;
+	float pixelScale;
 } AppDrawContext;
 
 typedef struct {

@@ -18,7 +18,7 @@ static void AppDrawBox2dContext_Create(ecs_iter_t *it)
 	AppDrawBox2dContextCreate *def  = ecs_field(it, AppDrawBox2dContextCreate, 1); // self
 	for (int i = 0; i < it->count; ++i, ++def) {
 		b2DebugDraw d = {0};
-		b2DebugDraw_init(&d, draw);
+		b2DebugDraw_init(&d, draw->egg);
 		ecs_set(it->world, it->entities[i], AppDrawBox2dContext, {d});
 	}
 	ecs_log_set_level(-1);

@@ -4,7 +4,6 @@
 #include <stdbool.h>
 #include <flecs.h>
 #include <box2d/box2d.h>
-#include <draw.h>
 #include <EgSpatials.h>
 #include <EgSpatialsSystems.h>
 #include <EgShapes.h>

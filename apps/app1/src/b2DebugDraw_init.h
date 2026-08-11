@@ -1,6 +1,7 @@
 #pragma once
 
 #include <box2d/box2d.h>
-#include "AppDraw.h"
 
-void b2DebugDraw_init(b2DebugDraw *d, AppDrawContext *draw);
+typedef struct egg_t egg_t;
+
+void b2DebugDraw_init(b2DebugDraw *d, egg_t *egg);

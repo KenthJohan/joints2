@@ -1,56 +1,17 @@
 #include "AppDraw.h"
+#include <assert.h>
 #include <EgWindows.h>
 #include <EgCameras.h>
 #include <EgSpatials.h>
 #include <EgShapes.h>
 #include <EgBase.h>
 #include <ecsx.h>
-#include <draw.h>
 #include <egg.h>
-#include <egmisc/eg_file.h>
+#include <math.h>
 
 ECS_COMPONENT_DECLARE(AppDrawContext);
 ECS_COMPONENT_DECLARE(AppDrawContextCreate);
 ECS_COMPONENT_DECLARE(AppDrawNameAtPositionRule);
-
-static bool BuildDrawCreateInfo(draw_create_info_t *createInfo)
-{
-	*createInfo = (draw_create_info_t){0};
-
-	createInfo->shaders[DRAW_SHADER_BACKGROUND_VERTEX]      = eg_file_load_alloc("data/background.vs", NULL);
-	createInfo->shaders[DRAW_SHADER_BACKGROUND_FRAGMENT]    = eg_file_load_alloc("data/background.fs", NULL);
-	createInfo->shaders[DRAW_SHADER_POINT_VERTEX]           = eg_file_load_alloc("data/point.vs", NULL);
-	createInfo->shaders[DRAW_SHADER_POINT_FRAGMENT]         = eg_file_load_alloc("data/point.fs", NULL);
-	createInfo->shaders[DRAW_SHADER_LINE_VERTEX]            = eg_file_load_alloc("data/line.vs", NULL);
-	createInfo->shaders[DRAW_SHADER_LINE_FRAGMENT]          = eg_file_load_alloc("data/line.fs", NULL);
-	createInfo->shaders[DRAW_SHADER_CIRCLE_VERTEX]          = eg_file_load_alloc("data/circle.vs", NULL);
-	createInfo->shaders[DRAW_SHADER_CIRCLE_FRAGMENT]        = eg_file_load_alloc("data/circle.fs", NULL);
-	createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_VERTEX]    = eg_file_load_alloc("data/solid_circle.vs", NULL);
-	createInfo->shaders[DRAW_SHADER_SOLID_CIRCLE_FRAGMENT]  = eg_file_load_alloc("data/solid_circle.fs", NULL);
-	createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_VERTEX]   = eg_file_load_alloc("data/solid_capsule.vs", NULL);
-	createInfo->shaders[DRAW_SHADER_SOLID_CAPSULE_FRAGMENT] = eg_file_load_alloc("data/solid_capsule.fs", NULL);
-	createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_VERTEX]   = eg_file_load_alloc("data/solid_polygon.vs", NULL);
-	createInfo->shaders[DRAW_SHADER_SOLID_POLYGON_FRAGMENT] = eg_file_load_alloc("data/solid_polygon.fs", NULL);
-	createInfo->shaders[DRAW_SHADER_TEXT_VERTEX]            = eg_file_load_alloc("data/text.vs", NULL);
-	createInfo->shaders[DRAW_SHADER_TEXT_FRAGMENT]          = eg_file_load_alloc("data/text.fs", NULL);
-
-	for (int i = 0; i < DRAW_SHADER_COUNT; ++i) {
-		if (createInfo->shaders[i] == NULL) {
-			fprintf(stderr, "Failed to load one or more shader files from apps/app1/data or data\n");
-			return false;
-		}
-	}
-
-	return true;
-}
-
-static void FreeDrawCreateInfo(draw_create_info_t *createInfo)
-{
-	for (int i = 0; i < DRAW_SHADER_COUNT; ++i) {
-		free((void *)createInfo->shaders[i]);
-	}
-	*createInfo = (draw_create_info_t){0};
-}
 
 static void Test_Render(ecs_iter_t *it)
 {
@@ -60,14 +21,9 @@ static void Test_Render(ecs_iter_t *it)
 		// Placeholder for rendering logic. This function will be called every frame to handle rendering tasks.
 		// printf("Test_Render called with %d entities\n", it->count);
 
-		/*
-		b2WorldTransform transform = {{1.0f, 0.0f}, {1.0f, 0.0f}};
-		draw_solid_circle(draw->draw, transform, (b2Pos){0.0f, 0.0f}, 10.0f, b2_colorRed);
-		*/
-
-		float pixelScale = 100.1f; // Placeholder for pixel scale, can be adjusted based on window size or other factors
-		draw_flush(draw->draw, pixelScale, (float *)&camera->vp);
+		draw->pixelScale = camera->pixelScale * 1.0f; // Keep the egg-scale near the camera-derived size.
 		if (draw->egg != NULL) {
+			egg_set_pixel_scale(draw->egg, draw->pixelScale);
 			egg_flush(draw->egg, (float *)&camera->vp);
 		}
 	}
@@ -80,25 +36,12 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 	ecs_entity_t          e_window = ecs_field_src(it, 1);
 	printf("window_entity: %s\n", ecs_get_name(it->world, e_window));
 	for (int i = 0; i < it->count; ++i, ++def) {
-		draw_create_info_t drawCreateInfo;
-		if (!BuildDrawCreateInfo(&drawCreateInfo)) {
-			continue; // Skip this entity if shader loading failed
-		}
-		draw_t *draw = draw_init(&drawCreateInfo);
 		egg_t *egg = egg_init();
-		FreeDrawCreateInfo(&drawCreateInfo);
-
-		if (draw == NULL || egg == NULL) {
-			if (draw != NULL) {
-				draw_destroy(draw);
-			}
-			if (egg != NULL) {
-				egg_destroy(egg);
-			}
+		if (egg == NULL) {
 			continue;
 		}
 
-		ecs_set(it->world, it->entities[i], AppDrawContext, {draw, egg});
+		ecs_set(it->world, it->entities[i], AppDrawContext, {egg, 1.0f});
 
 		// The window system will call this render system using `ecs_run()` every frame
 		// by putting it as a child of the window entity.
@@ -121,10 +64,8 @@ void AppDrawNameAtPosition_Draw(ecs_iter_t *it)
 	AppDrawNameAtPositionRule *b = ecs_field_shared(it, AppDrawNameAtPositionRule, 2);
 	for (int i = 0; i < it->count; ++i, ++p) {
 		char const *name = ecs_get_name(it->world, it->entities[i]);
-		m4f32 transform = M4_IDENTITY;
-		transform.c3[0] = p->x;
-		transform.c3[1] = p->y;
-		draw_string(d->draw, &transform, 0.5f, b->color, "%s", name);
+		assert(d->egg != NULL);
+		egg_draw_text(d->egg, p->x, p->y, 1.0f, 0.0f, 0.5f, b->color, name);
 	}
 }
 
@@ -148,13 +89,15 @@ static void AppDrawText_Draw(ecs_iter_t *it)
 		if (cam->pixel_coords) {
 			float x = p->matrix.c3[0] - (0.5f * r->w);
 			float y = (0.5f * r->h) - p->matrix.c3[1];
-			m4f32 transform = p->matrix;
-			transform.c3[0] = x;
-			transform.c3[1] = y;
-			draw_string(d->draw, &transform, font_size, 0xFFFFFFFFu, "%s", t->value);
+			assert(d->egg != NULL);
+			float c = p->matrix.c0[0];
+			float s = p->matrix.c0[1];
+			egg_draw_text(d->egg, x, y, c, s, font_size, 0xFFFFFFFFu, t->value);
 		} else {
-			m4f32 transform = p->matrix;
-			draw_string(d->draw, &transform, font_size, 0xFFFFFFFFu, "%s", t->value);
+			assert(d->egg != NULL);
+			float c = p->matrix.c0[0];
+			float s = p->matrix.c0[1];
+			egg_draw_text(d->egg, p->matrix.c3[0], p->matrix.c3[1], c, s, font_size, 0xFFFFFFFFu, t->value);
 		}
 	}
 }
@@ -204,7 +147,9 @@ void AppDrawImport(ecs_world_t *world)
 	ecs_struct(world,
 	{.entity = ecs_id(AppDrawContext),
 	.members = {
-	{.name = "draw", .type = ecs_id(ecs_uptr_t)},	{.name = "egg", .type = ecs_id(ecs_uptr_t)},	}});
+	{.name = "egg", .type = ecs_id(ecs_uptr_t)},
+	{.name = "pixelScale", .type = ecs_id(ecs_f32_t)},
+	}});
 
 	ecs_struct(world,
 	{.entity = ecs_id(AppDrawNameAtPositionRule),
