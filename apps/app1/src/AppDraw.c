@@ -6,6 +6,7 @@
 #include <EgBase.h>
 #include <ecsx.h>
 #include <draw.h>
+#include <egg.h>
 #include <egmisc/eg_file.h>
 
 ECS_COMPONENT_DECLARE(AppDrawContext);
@@ -66,6 +67,9 @@ static void Test_Render(ecs_iter_t *it)
 
 		float pixelScale = 100.1f; // Placeholder for pixel scale, can be adjusted based on window size or other factors
 		draw_flush(draw->draw, pixelScale, (float *)&camera->vp);
+		if (draw->egg != NULL) {
+			egg_flush(draw->egg, (float *)&camera->vp);
+		}
 	}
 }
 
@@ -81,9 +85,20 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 			continue; // Skip this entity if shader loading failed
 		}
 		draw_t *draw = draw_init(&drawCreateInfo);
+		egg_t *egg = egg_init();
 		FreeDrawCreateInfo(&drawCreateInfo);
 
-		ecs_set(it->world, it->entities[i], AppDrawContext, {draw});
+		if (draw == NULL || egg == NULL) {
+			if (draw != NULL) {
+				draw_destroy(draw);
+			}
+			if (egg != NULL) {
+				egg_destroy(egg);
+			}
+			continue;
+		}
+
+		ecs_set(it->world, it->entities[i], AppDrawContext, {draw, egg});
 
 		// The window system will call this render system using `ecs_run()` every frame
 		// by putting it as a child of the window entity.
@@ -189,8 +204,7 @@ void AppDrawImport(ecs_world_t *world)
 	ecs_struct(world,
 	{.entity = ecs_id(AppDrawContext),
 	.members = {
-	{.name = "draw", .type = ecs_id(ecs_uptr_t)},
-	}});
+	{.name = "draw", .type = ecs_id(ecs_uptr_t)},	{.name = "egg", .type = ecs_id(ecs_uptr_t)},	}});
 
 	ecs_struct(world,
 	{.entity = ecs_id(AppDrawNameAtPositionRule),

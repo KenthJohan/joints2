@@ -18,7 +18,8 @@
 			"EgPhysicsBox2d",
 			"egmath",
 			"box2d",
-			"draw"
+			"draw",
+			"egg"
         ],
         "public": false
     },
@@ -48,6 +49,7 @@
 			"box2d",
 			"flecs",
 			"draw",
+			"egg",
 			"SDL3",
 			"GL",
 			"stdc++",

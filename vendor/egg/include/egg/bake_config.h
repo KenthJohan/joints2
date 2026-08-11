@@ -14,25 +14,26 @@
  * dependencies will automatically show up in this file. Include bake_config.h
  * in your main project file. Do not edit! */
 
-#ifndef APP1_BAKE_CONFIG_H
-#define APP1_BAKE_CONFIG_H
+#ifndef EGG_BAKE_CONFIG_H
+#define EGG_BAKE_CONFIG_H
 
 /* Headers of public dependencies */
-#include <flecs.h>
-#include <ecsx.h>
-#include <EgSpatials.h>
-#include <EgSpatialsSystems.h>
-#include <EgShapes.h>
-#include <EgWindows.h>
-#include <EgWindowsSdl.h>
-#include <EgWindowsSdlGl.h>
-#include <EgCameras.h>
-#include <EgButtons.h>
-#include <EgPhysics.h>
-#include <EgPhysicsBox2d.h>
-#include <egmath.h>
-#include <draw.h>
-#include <egg.h>
+/* No dependencies */
+
+/* Convenience macro for exporting symbols */
+#ifndef egg_STATIC
+#if defined(egg_EXPORTS) && (defined(_MSC_VER) || defined(__MINGW32__))
+  #define EGG_API __declspec(dllexport)
+#elif defined(egg_EXPORTS)
+  #define EGG_API __attribute__((__visibility__("default")))
+#elif defined(_MSC_VER)
+  #define EGG_API __declspec(dllimport)
+#else
+  #define EGG_API
+#endif
+#else
+  #define EGG_API
+#endif
 
 #endif
 
