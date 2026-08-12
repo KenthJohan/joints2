@@ -86,19 +86,28 @@ static void AppDrawText_Draw(ecs_iter_t *it)
 			continue; // Skip empty strings
 		}
 		float font_size = f->font_size > 0.0f ? f->font_size : 24.0f;
-		if (cam->pixel_coords) {
-			float x = p->matrix.c3[0] - (0.5f * r->w);
-			float y = (0.5f * r->h) - p->matrix.c3[1];
-			assert(d->egg != NULL);
-			float c = p->matrix.c0[0];
-			float s = p->matrix.c0[1];
-			egg_draw_text(d->egg, x, y, c, s, font_size, 0xFFFFFFFFu, t->value);
-		} else {
-			assert(d->egg != NULL);
-			float c = p->matrix.c0[0];
-			float s = p->matrix.c0[1];
-			egg_draw_text(d->egg, p->matrix.c3[0], p->matrix.c3[1], c, s, font_size, 0xFFFFFFFFu, t->value);
-		}
+		assert(d->egg != NULL);
+		float x = p->matrix.c3[0];
+		float y = p->matrix.c3[1];
+		float c = p->matrix.c0[1]; // Rotation cosine, TODO: Check why this is c0[1] and not c0[0] for cosine
+		float s = p->matrix.c0[0]; // Rotation sine
+		egg_draw_rectangle(d->egg, x, y, c, s, 10, 10, 0x0066FF00u);
+		egg_draw_text(d->egg, x, y, c, s, font_size, 0xFFFFFFFFu, t->value);
+	}
+}
+
+static void AppDrawShapesRectangle_Draw(ecs_iter_t *it)
+{
+	AppDrawContext    *d = ecs_field_shared(it, AppDrawContext, 0);
+	EgShapesRectangle *r = ecs_field_self(it, EgShapesRectangle, 1);
+	Transformation    *p = ecs_field_self(it, Transformation, 2);
+	for (int i = 0; i < it->count; ++i, ++r, ++p) {
+		float x = p->matrix.c3[0];
+		float y = p->matrix.c3[1];
+		float c = p->matrix.c0[1];
+		float s = p->matrix.c0[0];
+		egg_draw_rectangle(d->egg, x, y, c, s, r->w, r->h, 0x00FFFF00u);
+		egg_draw_text(d->egg, x, y, c, s, 24.0f, 0xFFFFFFFFu, "Rectangle");
 	}
 }
 
@@ -181,6 +190,16 @@ void AppDrawImport(ecs_world_t *world)
 	{.id = ecs_id(EgBaseText), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(EgBaseFont), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(EgShapesRectangle), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
+	}});
+
+	ecs_system(world,
+	{.entity     = ecs_entity(world, {.name = "AppDrawShapesRectangle_Draw"}),
+	.phase       = EcsOnUpdate,
+	.callback    = AppDrawShapesRectangle_Draw,
+	.query.terms = {
+	{.id = ecs_id(AppDrawContext), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
+	{.id = ecs_id(EgShapesRectangle), .src.id = EcsSelf, .inout = EcsIn},
+	{.id = ecs_id(Transformation), .src.id = EcsSelf, .inout = EcsIn},
 	}});
 
 	ecs_observer(world,

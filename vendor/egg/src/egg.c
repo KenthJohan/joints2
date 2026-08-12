@@ -452,8 +452,7 @@ static void sColorBytes(egg_color_t color, uint8_t *r, uint8_t *g, uint8_t *b, u
 	}
 }
 
-void egg_draw_text(egg_t *egg, float x, float y, float rotationCos, float rotationSin, float fontSize,
-egg_color_t color, const char *string)
+void egg_draw_text(egg_t *egg, float x, float y, float rotationCos, float rotationSin, float fontSize, egg_color_t color, const char *string)
 {
 	if (egg == NULL || egg->initialized == 0 || string == NULL) {
 		return;
@@ -749,8 +748,7 @@ void egg_draw_transform(egg_t *egg, float x, float y, float rotationCos, float r
 	sAddLine(egg, 0.0f, 0.0f, 0.0f, scale, scaledThickness, instanceIndex, r, g, b, a);
 }
 
-void egg_draw_rectangle(egg_t *egg, float x, float y, float rotationCos, float rotationSin, float width, float height,
-egg_color_t color)
+void egg_draw_rectangle(egg_t *egg, float x, float y, float rotationCos, float rotationSin, float width, float height, egg_color_t color)
 {
 	if (egg == NULL || egg->initialized == 0) {
 		return;
@@ -770,8 +768,7 @@ egg_color_t color)
 	uint8_t a             = 0;
 	sColorBytes(color, &r, &g, &b, &a);
 
-	sAddQuad(egg, -halfWidth, -halfHeight, halfWidth, halfHeight, instanceIndex, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
-	r, g, b, a);
+	sAddQuad(egg, -halfWidth, -halfHeight, halfWidth, halfHeight, instanceIndex, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, r, g, b, a);
 }
 
 void egg_draw_bounds(egg_t *egg, float minX, float minY, float maxX, float maxY, egg_color_t color)
