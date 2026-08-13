@@ -89,8 +89,8 @@ static void AppDrawText_Draw(ecs_iter_t *it)
 		assert(d->egg != NULL);
 		float x = p->matrix.c3[0];
 		float y = p->matrix.c3[1];
-		float c = p->matrix.c0[1]; // Rotation cosine, TODO: Check why this is c0[1] and not c0[0] for cosine
-		float s = p->matrix.c0[0]; // Rotation sine
+		float c = p->matrix.c0[0]; // Rotation cosine
+		float s = p->matrix.c0[1]; // Rotation sine
 		egg_draw_rectangle(d->egg, x, y, c, s, 10, 10, 0x0066FF00u);
 		egg_draw_text(d->egg, x, y, c, s, font_size, 0xFFFFFFFFu, t->value);
 	}
@@ -104,8 +104,8 @@ static void AppDrawShapesRectangle_Draw(ecs_iter_t *it)
 	for (int i = 0; i < it->count; ++i, ++r, ++p) {
 		float x = p->matrix.c3[0];
 		float y = p->matrix.c3[1];
-		float c = p->matrix.c0[1];
-		float s = p->matrix.c0[0];
+		float c = p->matrix.c0[0];
+		float s = p->matrix.c0[1];
 		egg_draw_rectangle(d->egg, x, y, c, s, r->w, r->h, 0x00FFFF00u);
 		egg_draw_text(d->egg, x, y, c, s, 24.0f, 0xFFFFFFFFu, "Rectangle");
 	}

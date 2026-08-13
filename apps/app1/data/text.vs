@@ -24,6 +24,6 @@ void main(void)
     float c = v_instanceTransform.z;
     float s = v_instanceTransform.w;
     vec2 p = vec2(v_position.x, v_position.y);
-    p = vec2((c * p.x + s * p.y) + x, (-s * p.x + c * p.y) + y);
+    p = vec2((c * p.x - s * p.y) + x, (s * p.x + c * p.y) + y);
     gl_Position = projectionMatrix * vec4(p, 0.0f, 1.0f);
 }
