@@ -11,7 +11,7 @@
 #include <SDL3/SDL_opengl.h>
 
 #define STB_TRUETYPE_IMPLEMENTATION
-#include "../../draw/src/stb_truetype.h"
+#include "stb_truetype.h"
 
 #define EGG_BATCH_VERTEX_COUNT (6 * 1024)
 #define EGG_FIRST_CHAR         32
@@ -90,7 +90,7 @@ static const char *kEggVertexShaderSource =
 "    float c = instanceTransform.z;\n"
 "    float s = instanceTransform.w;\n"
 "    vec2 p = vec2(v_position.x, v_position.y);\n"
-"    p = vec2((c * p.x - s * p.y) + x, (s * p.x + c * p.y) + y);\n"
+"    p = vec2((c * p.x + s * p.y) + x, (-s * p.x + c * p.y) + y);\n"
 "    gl_Position = projectionMatrix * vec4(p, 0.0f, 1.0f);\n"
 "}\n";
 

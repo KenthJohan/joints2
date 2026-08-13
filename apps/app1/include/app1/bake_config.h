@@ -31,7 +31,6 @@
 #include <EgPhysics.h>
 #include <EgPhysicsBox2d.h>
 #include <egmath.h>
-#include <draw.h>
 #include <egg.h>
 
 #endif
