@@ -12,7 +12,6 @@ prefab transform {
 	OrientationWorld
 	Scale3 : {x: 1, y: 1, z: 1}
 	Scale3World : {x: 1, y: 1, z: 1}
-
 	Position3 : {x: 0, y: 0, z: 0}
     Rotate3 : {0,0,0}
 }
