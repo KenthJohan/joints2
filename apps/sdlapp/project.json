@@ -14,6 +14,9 @@
 			"EgWindowsSdl",
 			"EgDisplays",
 			"EgDisplaysSdl",
+			"EgFs",
+			"EgBase",
+			"egmisc",
 			"egmath"
         ],
         "public": false
