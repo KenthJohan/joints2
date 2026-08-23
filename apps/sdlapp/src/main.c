@@ -5,6 +5,8 @@
 #include <EgSpatials.h>
 #include <EgDisplays.h>
 #include <EgDisplaysSdl.h>
+#include <EgGpus.h>
+#include <EgGpusSdl.h>
 
 
 int main(int argc, char *argv[])
@@ -21,6 +23,8 @@ int main(int argc, char *argv[])
 	ECS_IMPORT(world, EgSpatials);
 	ECS_IMPORT(world, EgDisplays);
 	ECS_IMPORT(world, EgDisplaysSdl);
+	ECS_IMPORT(world, EgGpus);
+	ECS_IMPORT(world, EgGpusSdl);
 
 
 	ecs_log_set_level(0);

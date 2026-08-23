@@ -28,6 +28,8 @@
 #include <EgWindowsSdl.h>
 #include <EgDisplays.h>
 #include <EgDisplaysSdl.h>
+#include <EgGpus.h>
+#include <EgGpusSdl.h>
 #include <EgFs.h>
 #include <EgBase.h>
 #include <egmisc.h>

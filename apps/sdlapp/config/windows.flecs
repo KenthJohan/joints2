@@ -11,3 +11,10 @@ window1 {
 displays {
     eg.displays.Update
 }
+
+
+gpu0 {
+	eg.gpus.DeviceCreateInfo : {
+		debug: true,
+	}
+}
