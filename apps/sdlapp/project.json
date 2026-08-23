@@ -1,0 +1,69 @@
+{
+    "id": "sdlapp",
+    "type": "application",
+    "value": {
+        "language": "c",
+        "use": [
+            "flecs",
+			"ecsx",
+			"EgSpatials",
+			"EgSpatialsSystems",
+			"EgShapes",
+			"EgButtons",
+			"EgWindows",
+			"EgWindowsSdl",
+			"EgDisplays",
+			"EgDisplaysSdl",
+			"egmath"
+        ],
+        "public": false
+    },
+	"lang.c": {
+		"c-standard": "gnu99",
+		"defines": [
+			"_FORTIFY_SOURCE=2",
+			"GL_GLEXT_PROTOTYPES"
+		],
+		"lib": [
+			"EgWindowsSdl",
+			"EgDisplaysSdl",
+			"EgSpatialsSystems",
+			"EgDisplays",
+			"EgWindows",
+			"EgShapes",
+			"EgSpatials",
+			"EgButtons",
+			"EgFs",
+			"EgBase",
+			"egmisc",
+			"egmath",
+			"ecsx",
+			"flecs",
+			"SDL3",
+			"stdc++",
+			"m"
+		],
+		"cflags": [
+			"-Werror",
+			"-Wall",
+			"-Wextra",
+			"-Wno-error=unused-local-typedefs",
+			"-Wno-error=unused-const-variable=",
+			"-Wno-error=unused-variable",
+			"-Wno-error=unused-function",
+			"-ftrapv",
+			"-Werror=format-security",
+			"-Wl,-z,defs",
+			"-fstack-clash-protection",
+			"-fstack-protector-strong",
+			"-fstack-protector",
+			"-fstack-protector-all",
+			"-grecord-gcc-switches",
+			"-pipe",
+			"-Werror=implicit-function-declaration",
+			"-Wl,-z,now",
+			"-Wl,-z,relro",
+			"-Wwrite-strings"
+		]
+	}
+}

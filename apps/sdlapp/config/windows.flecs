@@ -1,0 +1,13 @@
+using eg.windows
+using eg.shapes
+using eg.spatials
+
+window1 {
+    WindowCreateInfo : {debug: false, enable_opengl: false}
+    Position2 : {0, 0}
+    Rectangle : {1024, 1024}
+}
+
+displays {
+    eg.displays.Update
+}
