@@ -3,7 +3,8 @@
         {
             "name": "Linux",
             "includePath": [
-                "${HOME}/bake3/include"
+                    "${HOME}/bake3/include",
+                    "${HOME}/bake3/include/*/*"
             ],
             "defines": [
                 "_DEBUG",
