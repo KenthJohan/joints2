@@ -4,7 +4,8 @@
             "name": "Linux",
             "includePath": [
                     "${HOME}/bake3/include",
-                    "${HOME}/bake3/include/*/*"
+                    "${HOME}/bake3/include/*/*",
+                    "${HOME}/bake3/test"
             ],
             "defines": [
                 "_DEBUG",
@@ -17,7 +18,7 @@
             "cStandard": "c17",
             "cppStandard": "c++20",
             "intelliSenseMode": "clang-x64"
-        },
+        }
     ],
     "version": 4
 }
