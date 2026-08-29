@@ -17,4 +17,10 @@ gpu0 {
 	eg.gpus.DeviceCreateInfo : {
 		debug: true,
 	}
+
+    texture0 {
+        eg.gpus.Texture
+		eg.gpus.TextureCreateInfo : {sample_count: 1}
+        Rectangle : {w: 1024, h: 1024}
+    }
 }
