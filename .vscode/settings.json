@@ -2,4 +2,6 @@
     "files.eol": "\n",
     "files.insertFinalNewline": true,
     "cmake.ignoreCMakeListsMissing": true,
+    "bakeProjects.buildTool": "bake3",
+    "bakeProjects.ldLibraryPath": "${workspaceFolder}/bin/x64-Linux-debug:${env:HOME}/bake3/x64-Linux/debug/lib/:/usr/local/lib/"
 }
