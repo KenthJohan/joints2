@@ -20,18 +20,18 @@
 /* Headers of public dependencies */
 #include <flecs.h>
 #include <ecsx.h>
-#include <EgSpatials.h>
-#include <EgSpatialsSystems.h>
-#include <EgShapes.h>
-#include <EgButtons.h>
-#include <EgWindows.h>
-#include <EgWindowsSdl.h>
-#include <EgDisplays.h>
-#include <EgDisplaysSdl.h>
-#include <EgGpus.h>
-#include <EgGpusSdl.h>
-#include <EgFs.h>
-#include <EgBase.h>
+#include <egspatials.h>
+#include <egspatialssystems.h>
+#include <egshapes.h>
+#include <egbuttons.h>
+#include <egwindows.h>
+#include <egwindowssdl.h>
+#include <egdisplays.h>
+#include <egdisplayssdl.h>
+#include <eggpus.h>
+#include <eggpussdl.h>
+#include <egfs.h>
+#include <egbase.h>
 #include <egmisc.h>
 #include <egmath.h>
 

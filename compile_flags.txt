@@ -1,4 +1,4 @@
--I/home/johansa/bake/include
+-I/home/johansa/bake3/include
 -D_DEBUG
 -DUNICODE
 -D_UNICODE

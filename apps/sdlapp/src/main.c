@@ -9,7 +9,7 @@
 #include <EgGpusSdl.h>
 
 
-int main(int argc, char *argv[])
+int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 {
 	ecs_os_set_api_defaults();
 	ecs_os_api_t os_api = ecs_os_get_api();

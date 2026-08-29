@@ -2,30 +2,30 @@
 
 ## Compile
 
-- Build this project from the repository root with `bake`.
+- Build this project from the repository root with `bake3`.
 - Example:
 
 ```sh
-bake
+bake3
 ```
 
-- Rebuild recursively from the repository root with `bake rebuild -r`.
+- Rebuild recursively from the repository root with `bake3 rebuild -r`.
 - Example:
 
 ```sh
-bake rebuild -r
+bake3 rebuild -r
 ```
 
-- For package/library compile checks only, use `bake rebuild` to quickly verify the library code builds.
-- If public headers (for example `vendor/draw/include/draw.h`) change, run `bake rebuild` so the generated headers under `bake/include/` are refreshed; otherwise stale headers can cause editor/type-check mismatches.
+- For package/library compile checks only, use `bake3 rebuild` to quickly verify the library code builds.
+- If public headers (for example `vendor/draw/include/draw.h`) change, run `bake3 rebuild` so the generated headers under `bake3/include/` are refreshed; otherwise stale headers can cause editor/type-check mismatches.
 
 ## Run
 
-- Run this project from the repository root with `bake run`.
+- Run this project from the repository root with `bake3 run`.
 - Example:
 
 ```sh
-bake run
+bake3 run
 ```
 
 ## Output
