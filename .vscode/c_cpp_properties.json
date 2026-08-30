@@ -5,7 +5,8 @@
             "includePath": [
                     "${HOME}/bake3/include",
                     "${HOME}/bake3/include/*/*",
-                    "${HOME}/bake3/test"
+                    "${HOME}/bake3/test",
+                    "${workspaceFolder}/**/test/*/include"
             ],
             "defines": [
                 "_DEBUG",
