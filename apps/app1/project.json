@@ -16,7 +16,10 @@
 			"EgButtons",
 			"EgPhysics",
 			"EgPhysicsBox2d",
+			"EgFs",
+			"EgGlslang",
 			"egmath",
+			"egmisc",
 			"box2d",
 			"egg"
         ],

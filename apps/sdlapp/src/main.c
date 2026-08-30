@@ -8,14 +8,13 @@
 #include <EgGpus.h>
 #include <EgGpusSdl.h>
 
-
-int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
+int main(int argc, char *argv[])
 {
 	ecs_os_set_api_defaults();
 	ecs_os_api_t os_api = ecs_os_get_api();
 	ecs_os_set_api(&os_api);
 
-	ecs_world_t *world = ecs_init();
+	ecs_world_t *world = ecs_init_w_args(argc, argv);
 
 	ECS_IMPORT(world, EgWindows);
 	ECS_IMPORT(world, EgWindowsSdl);
@@ -25,7 +24,6 @@ int main(int argc __attribute__((unused)), char *argv[] __attribute__((unused)))
 	ECS_IMPORT(world, EgDisplaysSdl);
 	ECS_IMPORT(world, EgGpus);
 	ECS_IMPORT(world, EgGpusSdl);
-
 
 	ecs_log_set_level(0);
 	ecs_script_run_file(world, "config/windows.flecs");

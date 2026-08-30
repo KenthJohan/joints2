@@ -23,7 +23,7 @@ int main(int argc, char *argv[])
 	ecs_os_api_t os_api = ecs_os_get_api();
 	ecs_os_set_api(&os_api);
 
-	ecs_world_t *world = ecs_init();
+	ecs_world_t *world = ecs_init_w_args(argc, argv);
 
 	ECS_IMPORT(world, EgShapes);
 	ECS_IMPORT(world, EgSpatials);
