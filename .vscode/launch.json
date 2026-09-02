@@ -13,10 +13,10 @@
 			"environment": [
 				{
 					"name": "LD_LIBRARY_PATH",
-					"value": "${workspaceFolder}/bin/x64-Linux-debug:${env:HOME}/bake3/x64-Linux/debug/lib/:/usr/local/lib/"
+					"value": "${env:HOME}/bake3/x64-Linux/debug/lib/:/usr/local/lib/"
 				},
 			],
-			"program": "${workspaceFolder}/apps/app1/bin/x64-Linux-debug/app1",
+			"program": "${workspaceFolder}/apps/app1/.bake/x64-Linux-debug/app1",
 			"args": [],
 			"osx": {
 				"MIMode": "lldb",
@@ -36,10 +36,33 @@
 			"environment": [
 				{
 					"name": "LD_LIBRARY_PATH",
-					"value": "${workspaceFolder}/bin/x64-Linux-debug:${env:HOME}/bake3/x64-Linux/debug/lib/:/usr/local/lib/"
+					"value": "${env:HOME}/bake3/x64-Linux/debug/lib/:/usr/local/lib/"
 				},
 			],
-			"program": "${workspaceFolder}/apps/sdlapp/bin/x64-Linux-debug/sdlapp",
+			"program": "${workspaceFolder}/apps/sdlapp/.bake/x64-Linux-debug/sdlapp",
+			"args": [],
+			"osx": {
+				"MIMode": "lldb",
+				"targetArchitecture": "arm64",
+				"externalConsole": false,
+			},
+			"linux": {
+				"externalConsole": false,
+			}
+		},
+		{
+			"name": "Launch isatest",
+			"type": "cppdbg",
+			"request": "launch",
+			"stopAtEntry": false,
+			"cwd": "${workspaceFolder}/apps/isatest",
+			"environment": [
+				{
+					"name": "LD_LIBRARY_PATH",
+					"value": "${env:HOME}/bake3/x64-Linux/debug/lib/:/usr/local/lib/",
+				},
+			],
+			"program": "${workspaceFolder}/apps/isatest/.bake/x64-Linux-debug/isatest",
 			"args": [],
 			"osx": {
 				"MIMode": "lldb",
