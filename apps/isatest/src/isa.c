@@ -10,14 +10,57 @@ typedef struct {
 	bool (*input)(ecs_world_t *world, ecs_entity_t iface, ecs_entity_t type, void * value);
 } isa_ifcmd_t;
 
-/** Resolves a "MODE VALUE" operand to a raw value and its type.
+/** Dispatch table mapping a target's component to its `isa_interface_t` handlers.
+ * Populated in `IsaImport` once the component ids are known. */
+static isa_interface_t g_isa_dispatch[2];
+
+/** Finds the `isa_interface_t` matching `iface`'s component and returns the type it requires,
+ * or 0 if any type is allowed (or no matching interface is found). */
+static ecs_entity_t IsaInterface_get_type(
+	ecs_world_t  *world,
+	ecs_entity_t  iface)
+{
+	for (int i = 0; i < 2; i++) {
+		if (ecs_has_id(world, iface, g_isa_dispatch[i].iface)) {
+			return g_isa_dispatch[i].get_type(world, iface);
+		}
+	}
+	return 0;
+}
+
+/** Parses `value` as JSON of `type` into a newly allocated buffer (caller must free). */
+static bool IsaRun_parse_const(
+	ecs_world_t  *world,
+	ecs_entity_t  type,
+	const char   *value,
+	void        **out_value)
+{
+	const EcsComponent *comp = ecs_get(world, type, EcsComponent);
+	if (comp == NULL || comp->size == 0) {
+		return false;
+	}
+
+	void       *buf = ecs_os_malloc(comp->size);
+	const char *ptr = ecs_ptr_from_json(world, type, buf, value, NULL);
+	if (ptr == NULL) {
+		ecs_os_free(buf);
+		return false;
+	}
+
+	*out_value = buf;
+	return true;
+}
+
+/** Resolves a "MODE VALUE" operand targeting `iface` to a raw value and its type.
  * CONST yields the literal text with type 0, unless suffixed with ":<type>"
- * (e.g. "CONST:eg.spatials.Position3"), in which case VALUE is parsed as
- * JSON of that type immediately. POP yields a heap copy of the popped
- * element (caller must free) along with the source stack's type; a
- * ":<type>" suffix on POP asserts the source stack's type matches. */
+ * (e.g. "CONST:eg.spatials.Position3") or `iface` requires a specific type
+ * (via `get_type`), in which case VALUE is parsed as JSON of that type
+ * immediately. POP yields a heap copy of the popped element (caller must
+ * free) along with the source stack's type; a ":<type>" suffix on POP
+ * asserts the source stack's type matches. */
 static bool IsaRun_resolve_operand(
 	ecs_world_t  *world,
+	ecs_entity_t  iface,
 	const char   *mode,
 	const char   *value,
 	ecs_entity_t *out_type,
@@ -43,31 +86,22 @@ static bool IsaRun_resolve_operand(
 	}
 
 	if (!strcmp(base_mode, "CONST")) {
-		if (type_name == NULL) {
+		ecs_entity_t type = type_name ? ecs_lookup(world, type_name) : IsaInterface_get_type(world, iface);
+		if (type_name != NULL && type == 0) {
+			return false;
+		}
+
+		if (type == 0) {
 			*out_type  = 0;
 			*out_value = ecs_os_strdup(value);
 			return true;
 		}
 
-		ecs_entity_t type = ecs_lookup(world, type_name);
-		if (type == 0) {
+		if (!IsaRun_parse_const(world, type, value, out_value)) {
 			return false;
 		}
 
-		const EcsComponent *comp = ecs_get(world, type, EcsComponent);
-		if (comp == NULL || comp->size == 0) {
-			return false;
-		}
-
-		void       *buf = ecs_os_malloc(comp->size);
-		const char *ptr = ecs_ptr_from_json(world, type, buf, value, NULL);
-		if (ptr == NULL) {
-			ecs_os_free(buf);
-			return false;
-		}
-
-		*out_type  = type;
-		*out_value = buf;
+		*out_type = type;
 		return true;
 	}
 
@@ -107,10 +141,6 @@ static bool IsaRun_resolve_operand(
 
 	return false;
 }
-
-/** Dispatch table mapping a target's component to its `isa_interface_t` write handler.
- * Populated in `IsaImport` once the component ids are known. */
-static isa_interface_t g_isa_dispatch[2];
 
 /** "WRITE" callback: finds the `isa_interface_t` matching `iface`'s component and invokes it. */
 static bool IsaInterface_write(
@@ -185,7 +215,7 @@ bool IsaRun(
 
 		ecs_entity_t type;
 		void        *value;
-		if (!IsaRun_resolve_operand(world, mode, value_tok, &type, &value)) {
+		if (!IsaRun_resolve_operand(world, e, mode, value_tok, &type, &value)) {
 			ok = false;
 			continue;
 		}
@@ -256,8 +286,8 @@ void IsaImport(ecs_world_t *world)
 	{.name = "counter", .type = ecs_id(ecs_i32_t)},
 	}});
 
-	g_isa_dispatch[0] = (isa_interface_t){.iface = ecs_id(IsaStack), .write = IsaInterface_write_stack};
-	g_isa_dispatch[1] = (isa_interface_t){.iface = ecs_id(IsaTextStream), .write = IsaInterface_write_stream};
+	g_isa_dispatch[0] = (isa_interface_t){.iface = ecs_id(IsaStack), .get_type = IsaInterface_get_type_stack, .write = IsaInterface_write_stack};
+	g_isa_dispatch[1] = (isa_interface_t){.iface = ecs_id(IsaTextStream), .get_type = IsaInterface_get_type_stream, .write = IsaInterface_write_stream};
 
 	/* Scoped under the module, giving it the full path "isa.Stdout". */
 	ecs_entity_t stdout_e = ecs_entity(world, {.name = "Stdout"});
