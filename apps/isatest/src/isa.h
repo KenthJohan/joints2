@@ -1,9 +1,10 @@
 #pragma once
 #include <flecs.h>
+#include <stdio.h>
 
 typedef enum IsaOp {
 	IsaOpCreateStack,
-	IsaOpPush,
+	IsaOpWrite,
 } IsaOp;
 
 typedef struct {
@@ -13,10 +14,11 @@ typedef struct {
 
 typedef struct {
 	int32_t counter;
-} IsaStdout;
+	FILE   *file;
+} IsaTextStream;
 
 extern ECS_COMPONENT_DECLARE(IsaStack);
-extern ECS_COMPONENT_DECLARE(IsaStdout);
+extern ECS_COMPONENT_DECLARE(IsaTextStream);
 
 /** Parses `json` as a value of `stack->type` and appends it to `stack->vec`. */
 bool IsaStack_push(
@@ -24,7 +26,7 @@ bool IsaStack_push(
 	IsaStack    *stack,
 	const char  *json);
 
-/** Runs an isa script (see p1.isa0) of CREATE_STACK/PUSH/PRINT instructions. */
+/** Runs an isa script (see p1.isa0) of CREATE_STACK/WRITE/PRINT instructions. */
 bool IsaRun(
 	ecs_world_t *world,
 	const char  *script);

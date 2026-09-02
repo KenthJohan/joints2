@@ -2,14 +2,14 @@
 #include <string.h>
 
 ECS_COMPONENT_DECLARE(IsaStack);
-ECS_COMPONENT_DECLARE(IsaStdout);
+ECS_COMPONENT_DECLARE(IsaTextStream);
 
 
 typedef struct {
 	char const * name;
 	// function pointer
 	bool (*input)(ecs_world_t *world, ecs_entity_t iface, ecs_entity_t type, void * value);
-} isa_interface_t;
+} isa_ifcmd_t;
 
 bool IsaStack_push(
 	ecs_world_t *world,
@@ -85,7 +85,7 @@ static bool IsaRun_resolve_operand(
 	return false;
 }
 
-/** IsaStdout "PRINT" callback: prints `value` with an incrementing counter.
+/** IsaTextStream "PRINT" callback: prints `value` with an incrementing counter.
  * `type` 0 means `value` is CONST literal text, otherwise it's a raw component value. */
 static bool IsaInterface_print(
 	ecs_world_t  *world,
@@ -93,10 +93,10 @@ static bool IsaInterface_print(
 	ecs_entity_t  type,
 	void         *value);
 
-/** IsaStack "PUSH" callback: appends `value` onto the `iface` stack.
+/** IsaStack "WRITE" callback: appends `value` onto the `iface` stack.
  * `type` 0 means `value` is CONST literal text, otherwise it's a raw component value.
- * Falls back to printing when `iface` is an `IsaStdout` instead of an `IsaStack`. */
-static bool IsaInterface_push(
+ * Falls back to printing when `iface` is an `IsaTextStream` instead of an `IsaStack`. */
+static bool IsaInterface_write(
 	ecs_world_t  *world,
 	ecs_entity_t  iface,
 	ecs_entity_t  type,
@@ -133,7 +133,7 @@ static bool IsaInterface_push(
 	return ok;
 }
 
-/** IsaStdout "PRINT" callback: prints `value` with an incrementing counter.
+/** IsaTextStream "PRINT" callback: prints `value` with an incrementing counter.
  * `type` 0 means `value` is CONST literal text, otherwise it's a raw component value. */
 static bool IsaInterface_print(
 	ecs_world_t  *world,
@@ -141,26 +141,31 @@ static bool IsaInterface_print(
 	ecs_entity_t  type,
 	void         *value)
 {
-	if (!ecs_has(world, iface, IsaStdout)) {
+	if (!ecs_has(world, iface, IsaTextStream)) {
 		return false;
 	}
 
-	IsaStdout *stdout_comp = ecs_ensure(world, iface, IsaStdout);
+	IsaTextStream *stream = ecs_ensure(world, iface, IsaTextStream);
+	FILE          *file   = stream->file;
+
+	if (file == NULL) {
+		return true;
+	}
 
 	if (type == 0) {
-		printf("[%d] %s\n", stdout_comp->counter++, (const char *)value);
+		fprintf(file, "[%d] %s\n", stream->counter++, (const char *)value);
 	} else {
 		char *json = ecs_ptr_to_json(world, type, value);
-		printf("[%d] %s\n", stdout_comp->counter++, json ? json : "?");
+		fprintf(file, "[%d] %s\n", stream->counter++, json ? json : "?");
 		ecs_os_free(json);
 	}
 
-	ecs_modified(world, iface, IsaStdout);
+	ecs_modified(world, iface, IsaTextStream);
 	return true;
 }
 
-static const isa_interface_t g_isa_interfaces[] = {
-	{.name = "PUSH",  .input = IsaInterface_push},
+static const isa_ifcmd_t g_isa_interfaces[] = {
+	{.name = "WRITE", .input = IsaInterface_write},
 	{.name = "PRINT", .input = IsaInterface_print},
 };
 
@@ -195,7 +200,7 @@ bool IsaRun(
 			continue;
 		}
 
-		const isa_interface_t *iface_def = NULL;
+		const isa_ifcmd_t *iface_def = NULL;
 		for (int i = 0; i < 2; i++) {
 			if (!strcmp(op, g_isa_interfaces[i].name)) {
 				iface_def = &g_isa_interfaces[i];
@@ -275,7 +280,7 @@ void IsaImport(ecs_world_t *world)
 	ecs_set_name_prefix(world, "Isa");
 
 	ECS_COMPONENT_DEFINE(world, IsaStack);
-	ECS_COMPONENT_DEFINE(world, IsaStdout);
+	ECS_COMPONENT_DEFINE(world, IsaTextStream);
 
 	ecs_struct(world,
 	{.entity = ecs_id(IsaStack),
@@ -284,12 +289,12 @@ void IsaImport(ecs_world_t *world)
 	}});
 
 	ecs_struct(world,
-	{.entity = ecs_id(IsaStdout),
+	{.entity = ecs_id(IsaTextStream),
 	.members = {
 	{.name = "counter", .type = ecs_id(ecs_i32_t)},
 	}});
 
 	/* Scoped under the module, giving it the full path "isa.Stdout". */
 	ecs_entity_t stdout_e = ecs_entity(world, {.name = "Stdout"});
-	ecs_set(world, stdout_e, IsaStdout, {.counter = 0});
+	ecs_set(world, stdout_e, IsaTextStream, {.counter = 0, .file = stdout});
 }
