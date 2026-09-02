@@ -11,8 +11,11 @@ typedef struct {
 } isa_ifcmd_t;
 
 /** Resolves a "MODE VALUE" operand to a raw value and its type.
- * CONST yields the literal text with type 0. POP yields a heap copy of the
- * popped element (caller must free) along with the source stack's type. */
+ * CONST yields the literal text with type 0, unless suffixed with ":<type>"
+ * (e.g. "CONST:eg.spatials.Position3"), in which case VALUE is parsed as
+ * JSON of that type immediately. POP yields a heap copy of the popped
+ * element (caller must free) along with the source stack's type; a
+ * ":<type>" suffix on POP asserts the source stack's type matches. */
 static bool IsaRun_resolve_operand(
 	ecs_world_t  *world,
 	const char   *mode,
@@ -24,13 +27,51 @@ static bool IsaRun_resolve_operand(
 		return false;
 	}
 
-	if (!strcmp(mode, "CONST")) {
-		*out_type  = 0;
-		*out_value = ecs_os_strdup(value);
+	char        mode_buf[64];
+	const char *base_mode = mode;
+	const char *type_name = NULL;
+	const char *colon     = strchr(mode, ':');
+	if (colon != NULL) {
+		size_t len = (size_t)(colon - mode);
+		if (len >= sizeof(mode_buf)) {
+			return false;
+		}
+		ecs_os_memcpy(mode_buf, mode, len);
+		mode_buf[len] = '\0';
+		base_mode = mode_buf;
+		type_name = colon + 1;
+	}
+
+	if (!strcmp(base_mode, "CONST")) {
+		if (type_name == NULL) {
+			*out_type  = 0;
+			*out_value = ecs_os_strdup(value);
+			return true;
+		}
+
+		ecs_entity_t type = ecs_lookup(world, type_name);
+		if (type == 0) {
+			return false;
+		}
+
+		const EcsComponent *comp = ecs_get(world, type, EcsComponent);
+		if (comp == NULL || comp->size == 0) {
+			return false;
+		}
+
+		void       *buf = ecs_os_malloc(comp->size);
+		const char *ptr = ecs_ptr_from_json(world, type, buf, value, NULL);
+		if (ptr == NULL) {
+			ecs_os_free(buf);
+			return false;
+		}
+
+		*out_type  = type;
+		*out_value = buf;
 		return true;
 	}
 
-	if (!strcmp(mode, "POP")) {
+	if (!strcmp(base_mode, "POP")) {
 		ecs_entity_t e = ecs_lookup(world, value);
 		if (e == 0 || !ecs_has(world, e, IsaStack)) {
 			return false;
@@ -39,6 +80,13 @@ static bool IsaRun_resolve_operand(
 		IsaStack *stack = ecs_ensure(world, e, IsaStack);
 		if (stack->vec.count == 0) {
 			return false;
+		}
+
+		if (type_name != NULL) {
+			ecs_entity_t expect_type = ecs_lookup(world, type_name);
+			if (expect_type == 0 || expect_type != stack->type) {
+				return false;
+			}
 		}
 
 		const EcsComponent *comp = ecs_get(world, stack->type, EcsComponent);

@@ -15,7 +15,10 @@ WRITE        POSITIONS2 CONST {1,2,3}
 WRITE        POSITIONS2 CONST {1,2,3}
 WRITE        POSITIONS2 POP   POSITIONS1
 
-WRITE        isa.Stdout CONST hello
+WRITE        isa.Stdout CONST:eg.spatials.Position3 {5,5,3}
+WRITE        isa.Stdout CONST:eg.spatials.Position3 {5,5,3}
+WRITE        isa.Stdout CONST:eg.spatials.Position3 {5,5,3}
+WRITE        isa.Stdout CONST:eg.spatials.Position3 {5,5,3}
 WRITE        isa.Stdout POP   POSITIONS2
 
 WRITE        isa.Stdout CONST hello-via-write
