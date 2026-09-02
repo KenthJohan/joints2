@@ -15,8 +15,8 @@ WRITE        POSITIONS2 CONST {1,2,3}
 WRITE        POSITIONS2 CONST {1,2,3}
 WRITE        POSITIONS2 POP   POSITIONS1
 
-PRINT        isa.Stdout CONST hello
-PRINT        isa.Stdout POP   POSITIONS2
+WRITE        isa.Stdout CONST hello
+WRITE        isa.Stdout POP   POSITIONS2
 
 WRITE        isa.Stdout CONST hello-via-write
 WRITE        isa.Stdout POP   POSITIONS2
