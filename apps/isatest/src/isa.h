@@ -11,7 +11,12 @@ typedef struct {
 	ecs_entity_t type;
 } IsaStack;
 
+typedef struct {
+	int32_t counter;
+} IsaStdout;
+
 extern ECS_COMPONENT_DECLARE(IsaStack);
+extern ECS_COMPONENT_DECLARE(IsaStdout);
 
 /** Parses `json` as a value of `stack->type` and appends it to `stack->vec`. */
 bool IsaStack_push(
@@ -19,7 +24,7 @@ bool IsaStack_push(
 	IsaStack    *stack,
 	const char  *json);
 
-/** Runs an isa script (see p1.isa0) of CREATE_STACK/PUSH instructions. */
+/** Runs an isa script (see p1.isa0) of CREATE_STACK/PUSH/PRINT instructions. */
 bool IsaRun(
 	ecs_world_t *world,
 	const char  *script);

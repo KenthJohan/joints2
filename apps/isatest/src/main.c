@@ -26,14 +26,16 @@ int main(int argc, char *argv[])
 	}
 
 	IsaStack_print_all(world);
-	
+
 	ecs_os_free(file_content);
 
 	
+	/*
 	while (1) {
 		ecs_os_sleep(0, 1000 * 1000 * 10);
 		ecs_progress(world, 1.0f / 60.0f);
 	}
+	*/
 	
 	ecs_fini(world);
 
