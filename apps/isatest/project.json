@@ -6,6 +6,7 @@
         "use": [
 			"egmisc",
 			"ecsx",
+			"EgSpatials",
             "flecs"
         ],
         "public": false
@@ -18,6 +19,7 @@
 		"lib": [
 			"egmisc",
 			"ecsx",
+			"EgSpatials",
 			"flecs"
 		],
 		"cflags": [

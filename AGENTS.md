@@ -17,6 +17,13 @@ bake3 rebuild -r
 ```
 
 - For package/library compile checks only, use `bake3 rebuild` to quickly verify the library code builds.
+- To rebuild a specific app or package, pass its bake project path: `bake3 rebuild <bake_project_path>`.
+- Example:
+
+```sh
+bake3 rebuild apps/example
+```
+
 - If public headers (for example `vendor/draw/include/draw.h`) change, run `bake3 rebuild` so the generated headers under `bake3/include/` are refreshed; otherwise stale headers can cause editor/type-check mismatches.
 
 ## Run
@@ -28,14 +35,17 @@ bake3 rebuild -r
 bake3 run
 ```
 
-## Output
+- To run/test a specific app or package, pass its bake project path: `bake3 run <bake_project_path>`.
+- Example:
 
-- The debug binary is written to `bin/x64-Linux-debug/joints2`.
+```sh
+bake3 run apps/example
+```
 
 ## Notes
 
 - The project is configured through `project.json`.
-- Do not invoke `gcc` directly unless the user explicitly asks for a manual build command; prefer `bake` for all normal compile steps.
+- Do not invoke `gcc` directly unless the user explicitly asks for a manual build command; prefer `bake3` for all normal compile steps.
 - In Flecs systems, `ecs_field(it, Type, index)` uses the term order from `.query.terms` (0-based). If you add/reorder terms, update all field indices in the callback to match.
 - In Flecs systems, prefer bringing dependency data in through query terms and `ecs_field(...)` instead of calling `ecs_get(...)` inside the callback when the data can be declared in the system signature.
 
@@ -52,4 +62,4 @@ bake3 run
 - For `AppDraw` symbols, include both searches during refactor validation:
 	- Old/new C symbol names, such as `AppDrawPrintPositionalBinding` and `AppDrawNameAtPositionRule`.
 	- Old/new script symbol names, such as `app.draw.PrintPositionalBinding` and `app.draw.NameAtPositionRule`.
-- After edits, run `bake rebuild` from the repository root to validate compile-time changes.
+- After edits, run `bake3 rebuild -r` from the repository root to validate compile-time changes.
