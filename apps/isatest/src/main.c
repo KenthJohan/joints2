@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
 	printf("Flecs Explorer: %s\n", "https://www.flecs.dev/explorer/?page=rest&host=localhost");
 #endif
 
-	char *file_content = eg_file_load_alloc("data/p1.isa0", NULL);
+	char *file_content = eg_file_load_alloc("data/p2.isa0", NULL);
 	printf("Loaded file content: %s\n", file_content);
 
 	if (!IsaRun(world, file_content)) {

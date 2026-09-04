@@ -5,9 +5,18 @@ ECS_COMPONENT_DECLARE(IsaStack);
 ECS_COMPONENT_DECLARE(IsaTextStream);
 
 typedef struct {
-	char const * name;
+	// If null then any next string is accepted, otherwise only this string must be next.
+	char const *value;
+	bool        required;
+} isa_arg_t;
+
+typedef struct {
+	char const *name;
 	// function pointer
-	bool (*input)(ecs_world_t *world, ecs_entity_t iface, ecs_entity_t type, void * value);
+	bool (*input)(ecs_world_t *world, ecs_entity_t iface, ecs_entity_t type, void *value);
+
+	isa_arg_t args[8];
+	int       arg_count;
 } isa_ifcmd_t;
 
 /** Dispatch table mapping a target's component to its `isa_interface_t` handlers.
@@ -17,8 +26,8 @@ static isa_interface_t g_isa_dispatch[2];
 /** Finds the `isa_interface_t` matching `iface`'s component and returns the type it requires,
  * or 0 if any type is allowed (or no matching interface is found). */
 static ecs_entity_t IsaInterface_get_type(
-	ecs_world_t  *world,
-	ecs_entity_t  iface)
+ecs_world_t *world,
+ecs_entity_t iface)
 {
 	for (int i = 0; i < 2; i++) {
 		if (ecs_has_id(world, iface, g_isa_dispatch[i].iface)) {
@@ -30,10 +39,10 @@ static ecs_entity_t IsaInterface_get_type(
 
 /** Takes one value from the `isa_interface_t` matching `iface`. */
 static bool IsaInterface_take(
-	ecs_world_t  *world,
-	ecs_entity_t  iface,
-	ecs_entity_t *type,
-	void        **value)
+ecs_world_t  *world,
+ecs_entity_t  iface,
+ecs_entity_t *type,
+void        **value)
 {
 	for (int i = 0; i < 2; i++) {
 		if (ecs_has_id(world, iface, g_isa_dispatch[i].iface) && g_isa_dispatch[i].take != NULL) {
@@ -45,10 +54,10 @@ static bool IsaInterface_take(
 
 /** Parses `value` as JSON of `type` into a newly allocated buffer (caller must free). */
 static bool IsaRun_parse_value(
-	ecs_world_t  *world,
-	ecs_entity_t  type,
-	const char   *value,
-	void        **out_value)
+ecs_world_t *world,
+ecs_entity_t type,
+const char  *value,
+void       **out_value)
 {
 	const EcsComponent *comp = ecs_get(world, type, EcsComponent);
 	if (comp == NULL || comp->size == 0) {
@@ -70,11 +79,11 @@ static bool IsaRun_parse_value(
  * A `:<type> <value>` prefix selects an explicit JSON type; otherwise the
  * interface's required type determines whether the value is parsed as JSON. */
 static bool IsaRun_resolve_operand(
-	ecs_world_t  *world,
-	ecs_entity_t  iface,
-	const char   *value,
-	ecs_entity_t *out_type,
-	void        **out_value)
+ecs_world_t  *world,
+ecs_entity_t  iface,
+const char   *value,
+ecs_entity_t *out_type,
+void        **out_value)
 {
 	if (value == NULL) {
 		return false;
@@ -97,10 +106,10 @@ static bool IsaRun_resolve_operand(
 
 /** "WRITE" callback: finds the `isa_interface_t` matching `iface`'s component and invokes it. */
 static bool IsaInterface_write(
-	ecs_world_t  *world,
-	ecs_entity_t  iface,
-	ecs_entity_t  type,
-	void         *value)
+ecs_world_t *world,
+ecs_entity_t iface,
+ecs_entity_t type,
+void        *value)
 {
 	for (int i = 0; i < 2; i++) {
 		if (ecs_has_id(world, iface, g_isa_dispatch[i].iface)) {
@@ -111,19 +120,19 @@ static bool IsaInterface_write(
 }
 
 static const isa_ifcmd_t g_isa_interfaces[] = {
-	{.name = "WRITE", .input = IsaInterface_write},
+{.name = "WRITE", .input = IsaInterface_write},
 };
 
 bool IsaRun(
-	ecs_world_t *world,
-	const char  *script)
+ecs_world_t *world,
+const char  *script)
 {
 	bool  ok       = true;
 	char *buf      = ecs_os_strdup(script);
 	char *line_sav = NULL;
 
 	for (char *line = strtok_r(buf, "\r\n", &line_sav); line != NULL;
-		line = strtok_r(NULL, "\r\n", &line_sav)) {
+	line            = strtok_r(NULL, "\r\n", &line_sav)) {
 		char *tok_sav = NULL;
 		char *op      = strtok_r(line, " \t", &tok_sav);
 		if (op == NULL) {
@@ -131,9 +140,9 @@ bool IsaRun(
 		}
 
 		if (!strcmp(op, "CREATE_STACK")) {
-			char *name      = strtok_r(NULL, " \t", &tok_sav);
-			char *type_name = strtok_r(NULL, " \t", &tok_sav);
-			ecs_entity_t type = (name && type_name) ? ecs_lookup(world, type_name) : 0;
+			char        *name      = strtok_r(NULL, " \t", &tok_sav);
+			char        *type_name = strtok_r(NULL, " \t", &tok_sav);
+			ecs_entity_t type      = (name && type_name) ? ecs_lookup(world, type_name) : 0;
 			if (type == 0) {
 				ok = false;
 				continue;
@@ -144,10 +153,10 @@ bool IsaRun(
 		}
 
 		if (!strcmp(op, "TRANSFER")) {
-			char *dst_name = strtok_r(NULL, " \t", &tok_sav);
-			char *src_name = strtok_r(NULL, " \t", &tok_sav);
-			ecs_entity_t dst = dst_name ? ecs_lookup(world, dst_name) : 0;
-			ecs_entity_t src = src_name ? ecs_lookup(world, src_name) : 0;
+			char        *dst_name = strtok_r(NULL, " \t", &tok_sav);
+			char        *src_name = strtok_r(NULL, " \t", &tok_sav);
+			ecs_entity_t dst      = dst_name ? ecs_lookup(world, dst_name) : 0;
+			ecs_entity_t src      = src_name ? ecs_lookup(world, src_name) : 0;
 			if (dst == 0 || src == 0) {
 				ok = false;
 				continue;
@@ -179,9 +188,9 @@ bool IsaRun(
 			continue;
 		}
 
-		char *interface = strtok_r(NULL, " \t", &tok_sav);
-		char *value_tok = strtok_r(NULL, " \t", &tok_sav);
-		ecs_entity_t e  = interface ? ecs_lookup(world, interface) : 0;
+		char        *interface = strtok_r(NULL, " \t", &tok_sav);
+		char        *value_tok = strtok_r(NULL, " \t", &tok_sav);
+		ecs_entity_t e         = interface ? ecs_lookup(world, interface) : 0;
 		if (e == 0) {
 			ok = false;
 			continue;
@@ -206,7 +215,6 @@ bool IsaRun(
 	return ok;
 }
 
-
 void IsaStack_print_all(ecs_world_t *world)
 {
 	ecs_query_t *q = ecs_query(world, {.terms = {{.id = ecs_id(IsaStack)}}});
@@ -215,14 +223,14 @@ void IsaStack_print_all(ecs_world_t *world)
 	while (ecs_query_next(&it)) {
 		IsaStack *stacks = ecs_field(&it, IsaStack, 0);
 		for (int i = 0; i < it.count; i++) {
-			IsaStack   *stack     = &stacks[i];
-			const char *type_name = ecs_get_name(world, stack->type);
-			const EcsComponent *comp = ecs_get(world, stack->type, EcsComponent);
+			IsaStack           *stack     = &stacks[i];
+			const char         *type_name = ecs_get_name(world, stack->type);
+			const EcsComponent *comp      = ecs_get(world, stack->type, EcsComponent);
 
 			printf("%s: IsaStack { type = %s, count = %d }\n",
-				ecs_get_name(world, it.entities[i]),
-				type_name ? type_name : "?",
-				stack->vec.count);
+			ecs_get_name(world, it.entities[i]),
+			type_name ? type_name : "?",
+			stack->vec.count);
 
 			if (comp == NULL || comp->size == 0) {
 				continue;
