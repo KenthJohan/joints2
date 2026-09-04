@@ -5,7 +5,7 @@ WRITE        CURRENT_SWEEP 7
 
 
 CREATE_STACK POSITIONS1 eg.spatials.Position3
-WRITE        POSITIONS1 {1,2,3}
+WRITE        POSITIONS1 {1,2,3} AS eg.spatials.Position3
 WRITE        POSITIONS1 {1,2,3}
 WRITE        POSITIONS1 {1,2,3}
 

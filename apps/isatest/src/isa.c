@@ -75,12 +75,13 @@ void       **out_value)
 }
 
 /** Resolves a literal `value` targeting `iface` to a raw value and its type.
- * A `:<type> <value>` prefix selects an explicit JSON type; otherwise the
- * interface's required type determines whether the value is parsed as JSON. */
+ * An explicit type takes precedence; otherwise the interface's required type
+ * determines whether the value is parsed as JSON. */
 static bool IsaRun_resolve_operand(
 ecs_world_t  *world,
 ecs_entity_t  iface,
 const char   *value,
+const char   *type_name,
 ecs_entity_t *out_type,
 void        **out_value)
 {
@@ -88,7 +89,10 @@ void        **out_value)
 		return false;
 	}
 
-	ecs_entity_t type = IsaInterface_get_type(world, iface);
+	ecs_entity_t type = type_name ? ecs_lookup(world, type_name) : IsaInterface_get_type(world, iface);
+	if (type_name != NULL && type == 0) {
+		return false;
+	}
 	if (type == 0) {
 		*out_type  = 0;
 		*out_value = ecs_os_strdup(value);
@@ -164,7 +168,10 @@ char        *args[])
 
 	ecs_entity_t type;
 	void        *value;
-	if (!IsaRun_resolve_operand(world, entity, args[1], &type, &value)) {
+	if (args[2] != NULL && args[3] == NULL) {
+		return false;
+	}
+	if (!IsaRun_resolve_operand(world, entity, args[1], args[3], &type, &value)) {
 		return false;
 	}
 
@@ -176,7 +183,7 @@ char        *args[])
 static const isa_ifcmd_t g_isa_interfaces[] = {
 {.name = "CREATE_STACK", .execute = IsaRun_create_stack, .args = {{.required = true}, {.required = true}}, .arg_count = 2},
 {.name = "TRANSFER", .execute = IsaRun_transfer, .args = {{.required = true}, {.required = true}}, .arg_count = 2},
-{.name = "WRITE", .execute = IsaRun_write, .args = {{.required = true}, {.required = true}}, .arg_count = 2},
+{.name = "WRITE", .execute = IsaRun_write, .args = {{.required = true}, {.required = true}, {.value = "AS"}, {}}, .arg_count = 4},
 };
 
 static bool IsaRun_parse_args(

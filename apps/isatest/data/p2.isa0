@@ -1,1 +1,1 @@
-WRITE        isa.Stdout {5,5,3}
+WRITE        isa.Stdout {5,5,3} AS eg.spatials.Position3
