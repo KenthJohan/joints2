@@ -18,6 +18,51 @@ typedef struct {
 	int       arg_count;
 } isa_ifcmd_t;
 
+typedef struct {
+	uint32_t line_number;
+	char * text;
+} isa_line_t;
+
+typedef struct {
+	ecs_vec_t lines; // <isa_line_t>
+} isa_program_t;
+
+static void IsaProgram_parse(
+	char          *script,
+	isa_program_t *program)
+{
+	ecs_vec_init(NULL, &program->lines, sizeof(isa_line_t), 0);
+
+	uint32_t line_number = 1;
+	char    *line_start  = script;
+	for (char *cursor = script;; cursor++) {
+		if (*cursor != '\r' && *cursor != '\n' && *cursor != '\0') {
+			continue;
+		}
+
+		bool finished = *cursor == '\0';
+		if (*cursor == '\r' && cursor[1] == '\n') {
+			cursor++;
+		}
+		*cursor = '\0';
+
+		isa_line_t *line = ecs_vec_append(NULL, &program->lines, sizeof(isa_line_t));
+		line->line_number = line_number++;
+		line->text = line_start;
+
+		if (finished) {
+			break;
+		}
+		line_start = cursor + 1;
+	}
+}
+
+static void IsaProgram_fini(
+	isa_program_t *program)
+{
+	ecs_vec_fini(NULL, &program->lines, sizeof(isa_line_t));
+}
+
 /** Dispatch table mapping a target's component to its `isa_channel_t` handlers.
  * Populated in `IsaImport` once the component ids are known. */
 static isa_channel_t g_isa_dispatch[2];
@@ -210,12 +255,14 @@ bool IsaRun(
 ecs_world_t *world,
 const char  *script)
 {
-	bool  ok       = true;
-	char *buf      = ecs_os_strdup(script);
-	char *line_sav = NULL;
+	bool           ok      = true;
+	char         *buf     = ecs_os_strdup(script);
+	isa_program_t program = {0};
+	IsaProgram_parse(buf, &program);
 
-	for (char *line = strtok_r(buf, "\r\n", &line_sav); line != NULL;
-	     line       = strtok_r(NULL, "\r\n", &line_sav)) {
+	isa_line_t *lines = ecs_vec_first(&program.lines);
+	for (int i = 0; i < program.lines.count; i++) {
+		char *line = lines[i].text;
 		char *tok_sav = NULL;
 		char *op      = strtok_r(line, " \t", &tok_sav);
 		if (op == NULL) {
@@ -240,6 +287,7 @@ const char  *script)
 		}
 	}
 
+	IsaProgram_fini(&program);
 	ecs_os_free(buf);
 	return ok;
 }
