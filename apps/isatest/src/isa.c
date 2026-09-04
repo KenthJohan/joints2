@@ -12,7 +12,7 @@ typedef struct {
 
 typedef struct {
 	char const *name;
-	bool (*input)(ecs_world_t *world, char *args[]);
+	bool (*execute)(ecs_world_t *world, char *args[]);
 
 	isa_arg_t args[8];
 	int       arg_count;
@@ -174,9 +174,9 @@ char        *args[])
 }
 
 static const isa_ifcmd_t g_isa_interfaces[] = {
-{.name = "CREATE_STACK", .input = IsaRun_create_stack, .args = {{.required = true}, {.required = true}}, .arg_count = 2},
-{.name = "TRANSFER", .input = IsaRun_transfer, .args = {{.required = true}, {.required = true}}, .arg_count = 2},
-{.name = "WRITE", .input = IsaRun_write, .args = {{.required = true}, {.required = true}}, .arg_count = 2},
+{.name = "CREATE_STACK", .execute = IsaRun_create_stack, .args = {{.required = true}, {.required = true}}, .arg_count = 2},
+{.name = "TRANSFER", .execute = IsaRun_transfer, .args = {{.required = true}, {.required = true}}, .arg_count = 2},
+{.name = "WRITE", .execute = IsaRun_write, .args = {{.required = true}, {.required = true}}, .arg_count = 2},
 };
 
 static bool IsaRun_parse_args(
@@ -228,7 +228,7 @@ const char  *script)
 		}
 
 		char *args[8];
-		if (!IsaRun_parse_args(iface_def, &tok_sav, args) || !iface_def->input(world, args)) {
+		if (!IsaRun_parse_args(iface_def, &tok_sav, args) || !iface_def->execute(world, args)) {
 			ok = false;
 		}
 	}
