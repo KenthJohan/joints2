@@ -18,11 +18,11 @@ typedef struct {
 	int       arg_count;
 } isa_ifcmd_t;
 
-/** Dispatch table mapping a target's component to its `isa_interface_t` handlers.
+/** Dispatch table mapping a target's component to its `isa_channel_t` handlers.
  * Populated in `IsaImport` once the component ids are known. */
-static isa_interface_t g_isa_dispatch[2];
+static isa_channel_t g_isa_dispatch[2];
 
-/** Finds the `isa_interface_t` matching `iface`'s component and returns the type it requires,
+/** Finds the `isa_channel_t` matching `iface`'s component and returns the type it requires,
  * or 0 if any type is allowed (or no matching interface is found). */
 static ecs_entity_t IsaInterface_get_type(
 ecs_world_t *world,
@@ -36,7 +36,7 @@ ecs_entity_t iface)
 	return 0;
 }
 
-/** Takes one value from the `isa_interface_t` matching `iface`. */
+/** Takes one value from the `isa_channel_t` matching `iface`. */
 static bool IsaInterface_take(
 ecs_world_t  *world,
 ecs_entity_t  iface,
@@ -107,7 +107,7 @@ void        **out_value)
 	return true;
 }
 
-/** "WRITE" callback: finds the `isa_interface_t` matching `iface`'s component and invokes it. */
+/** "WRITE" callback: finds the `isa_channel_t` matching `iface`'s component and invokes it. */
 static bool IsaInterface_write(
 ecs_world_t *world,
 ecs_entity_t iface,
@@ -297,8 +297,8 @@ void IsaImport(ecs_world_t *world)
 	{.name = "counter", .type = ecs_id(ecs_i32_t)},
 	}});
 
-	g_isa_dispatch[0] = (isa_interface_t){.iface = ecs_id(IsaStack), .get_type = IsaInterface_get_type_stack, .write = IsaInterface_write_stack, .take = IsaInterface_take_stack};
-	g_isa_dispatch[1] = (isa_interface_t){.iface = ecs_id(IsaTextStream), .get_type = IsaInterface_get_type_stream, .write = IsaInterface_write_stream};
+	g_isa_dispatch[0] = (isa_channel_t){.iface = ecs_id(IsaStack), .get_type = IsaInterface_get_type_stack, .write = IsaInterface_write_stack, .take = IsaInterface_take_stack};
+	g_isa_dispatch[1] = (isa_channel_t){.iface = ecs_id(IsaTextStream), .get_type = IsaInterface_get_type_stream, .write = IsaInterface_write_stream};
 
 	/* Scoped under the module, giving it the full path "isa.Stdout". */
 	ecs_entity_t stdout_e = ecs_entity(world, {.name = "Stdout"});

@@ -1,6 +1,6 @@
 #include "isa_internal.h"
 
-/** `isa_interface_t` get_type handler for `IsaStack`: values must match the stack's own type. */
+/** `isa_channel_t` get_type handler for `IsaStack`: values must match the stack's own type. */
 ecs_entity_t IsaInterface_get_type_stack(
 	ecs_world_t  *world,
 	ecs_entity_t  entity)
@@ -12,7 +12,7 @@ ecs_entity_t IsaInterface_get_type_stack(
 	return stack->type;
 }
 
-/** `isa_interface_t` write handler for `IsaStack`: appends `value` onto the `entity` stack.
+/** `isa_channel_t` write handler for `IsaStack`: appends `value` onto the `entity` stack.
  * `value` must be a raw component value of `stack->type`. */
 bool IsaInterface_write_stack(
 	ecs_world_t  *world,
@@ -49,7 +49,7 @@ bool IsaInterface_write_stack(
 	return ok;
 }
 
-/** `isa_interface_t` take handler for `IsaStack`: removes and copies its top value. */
+/** `isa_channel_t` take handler for `IsaStack`: removes and copies its top value. */
 bool IsaInterface_take_stack(
 	ecs_world_t  *world,
 	ecs_entity_t  entity,
