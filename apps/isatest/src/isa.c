@@ -215,7 +215,7 @@ const char  *script)
 	char *line_sav = NULL;
 
 	for (char *line = strtok_r(buf, "\r\n", &line_sav); line != NULL;
-	line            = strtok_r(NULL, "\r\n", &line_sav)) {
+	     line       = strtok_r(NULL, "\r\n", &line_sav)) {
 		char *tok_sav = NULL;
 		char *op      = strtok_r(line, " \t", &tok_sav);
 		if (op == NULL) {
@@ -297,8 +297,8 @@ void IsaImport(ecs_world_t *world)
 	{.name = "counter", .type = ecs_id(ecs_i32_t)},
 	}});
 
-	g_isa_dispatch[0] = (isa_channel_t){.iface = ecs_id(IsaStack), .get_type = IsaInterface_get_type_stack, .write = IsaInterface_write_stack, .take = IsaInterface_take_stack};
-	g_isa_dispatch[1] = (isa_channel_t){.iface = ecs_id(IsaTextStream), .get_type = IsaInterface_get_type_stream, .write = IsaInterface_write_stream};
+	g_isa_dispatch[0] = (isa_channel_t){.iface = ecs_id(IsaStack), .get_type = ch_stack_get_type, .write = ch_stack_write, .take = ch_stack_take};
+	g_isa_dispatch[1] = (isa_channel_t){.iface = ecs_id(IsaTextStream), .get_type = ch_stream_get_type, .write = ch_stream_write};
 
 	/* Scoped under the module, giving it the full path "isa.Stdout". */
 	ecs_entity_t stdout_e = ecs_entity(world, {.name = "Stdout"});

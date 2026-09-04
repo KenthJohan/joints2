@@ -11,33 +11,33 @@ typedef struct {
 	bool (*take)(ecs_world_t *world, ecs_entity_t entity, ecs_entity_t *type, void **value);
 } isa_channel_t;
 
-/** `isa_channel_t` get_type handler for `IsaStack`, defined in isa_stack_interface.c. */
-ecs_entity_t IsaInterface_get_type_stack(
-	ecs_world_t  *world,
-	ecs_entity_t  entity);
+/** `isa_channel_t` get_type handler for `IsaStack`, defined in channels/ch_stack_interface.c. */
+ecs_entity_t ch_stack_get_type(
+ecs_world_t *world,
+ecs_entity_t entity);
 
-/** `isa_channel_t` write handler for `IsaStack`, defined in isa_stack_interface.c. */
-bool IsaInterface_write_stack(
-	ecs_world_t  *world,
-	ecs_entity_t  entity,
-	ecs_entity_t  type,
-	void         *value);
+/** `isa_channel_t` write handler for `IsaStack`, defined in channels/ch_stack_interface.c. */
+bool ch_stack_write(
+ecs_world_t *world,
+ecs_entity_t entity,
+ecs_entity_t type,
+void        *value);
 
-/** `isa_channel_t` take handler for `IsaStack`, defined in isa_stack_interface.c. */
-bool IsaInterface_take_stack(
-	ecs_world_t  *world,
-	ecs_entity_t  entity,
-	ecs_entity_t *type,
-	void        **value);
+/** `isa_channel_t` take handler for `IsaStack`, defined in channels/ch_stack_interface.c. */
+bool ch_stack_take(
+ecs_world_t  *world,
+ecs_entity_t  entity,
+ecs_entity_t *type,
+void        **value);
 
-/** `isa_channel_t` get_type handler for `IsaTextStream`, defined in isa_stream_interface.c. */
-ecs_entity_t IsaInterface_get_type_stream(
-	ecs_world_t  *world,
-	ecs_entity_t  entity);
+/** `isa_channel_t` get_type handler for `IsaTextStream`, defined in channels/ch_stream_interface.c. */
+ecs_entity_t ch_stream_get_type(
+ecs_world_t *world,
+ecs_entity_t entity);
 
-/** `isa_channel_t` write handler for `IsaTextStream`, defined in isa_stream_interface.c. */
-bool IsaInterface_write_stream(
-	ecs_world_t  *world,
-	ecs_entity_t  entity,
-	ecs_entity_t  type,
-	void         *value);
+/** `isa_channel_t` write handler for `IsaTextStream`, defined in channels/ch_stream_interface.c. */
+bool ch_stream_write(
+ecs_world_t *world,
+ecs_entity_t entity,
+ecs_entity_t type,
+void        *value);

@@ -4,7 +4,7 @@
 
 typedef struct {
 	egg_t *egg;
-	float pixelScale;
+	float  pixelScale;
 } AppDrawContext;
 
 typedef struct {

@@ -1,9 +1,9 @@
-#include "isa_internal.h"
+#include "../isa_internal.h"
 
 /** `isa_channel_t` get_type handler for `IsaStack`: values must match the stack's own type. */
-ecs_entity_t IsaInterface_get_type_stack(
-	ecs_world_t  *world,
-	ecs_entity_t  entity)
+ecs_entity_t ch_stack_get_type(
+ecs_world_t *world,
+ecs_entity_t entity)
 {
 	if (!ecs_has(world, entity, IsaStack)) {
 		return 0;
@@ -14,11 +14,11 @@ ecs_entity_t IsaInterface_get_type_stack(
 
 /** `isa_channel_t` write handler for `IsaStack`: appends `value` onto the `entity` stack.
  * `value` must be a raw component value of `stack->type`. */
-bool IsaInterface_write_stack(
-	ecs_world_t  *world,
-	ecs_entity_t  entity,
-	ecs_entity_t  type,
-	void         *value)
+bool ch_stack_write(
+ecs_world_t *world,
+ecs_entity_t entity,
+ecs_entity_t type,
+void        *value)
 {
 	if (!ecs_has(world, entity, IsaStack)) {
 		return false;
@@ -50,11 +50,11 @@ bool IsaInterface_write_stack(
 }
 
 /** `isa_channel_t` take handler for `IsaStack`: removes and copies its top value. */
-bool IsaInterface_take_stack(
-	ecs_world_t  *world,
-	ecs_entity_t  entity,
-	ecs_entity_t *type,
-	void        **value)
+bool ch_stack_take(
+ecs_world_t  *world,
+ecs_entity_t  entity,
+ecs_entity_t *type,
+void        **value)
 {
 	if (!ecs_has(world, entity, IsaStack)) {
 		return false;
@@ -76,7 +76,7 @@ bool IsaInterface_take_stack(
 	ecs_vec_remove_last(&stack->vec);
 	ecs_modified(world, entity, IsaStack);
 
-	*type = stack->type;
+	*type  = stack->type;
 	*value = copy;
 	return true;
 }
