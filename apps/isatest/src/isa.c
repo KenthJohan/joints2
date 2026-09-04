@@ -12,8 +12,7 @@ typedef struct {
 
 typedef struct {
 	char const *name;
-	// function pointer
-	bool (*input)(ecs_world_t *world, ecs_entity_t iface, ecs_entity_t type, void *value);
+	bool (*input)(ecs_world_t *world, char *args[]);
 
 	isa_arg_t args[8];
 	int       arg_count;
@@ -119,9 +118,86 @@ void        *value)
 	return false;
 }
 
+static bool IsaRun_create_stack(
+ecs_world_t *world,
+char        *args[])
+{
+	ecs_entity_t type = ecs_lookup(world, args[1]);
+	if (type == 0) {
+		return false;
+	}
+
+	ecs_entity_t entity = ecs_entity(world, {.name = args[0]});
+	ecs_set(world, entity, IsaStack, {.type = type});
+	return true;
+}
+
+static bool IsaRun_transfer(
+ecs_world_t *world,
+char        *args[])
+{
+	ecs_entity_t dst = ecs_lookup(world, args[0]);
+	ecs_entity_t src = ecs_lookup(world, args[1]);
+	if (dst == 0 || src == 0) {
+		return false;
+	}
+
+	ecs_entity_t type;
+	void        *value;
+	if (!IsaInterface_take(world, src, &type, &value)) {
+		return false;
+	}
+
+	bool ok = IsaInterface_write(world, dst, type, value);
+	ecs_os_free(value);
+	return ok;
+}
+
+static bool IsaRun_write(
+ecs_world_t *world,
+char        *args[])
+{
+	ecs_entity_t entity = ecs_lookup(world, args[0]);
+	if (entity == 0) {
+		return false;
+	}
+
+	ecs_entity_t type;
+	void        *value;
+	if (!IsaRun_resolve_operand(world, entity, args[1], &type, &value)) {
+		return false;
+	}
+
+	bool ok = IsaInterface_write(world, entity, type, value);
+	ecs_os_free(value);
+	return ok;
+}
+
 static const isa_ifcmd_t g_isa_interfaces[] = {
-{.name = "WRITE", .input = IsaInterface_write},
+{.name = "CREATE_STACK", .input = IsaRun_create_stack, .args = {{.required = true}, {.required = true}}, .arg_count = 2},
+{.name = "TRANSFER", .input = IsaRun_transfer, .args = {{.required = true}, {.required = true}}, .arg_count = 2},
+{.name = "WRITE", .input = IsaRun_write, .args = {{.required = true}, {.required = true}}, .arg_count = 2},
 };
+
+static bool IsaRun_parse_args(
+const isa_ifcmd_t *cmd,
+char             **saveptr,
+char              *args[])
+{
+	for (int i = 0; i < cmd->arg_count; i++) {
+		args[i] = strtok_r(NULL, " \t", saveptr);
+		if (args[i] == NULL) {
+			if (cmd->args[i].required) {
+				return false;
+			}
+			continue;
+		}
+		if (cmd->args[i].value != NULL && strcmp(args[i], cmd->args[i].value)) {
+			return false;
+		}
+	}
+	return true;
+}
 
 bool IsaRun(
 ecs_world_t *world,
@@ -139,45 +215,8 @@ const char  *script)
 			continue;
 		}
 
-		if (!strcmp(op, "CREATE_STACK")) {
-			char        *name      = strtok_r(NULL, " \t", &tok_sav);
-			char        *type_name = strtok_r(NULL, " \t", &tok_sav);
-			ecs_entity_t type      = (name && type_name) ? ecs_lookup(world, type_name) : 0;
-			if (type == 0) {
-				ok = false;
-				continue;
-			}
-			ecs_entity_t e = ecs_entity(world, {.name = name});
-			ecs_set(world, e, IsaStack, {.type = type});
-			continue;
-		}
-
-		if (!strcmp(op, "TRANSFER")) {
-			char        *dst_name = strtok_r(NULL, " \t", &tok_sav);
-			char        *src_name = strtok_r(NULL, " \t", &tok_sav);
-			ecs_entity_t dst      = dst_name ? ecs_lookup(world, dst_name) : 0;
-			ecs_entity_t src      = src_name ? ecs_lookup(world, src_name) : 0;
-			if (dst == 0 || src == 0) {
-				ok = false;
-				continue;
-			}
-
-			ecs_entity_t type;
-			void        *value;
-			if (!IsaInterface_take(world, src, &type, &value)) {
-				ok = false;
-				continue;
-			}
-
-			if (!IsaInterface_write(world, dst, type, value)) {
-				ok = false;
-			}
-			ecs_os_free(value);
-			continue;
-		}
-
 		const isa_ifcmd_t *iface_def = NULL;
-		for (int i = 0; i < 1; i++) {
+		for (int i = 0; i < (int)(sizeof(g_isa_interfaces) / sizeof(g_isa_interfaces[0])); i++) {
 			if (!strcmp(op, g_isa_interfaces[i].name)) {
 				iface_def = &g_isa_interfaces[i];
 				break;
@@ -188,27 +227,10 @@ const char  *script)
 			continue;
 		}
 
-		char        *interface = strtok_r(NULL, " \t", &tok_sav);
-		char        *value_tok = strtok_r(NULL, " \t", &tok_sav);
-		ecs_entity_t e         = interface ? ecs_lookup(world, interface) : 0;
-		if (e == 0) {
+		char *args[8];
+		if (!IsaRun_parse_args(iface_def, &tok_sav, args) || !iface_def->input(world, args)) {
 			ok = false;
-			continue;
 		}
-
-		ecs_entity_t type;
-		void        *value;
-		if (!IsaRun_resolve_operand(world, e, value_tok, &type, &value)) {
-			ok = false;
-			continue;
-		}
-
-		if (!iface_def->input(world, e, type, value)) {
-			ecs_os_free(value);
-			ok = false;
-			continue;
-		}
-		ecs_os_free(value);
 	}
 
 	ecs_os_free(buf);
