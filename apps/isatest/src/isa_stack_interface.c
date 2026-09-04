@@ -48,3 +48,35 @@ bool IsaInterface_write_stack(
 	}
 	return ok;
 }
+
+/** `isa_interface_t` take handler for `IsaStack`: removes and copies its top value. */
+bool IsaInterface_take_stack(
+	ecs_world_t  *world,
+	ecs_entity_t  entity,
+	ecs_entity_t *type,
+	void        **value)
+{
+	if (!ecs_has(world, entity, IsaStack)) {
+		return false;
+	}
+
+	IsaStack *stack = ecs_ensure(world, entity, IsaStack);
+	if (stack->vec.count == 0) {
+		return false;
+	}
+
+	const EcsComponent *comp = ecs_get(world, stack->type, EcsComponent);
+	if (comp == NULL || comp->size == 0) {
+		return false;
+	}
+
+	void *elem = ecs_vec_get(&stack->vec, comp->size, stack->vec.count - 1);
+	void *copy = ecs_os_malloc(comp->size);
+	ecs_os_memcpy(copy, elem, comp->size);
+	ecs_vec_remove_last(&stack->vec);
+	ecs_modified(world, entity, IsaStack);
+
+	*type = stack->type;
+	*value = copy;
+	return true;
+}

@@ -11,7 +11,7 @@ ecs_entity_t IsaInterface_get_type_stream(
 }
 
 /** `isa_interface_t` write handler for `IsaTextStream`: prints `value` with an incrementing counter.
- * `type` 0 means `value` is CONST literal text, otherwise it's a raw component value. */
+ * `type` 0 means `value` is literal text, otherwise it's a raw component value. */
 bool IsaInterface_write_stream(
 	ecs_world_t  *world,
 	ecs_entity_t  entity,

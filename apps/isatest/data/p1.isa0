@@ -1,27 +1,27 @@
-CREATE_STACK CURRENT_SWEEP CONST flecs.meta.f32
-WRITE        CURRENT_SWEEP CONST 1
-WRITE        CURRENT_SWEEP CONST 4
-WRITE        CURRENT_SWEEP CONST 7
+CREATE_STACK CURRENT_SWEEP flecs.meta.f32
+WRITE        CURRENT_SWEEP 1
+WRITE        CURRENT_SWEEP 4
+WRITE        CURRENT_SWEEP 7
 
 
-CREATE_STACK POSITIONS1 CONST eg.spatials.Position3
-WRITE        POSITIONS1 CONST {1,2,3}
-WRITE        POSITIONS1 CONST {1,2,3}
-WRITE        POSITIONS1 CONST {1,2,3}
+CREATE_STACK POSITIONS1 eg.spatials.Position3
+WRITE        POSITIONS1 {1,2,3}
+WRITE        POSITIONS1 {1,2,3}
+WRITE        POSITIONS1 {1,2,3}
 
 
-CREATE_STACK POSITIONS2 CONST eg.spatials.Position3
-WRITE        POSITIONS2 CONST {1,2,3}
-WRITE        POSITIONS2 CONST {1,2,3}
-WRITE        POSITIONS2 POP   POSITIONS1
+CREATE_STACK POSITIONS2 eg.spatials.Position3
+WRITE        POSITIONS2 {1,2,3}
+WRITE        POSITIONS2 {1,2,3}
+TRANSFER     POSITIONS2       POSITIONS1
 
-WRITE        isa.Stdout CONST:eg.spatials.Position3 {5,5,3}
-WRITE        isa.Stdout CONST:eg.spatials.Position3 {5,5,3}
-WRITE        isa.Stdout CONST:eg.spatials.Position3 {5,5,3}
-WRITE        isa.Stdout CONST:eg.spatials.Position3 {5,5,3}
-WRITE        isa.Stdout POP   POSITIONS2
+WRITE        isa.Stdout {5,5,3}
+WRITE        isa.Stdout {5,5,3}
+WRITE        isa.Stdout {5,5,3}
+WRITE        isa.Stdout {5,5,3}
+TRANSFER     isa.Stdout       POSITIONS2
 
-WRITE        isa.Stdout CONST hello-via-write
-WRITE        isa.Stdout POP   POSITIONS2
+WRITE        isa.Stdout hello-via-write
+TRANSFER     isa.Stdout       POSITIONS2
 
 
