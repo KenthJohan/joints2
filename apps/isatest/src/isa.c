@@ -299,6 +299,18 @@ void IsaStack_print_all(ecs_world_t *world)
 	ecs_query_fini(q);
 }
 
+static void IsaStack_on_set(ecs_iter_t *it)
+{
+	IsaStack *stacks = ecs_field(it, IsaStack, 0);
+	for (int i = 0; i < it->count; i++) {
+		IsaStack *stack = &stacks[i];
+		const EcsComponent *comp = ecs_get(it->world, stack->type, EcsComponent);
+		if (comp != NULL && comp->size != 0 && stack->vec.array == NULL) {
+			ecs_vec_init_if(&stack->vec, comp->size);
+		}
+	}
+}
+
 void IsaImport(ecs_world_t *world)
 {
 	ECS_MODULE(world, Isa);
@@ -311,6 +323,9 @@ void IsaImport(ecs_world_t *world)
 	ECS_COMPONENT_DEFINE(world, IsaArg);
 	ECS_COMPONENT_DEFINE(world, IsaCmd);
 	ECS_COMPONENT_DEFINE(world, IsaChannel);
+	ecs_set_hooks(world, IsaStack, {
+		.on_set = IsaStack_on_set
+	});
 
 	ecs_struct(world,
 	{.entity = ecs_id(IsaStack),

@@ -20,52 +20,40 @@ ecs_entity_t ch_stack_get_take_type(ecs_world_t *world, ecs_entity_t entity)
  * `value.ptr` must be a raw component value of `stack->type`. */
 bool ch_stack_write(ecs_world_t *world, ecs_entity_t entity, ecs_value_t value)
 {
-	if (!ecs_has(world, entity, IsaStack)) {
-		return false;
-	}
+	IsaStack *stack = ecs_get_mut(world, entity, IsaStack);
+	ecs_assert(stack != NULL, ECS_INVALID_PARAMETER, NULL);
+	ecs_assert(value.ptr != NULL, ECS_INVALID_PARAMETER, NULL);
+	ecs_assert(value.type != 0, ECS_INVALID_PARAMETER, NULL);
+	ecs_assert(stack->type != 0, ECS_INVALID_PARAMETER, NULL);
+	ecs_assert(value.type == stack->type, ECS_INVALID_PARAMETER, NULL);
+	
+	const EcsComponent *comp = ecs_get(world, stack->type, EcsComponent);
+	ecs_assert(comp != NULL, ECS_INVALID_PARAMETER, NULL);
+	ecs_assert(comp->size != 0, ECS_INVALID_PARAMETER, NULL);
 
-	IsaStack *stack = ecs_ensure(world, entity, IsaStack);
-	bool      ok;
+	void *elem = ecs_vec_append(NULL, &stack->vec, comp->size);
+	ecs_os_memcpy(elem, value.ptr, comp->size);
 
-	if (value.type == stack->type) {
-		const EcsComponent *comp = ecs_get(world, stack->type, EcsComponent);
-		if (comp != NULL && comp->size != 0) {
-			if (stack->vec.size == 0) {
-				ecs_vec_init(NULL, &stack->vec, comp->size, 0);
-			}
-			void *elem = ecs_vec_append(NULL, &stack->vec, comp->size);
-			ecs_os_memcpy(elem, value.ptr, comp->size);
-			ok = true;
-		} else {
-			ok = false;
-		}
-	} else {
-		ok = false;
-	}
-
-	if (ok) {
-		ecs_modified(world, entity, IsaStack);
-	}
-	return ok;
+	ecs_modified(world, entity, IsaStack);
+	return true;
 }
 
 /** `isa_channel_t` take handler for `IsaStack`: removes and copies its top value. */
 bool ch_stack_take(ecs_world_t *world, ecs_entity_t entity, ecs_value_t *value)
 {
-	if (!ecs_has(world, entity, IsaStack)) {
-		return false;
-	}
+	IsaStack *stack = ecs_get_mut(world, entity, IsaStack);
+	ecs_assert(stack != NULL, ECS_INVALID_PARAMETER, NULL);
+	ecs_assert(stack->type != 0, ECS_INVALID_PARAMETER, NULL);
 
-	IsaStack *stack = ecs_ensure(world, entity, IsaStack);
+	// Return false if the stack is empty.
 	if (stack->vec.count == 0) {
 		return false;
 	}
 
 	const EcsComponent *comp = ecs_get(world, stack->type, EcsComponent);
-	if (comp == NULL || comp->size == 0) {
-		return false;
-	}
-
+	ecs_assert(comp != NULL, ECS_INVALID_PARAMETER, NULL);
+	ecs_assert(comp->size != 0, ECS_INVALID_PARAMETER, NULL);
+	
 	void *elem = ecs_vec_get(&stack->vec, comp->size, stack->vec.count - 1);
 	void *copy = ecs_os_malloc(comp->size);
 	ecs_os_memcpy(copy, elem, comp->size);
