@@ -98,7 +98,7 @@ static bool IsaInterface_take(ecs_world_t *world, ecs_entity_t iface, ecs_value_
 	return channel && channel->take ? channel->take(world, iface, value) : false;
 }
 
-/** Parses `value` as JSON of `type` into a newly allocated buffer (caller must free). */
+/** Parses `value` as an expression of `type` into a newly allocated buffer (caller must free with ecs_ptr_free). */
 static bool IsaRun_parse_value(ecs_world_t *world, ecs_entity_t type, const char *value, void **out_value)
 {
 	const EcsComponent *comp = ecs_get(world, type, EcsComponent);
@@ -106,15 +106,13 @@ static bool IsaRun_parse_value(ecs_world_t *world, ecs_entity_t type, const char
 		return false;
 	}
 
-	/* Must be zeroed: types like strings free their previous value before assigning. */
-	void       *buf = ecs_os_calloc(comp->size);
-	const char *ptr = ecs_ptr_from_json(world, type, buf, value, NULL);
-	if (ptr == NULL) {
-		ecs_os_free(buf);
+	ecs_value_t           result = {.type = type};
+	ecs_expr_eval_desc_t  desc   = {.expr = value};
+	if (ecs_expr_run(world, value, &result, &desc) == NULL) {
 		return false;
 	}
 
-	*out_value = buf;
+	*out_value = result.ptr;
 	return true;
 }
 
@@ -179,7 +177,11 @@ static bool IsaRun_transfer(ecs_world_t *world, char *args[])
 	}
 
 	bool ok = IsaInterface_write(world, dst, value);
-	ecs_os_free(value.ptr);
+	if (value.type != 0) {
+		ecs_ptr_free(world, value.type, value.ptr);
+	} else {
+		ecs_os_free(value.ptr);
+	}
 	return ok;
 }
 
@@ -200,7 +202,11 @@ static bool IsaRun_write(ecs_world_t *world, char *args[])
 	}
 
 	bool ok = IsaInterface_write(world, entity, (ecs_value_t){.type = type, .ptr = value});
-	ecs_os_free(value);
+	if (type != 0) {
+		ecs_ptr_free(world, type, value);
+	} else {
+		ecs_os_free(value);
+	}
 	return ok;
 }
 
@@ -222,7 +228,7 @@ static bool IsaRun_parse_args(ecs_world_t *world, const IsaCmd *cmd, char **save
 			if (!IsaRun_parse_value(world, cmd->args[i].required_type, args[i], &parsed)) {
 				return false;
 			}
-			ecs_os_free(parsed);
+			ecs_ptr_free(world, cmd->args[i].required_type, parsed);
 		}
 	}
 	return true;
