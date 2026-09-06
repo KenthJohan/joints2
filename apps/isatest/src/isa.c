@@ -4,6 +4,8 @@
 ECS_COMPONENT_DECLARE(IsaStack);
 ECS_COMPONENT_DECLARE(IsaTextStream);
 ECS_COMPONENT_DECLARE(IsaTransferConfig);
+static ECS_COMPONENT_DECLARE(IsaArg);
+static ECS_COMPONENT_DECLARE(IsaCmd);
 
 typedef struct {
 	// If null then any next string is accepted, otherwise only this string must be next.
@@ -11,15 +13,17 @@ typedef struct {
 	bool        required;
 	// If zero the value can be anything, otherwise it must parse as JSON of this type.
 	ecs_id_t required_type;
-} isa_arg_t;
+} IsaArg;
 
 typedef struct {
-	char const *name;
 	bool (*execute)(ecs_world_t *world, char *args[]);
 
-	isa_arg_t args[8];
-	int       arg_count;
-} isa_ifcmd_t;
+	IsaArg args[8];
+	int     arg_count;
+} IsaCmd;
+
+/** Module entity, used to look up command entities registered as its children by name. */
+static ecs_entity_t g_isa_module;
 
 typedef struct {
 	uint32_t line_number;
@@ -198,13 +202,7 @@ static bool IsaRun_write(ecs_world_t *world, char *args[])
 	return ok;
 }
 
-static isa_ifcmd_t g_isa_interfaces[] = {
-{.name = "CREATE_STACK", .execute = IsaRun_create_stack, .args = {{.required = true}, {.required = true}}, .arg_count = 2},
-{.name = "TRANSFER", .execute = IsaRun_transfer, .args = {{.required = true}, {.required = true}, {0}}, .arg_count = 3},
-{.name = "WRITE", .execute = IsaRun_write, .args = {{.required = true}, {.required = true}, {.value = "AS"}, {}}, .arg_count = 4},
-};
-
-static bool IsaRun_parse_args(ecs_world_t *world, const isa_ifcmd_t *cmd, char **saveptr, char *args[])
+static bool IsaRun_parse_args(ecs_world_t *world, const IsaCmd *cmd, char **saveptr, char *args[])
 {
 	for (int i = 0; i < cmd->arg_count; i++) {
 		args[i] = strtok_r(NULL, " \t", saveptr);
@@ -244,20 +242,15 @@ bool IsaRun(ecs_world_t *world, const char *script)
 			continue;
 		}
 
-		const isa_ifcmd_t *iface_def = NULL;
-		for (int i = 0; i < (int)(sizeof(g_isa_interfaces) / sizeof(g_isa_interfaces[0])); i++) {
-			if (!strcmp(op, g_isa_interfaces[i].name)) {
-				iface_def = &g_isa_interfaces[i];
-				break;
-			}
-		}
-		if (iface_def == NULL) {
+		ecs_entity_t cmd_entity = ecs_lookup_child(world, g_isa_module, op);
+		const IsaCmd *cmd       = cmd_entity ? ecs_get(world, cmd_entity, IsaCmd) : NULL;
+		if (cmd == NULL) {
 			ok = false;
 			continue;
 		}
 
 		char *args[8];
-		if (!IsaRun_parse_args(world, iface_def, &tok_sav, args) || !iface_def->execute(world, args)) {
+		if (!IsaRun_parse_args(world, cmd, &tok_sav, args) || !cmd->execute(world, args)) {
 			ok = false;
 		}
 	}
@@ -304,10 +297,13 @@ void IsaImport(ecs_world_t *world)
 {
 	ECS_MODULE(world, Isa);
 	ecs_set_name_prefix(world, "Isa");
+	g_isa_module = ecs_id(Isa);
 
 	ECS_COMPONENT_DEFINE(world, IsaStack);
 	ECS_COMPONENT_DEFINE(world, IsaTextStream);
 	ECS_COMPONENT_DEFINE(world, IsaTransferConfig);
+	ECS_COMPONENT_DEFINE(world, IsaArg);
+	ECS_COMPONENT_DEFINE(world, IsaCmd);
 
 	ecs_struct(world,
 	{.entity = ecs_id(IsaStack),
@@ -330,7 +326,14 @@ void IsaImport(ecs_world_t *world)
 	g_isa_dispatch[0] = (isa_channel_t){.iface = ecs_id(IsaStack), .get_write_type = ch_stack_get_write_type, .get_take_type = ch_stack_get_take_type, .write = ch_stack_write, .take = ch_stack_take};
 	g_isa_dispatch[1] = (isa_channel_t){.iface = ecs_id(IsaTextStream), .get_write_type = ch_stream_get_write_type, .write = ch_stream_write};
 
-	g_isa_interfaces[1].args[2].required_type = ecs_id(IsaTransferConfig);
+	ecs_entity_t create_stack_cmd = ecs_entity(world, {.name = "CREATE_STACK"});
+	ecs_set(world, create_stack_cmd, IsaCmd, {.execute = IsaRun_create_stack, .args = {{.required = true}, {.required = true}}, .arg_count = 2});
+
+	ecs_entity_t transfer_cmd = ecs_entity(world, {.name = "TRANSFER"});
+	ecs_set(world, transfer_cmd, IsaCmd, {.execute = IsaRun_transfer, .args = {{.required = true}, {.required = true}, {.required_type = ecs_id(IsaTransferConfig)}}, .arg_count = 3});
+
+	ecs_entity_t write_cmd = ecs_entity(world, {.name = "WRITE"});
+	ecs_set(world, write_cmd, IsaCmd, {.execute = IsaRun_write, .args = {{.required = true}, {.required = true}, {.value = "AS"}, {}}, .arg_count = 4});
 
 	/* Scoped under the module, giving it the full path "isa.Stdout". */
 	ecs_entity_t stdout_e = ecs_entity(world, {.name = "Stdout"});
