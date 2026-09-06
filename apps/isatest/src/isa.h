@@ -12,8 +12,13 @@ typedef struct {
 	FILE   *file;
 } IsaTextStream;
 
+typedef struct {
+	float timeout;
+} IsaTransferConfig;
+
 extern ECS_COMPONENT_DECLARE(IsaStack);
 extern ECS_COMPONENT_DECLARE(IsaTextStream);
+extern ECS_COMPONENT_DECLARE(IsaTransferConfig);
 
 /** Runs an isa script (see p1.isa0) of CREATE_STACK/WRITE/PRINT instructions. */
 bool IsaRun(

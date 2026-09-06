@@ -3,11 +3,14 @@
 
 ECS_COMPONENT_DECLARE(IsaStack);
 ECS_COMPONENT_DECLARE(IsaTextStream);
+ECS_COMPONENT_DECLARE(IsaTransferConfig);
 
 typedef struct {
 	// If null then any next string is accepted, otherwise only this string must be next.
 	char const *value;
 	bool        required;
+	// If zero the value can be anything, otherwise it must parse as JSON of this type.
+	ecs_id_t required_type;
 } isa_arg_t;
 
 typedef struct {
@@ -195,13 +198,13 @@ static bool IsaRun_write(ecs_world_t *world, char *args[])
 	return ok;
 }
 
-static const isa_ifcmd_t g_isa_interfaces[] = {
+static isa_ifcmd_t g_isa_interfaces[] = {
 {.name = "CREATE_STACK", .execute = IsaRun_create_stack, .args = {{.required = true}, {.required = true}}, .arg_count = 2},
-{.name = "TRANSFER", .execute = IsaRun_transfer, .args = {{.required = true}, {.required = true}}, .arg_count = 2},
+{.name = "TRANSFER", .execute = IsaRun_transfer, .args = {{.required = true}, {.required = true}, {0}}, .arg_count = 3},
 {.name = "WRITE", .execute = IsaRun_write, .args = {{.required = true}, {.required = true}, {.value = "AS"}, {}}, .arg_count = 4},
 };
 
-static bool IsaRun_parse_args(const isa_ifcmd_t *cmd, char **saveptr, char *args[])
+static bool IsaRun_parse_args(ecs_world_t *world, const isa_ifcmd_t *cmd, char **saveptr, char *args[])
 {
 	for (int i = 0; i < cmd->arg_count; i++) {
 		args[i] = strtok_r(NULL, " \t", saveptr);
@@ -213,6 +216,13 @@ static bool IsaRun_parse_args(const isa_ifcmd_t *cmd, char **saveptr, char *args
 		}
 		if (cmd->args[i].value != NULL && strcmp(args[i], cmd->args[i].value)) {
 			return false;
+		}
+		if (cmd->args[i].required_type != 0) {
+			void *parsed = NULL;
+			if (!IsaRun_parse_value(world, cmd->args[i].required_type, args[i], &parsed)) {
+				return false;
+			}
+			ecs_os_free(parsed);
 		}
 	}
 	return true;
@@ -247,7 +257,7 @@ bool IsaRun(ecs_world_t *world, const char *script)
 		}
 
 		char *args[8];
-		if (!IsaRun_parse_args(iface_def, &tok_sav, args) || !iface_def->execute(world, args)) {
+		if (!IsaRun_parse_args(world, iface_def, &tok_sav, args) || !iface_def->execute(world, args)) {
 			ok = false;
 		}
 	}
@@ -297,6 +307,7 @@ void IsaImport(ecs_world_t *world)
 
 	ECS_COMPONENT_DEFINE(world, IsaStack);
 	ECS_COMPONENT_DEFINE(world, IsaTextStream);
+	ECS_COMPONENT_DEFINE(world, IsaTransferConfig);
 
 	ecs_struct(world,
 	{.entity = ecs_id(IsaStack),
@@ -310,8 +321,16 @@ void IsaImport(ecs_world_t *world)
 	{.name = "counter", .type = ecs_id(ecs_i32_t)},
 	}});
 
+	ecs_struct(world,
+	{.entity = ecs_id(IsaTransferConfig),
+	.members = {
+	{.name = "timeout", .type = ecs_id(ecs_f32_t)},
+	}});
+
 	g_isa_dispatch[0] = (isa_channel_t){.iface = ecs_id(IsaStack), .get_write_type = ch_stack_get_write_type, .get_take_type = ch_stack_get_take_type, .write = ch_stack_write, .take = ch_stack_take};
 	g_isa_dispatch[1] = (isa_channel_t){.iface = ecs_id(IsaTextStream), .get_write_type = ch_stream_get_write_type, .write = ch_stream_write};
+
+	g_isa_interfaces[1].args[2].required_type = ecs_id(IsaTransferConfig);
 
 	/* Scoped under the module, giving it the full path "isa.Stdout". */
 	ecs_entity_t stdout_e = ecs_entity(world, {.name = "Stdout"});
