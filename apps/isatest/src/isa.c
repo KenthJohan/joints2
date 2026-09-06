@@ -91,13 +91,6 @@ static ecs_entity_t IsaInterface_get_write_type(ecs_world_t *world, ecs_entity_t
 	return channel ? channel->get_write_type(world, iface) : 0;
 }
 
-/** Takes one value from the `IsaChannel` matching `iface`. */
-static bool IsaInterface_take(ecs_world_t *world, ecs_entity_t iface, ecs_value_t *value)
-{
-	const IsaChannel *channel = ecs_get(world, iface, IsaChannel);
-	return channel && channel->take ? channel->take(world, iface, value) : false;
-}
-
 /** Parses `value` as an expression of `type` into a newly allocated buffer (caller must free with ecs_ptr_free). */
 static bool IsaRun_parse_value(ecs_world_t *world, ecs_entity_t type, const char *value, void **out_value)
 {
@@ -143,13 +136,6 @@ static bool IsaRun_resolve_operand(ecs_world_t *world, ecs_entity_t iface, const
 	return true;
 }
 
-/** "WRITE" callback: finds the `IsaChannel` matching `iface`'s component and invokes it. */
-static bool IsaInterface_write(ecs_world_t *world, ecs_entity_t iface, ecs_value_t value)
-{
-	const IsaChannel *channel = ecs_get(world, iface, IsaChannel);
-	return channel ? channel->write(world, iface, value) : false;
-}
-
 static bool IsaRun_create_stack(ecs_world_t *world, char *args[])
 {
 	ecs_entity_t type = ecs_lookup(world, args[1]);
@@ -170,19 +156,30 @@ static bool IsaRun_transfer(ecs_world_t *world, char *args[])
 	if (dst == 0 || src == 0) {
 		return false;
 	}
-	
+	const IsaChannel *src_channel = ecs_get(world, src, IsaChannel);
+	const IsaChannel *dst_channel = ecs_get(world, dst, IsaChannel);
+	ecs_assert(src_channel != NULL, ECS_INVALID_PARAMETER, NULL);
+	ecs_assert(src_channel->take != NULL, ECS_INVALID_PARAMETER, NULL);
+	ecs_assert(dst_channel != NULL, ECS_INVALID_PARAMETER, NULL);
+	ecs_assert(dst_channel->write != NULL, ECS_INVALID_PARAMETER, NULL);
+
 	ecs_value_t value = {0};
-	if (!IsaInterface_take(world, src, &value)) {
+	bool result;
+
+	result = src_channel->take(world, src, &value);
+	if (!result) {
 		return false;
 	}
 
-	bool ok = IsaInterface_write(world, dst, value);
+	result = dst_channel->write(world, dst, value);
+
+	// After writing, free the value regardless of the result
 	if (value.type != 0) {
 		ecs_ptr_free(world, value.type, value.ptr);
 	} else {
 		ecs_os_free(value.ptr);
 	}
-	return ok;
+	return result;
 }
 
 static bool IsaRun_write(ecs_world_t *world, char *args[])
@@ -201,7 +198,8 @@ static bool IsaRun_write(ecs_world_t *world, char *args[])
 		return false;
 	}
 
-	bool ok = IsaInterface_write(world, entity, (ecs_value_t){.type = type, .ptr = value});
+	const IsaChannel *channel = ecs_get(world, entity, IsaChannel);
+	bool ok = channel ? channel->write(world, entity, (ecs_value_t){.type = type, .ptr = value}) : false;
 	if (type != 0) {
 		ecs_ptr_free(world, type, value);
 	} else {
