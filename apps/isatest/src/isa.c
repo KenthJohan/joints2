@@ -27,9 +27,7 @@ typedef struct {
 	ecs_vec_t lines; // <isa_line_t>
 } isa_program_t;
 
-static void IsaProgram_parse(
-char          *script,
-isa_program_t *program)
+static void IsaProgram_parse(char *script, isa_program_t *program)
 {
 	ecs_vec_init(NULL, &program->lines, sizeof(isa_line_t), 0);
 
@@ -57,8 +55,7 @@ isa_program_t *program)
 	}
 }
 
-static void IsaProgram_fini(
-isa_program_t *program)
+static void IsaProgram_fini(isa_program_t *program)
 {
 	ecs_vec_fini(NULL, &program->lines, sizeof(isa_line_t));
 }
