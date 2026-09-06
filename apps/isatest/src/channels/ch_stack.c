@@ -25,7 +25,9 @@ bool ch_stack_write(ecs_world_t *world, ecs_entity_t entity, ecs_value_t value)
 	ecs_assert(value.ptr != NULL, ECS_INVALID_PARAMETER, NULL);
 	ecs_assert(value.type != 0, ECS_INVALID_PARAMETER, NULL);
 	ecs_assert(stack->type != 0, ECS_INVALID_PARAMETER, NULL);
-	ecs_assert(value.type == stack->type, ECS_INVALID_PARAMETER, NULL);
+	if (value.type != stack->type) {
+		return false;
+	}
 	
 	const EcsComponent *comp = ecs_get(world, stack->type, EcsComponent);
 	ecs_assert(comp != NULL, ECS_INVALID_PARAMETER, NULL);
@@ -35,6 +37,13 @@ bool ch_stack_write(ecs_world_t *world, ecs_entity_t entity, ecs_value_t value)
 	ecs_os_memcpy(elem, value.ptr, comp->size);
 
 	ecs_modified(world, entity, IsaStack);
+	return true;
+}
+
+/** `isa_channel_t` open handler for `IsaStack`: initializes the entity's stack to hold `type`. */
+bool ch_stack_open(ecs_world_t *world, ecs_entity_t entity, ecs_id_t type)
+{
+	ecs_set(world, entity, IsaStack, {.type = type});
 	return true;
 }
 

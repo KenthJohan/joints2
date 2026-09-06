@@ -1,27 +1,27 @@
-CREATE_STACK CURRENT_SWEEP flecs.meta.f32
+OPEN         CURRENT_SWEEP {driver: isa.Stack, type:flecs.meta.f32}
 WRITE        CURRENT_SWEEP 1
 WRITE        CURRENT_SWEEP 4
 WRITE        CURRENT_SWEEP 7
 
 
-CREATE_STACK POSITIONS1 eg.spatials.Position3
+OPEN         POSITIONS1 {driver: isa.Stack, type:eg.spatials.Position3}
 WRITE        POSITIONS1 {1,2,3} AS eg.spatials.Position3
 WRITE        POSITIONS1 {1,2,3}
 WRITE        POSITIONS1 {1,2,3}
 
 
-CREATE_STACK POSITIONS2 eg.spatials.Position3
+OPEN         POSITIONS2 {driver: isa.Stack, type:eg.spatials.Position3}
 WRITE        POSITIONS2 {1,2,3}
 WRITE        POSITIONS2 {1,2,3}
-TRANSFER     POSITIONS2       POSITIONS1
+TRANSFER     POSITIONS2 POSITIONS1
 
 WRITE        isa.Stdout {5,5,3}
 WRITE        isa.Stdout {5,5,3}
 WRITE        isa.Stdout {5,5,3}
 WRITE        isa.Stdout {5,5,3}
-TRANSFER     isa.Stdout       POSITIONS2
+TRANSFER     isa.Stdout POSITIONS2
 
 WRITE        isa.Stdout "hello-via-write" AS flecs.meta.string
-TRANSFER     isa.Stdout       POSITIONS2
+TRANSFER     isa.Stdout POSITIONS2
 
 

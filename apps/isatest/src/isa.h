@@ -16,11 +16,16 @@ typedef struct {
 	float timeout;
 } IsaTransferConfig;
 
+typedef struct {
+	ecs_entity_t driver;
+	ecs_id_t     type;
+} IsaOpenArgument;
+
 extern ECS_COMPONENT_DECLARE(IsaStack);
 extern ECS_COMPONENT_DECLARE(IsaTextStream);
 extern ECS_COMPONENT_DECLARE(IsaTransferConfig);
 
-/** Runs an isa script (see p1.isa0) of CREATE_STACK/WRITE/PRINT instructions. */
+/** Runs an isa script (see p1.isa0) of OPEN/WRITE/TRANSFER instructions. */
 bool IsaRun(
 ecs_world_t *world,
 const char  *script);

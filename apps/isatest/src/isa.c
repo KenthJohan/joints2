@@ -4,6 +4,7 @@
 ECS_COMPONENT_DECLARE(IsaStack);
 ECS_COMPONENT_DECLARE(IsaTextStream);
 ECS_COMPONENT_DECLARE(IsaTransferConfig);
+static ECS_COMPONENT_DECLARE(IsaOpenArgument);
 static ECS_COMPONENT_DECLARE(IsaArg);
 static ECS_COMPONENT_DECLARE(IsaCmd);
 static ECS_COMPONENT_DECLARE(IsaChannel);
@@ -17,6 +18,8 @@ typedef struct {
 	bool (*write)(ecs_world_t *world, ecs_entity_t entity, ecs_value_t value);
 	/** Takes one value into a caller-owned buffer, returned via `value->type`/`value->ptr`. */
 	bool (*take)(ecs_world_t *world, ecs_entity_t entity, ecs_value_t *value);
+	/** Initializes `entity`'s storage for this channel with the given value `type`. */
+	bool (*open)(ecs_world_t *world, ecs_entity_t entity, ecs_id_t type);
 } IsaChannel;
 
 typedef struct {
@@ -136,17 +139,24 @@ static bool IsaRun_resolve_operand(ecs_world_t *world, ecs_entity_t iface, const
 	return true;
 }
 
-static bool IsaRun_create_stack(ecs_world_t *world, char *args[])
+static bool IsaRun_open(ecs_world_t *world, char *args[])
 {
-	ecs_entity_t type = ecs_lookup(world, args[1]);
-	if (type == 0) {
+	void *value;
+	if (!IsaRun_parse_value(world, ecs_id(IsaOpenArgument), args[1], &value)) {
 		return false;
 	}
+	IsaOpenArgument *open_arg = value;
 
-	ecs_entity_t entity = ecs_entity(world, {.name = args[0]});
-	ecs_add_pair(world, entity, EcsIsA, g_isa_stack_channel);
-	ecs_set(world, entity, IsaStack, {.type = type});
-	return true;
+	const IsaChannel *channel = ecs_get(world, open_arg->driver, IsaChannel);
+	bool ok = false;
+	if (channel != NULL && channel->open != NULL) {
+		ecs_entity_t entity = ecs_entity(world, {.name = args[0]});
+		ecs_add_pair(world, entity, EcsIsA, open_arg->driver);
+		ok = channel->open(world, entity, open_arg->type);
+	}
+
+	ecs_ptr_free(world, ecs_id(IsaOpenArgument), value);
+	return ok;
 }
 
 static bool IsaRun_transfer(ecs_world_t *world, char *args[])
@@ -208,10 +218,51 @@ static bool IsaRun_write(ecs_world_t *world, char *args[])
 	return ok;
 }
 
-static bool IsaRun_parse_args(ecs_world_t *world, const IsaCmd *cmd, char **saveptr, char *args[])
+/** Reads the next whitespace-separated token from `*cursor`, treating a brace-delimited
+ * group (which may itself contain spaces and nested braces) as a single token. */
+static char *isa_tokenize(char **cursor)
+{
+	char *s = *cursor;
+	while (*s == ' ' || *s == '\t') {
+		s++;
+	}
+	if (*s == '\0') {
+		*cursor = s;
+		return NULL;
+	}
+
+	char *start = s;
+	if (*s == '{') {
+		int depth = 0;
+		for (; *s != '\0'; s++) {
+			if (*s == '{') {
+				depth++;
+			} else if (*s == '}') {
+				depth--;
+				if (depth == 0) {
+					s++;
+					break;
+				}
+			}
+		}
+	} else {
+		while (*s != '\0' && *s != ' ' && *s != '\t') {
+			s++;
+		}
+	}
+
+	if (*s != '\0') {
+		*s = '\0';
+		s++;
+	}
+	*cursor = s;
+	return start;
+}
+
+static bool IsaRun_parse_args(ecs_world_t *world, const IsaCmd *cmd, char **cursor, char *args[])
 {
 	for (int i = 0; i < cmd->arg_count; i++) {
-		args[i] = strtok_r(NULL, " \t", saveptr);
+		args[i] = isa_tokenize(cursor);
 		if (args[i] == NULL) {
 			if (cmd->args[i].required) {
 				return false;
@@ -241,9 +292,8 @@ bool IsaRun(ecs_world_t *world, const char *script)
 
 	isa_line_t *lines = ecs_vec_first(&program.lines);
 	for (int i = 0; i < program.lines.count; i++) {
-		char *line    = lines[i].text;
-		char *tok_sav = NULL;
-		char *op      = strtok_r(line, " \t", &tok_sav);
+		char *cursor = lines[i].text;
+		char *op     = isa_tokenize(&cursor);
 		if (op == NULL) {
 			continue;
 		}
@@ -256,7 +306,7 @@ bool IsaRun(ecs_world_t *world, const char *script)
 		}
 
 		char *args[8];
-		if (!IsaRun_parse_args(world, cmd, &tok_sav, args) || !cmd->execute(world, args)) {
+		if (!IsaRun_parse_args(world, cmd, &cursor, args) || !cmd->execute(world, args)) {
 			ok = false;
 		}
 	}
@@ -320,6 +370,7 @@ void IsaImport(ecs_world_t *world)
 	ECS_COMPONENT_DEFINE(world, IsaStack);
 	ECS_COMPONENT_DEFINE(world, IsaTextStream);
 	ECS_COMPONENT_DEFINE(world, IsaTransferConfig);
+	ECS_COMPONENT_DEFINE(world, IsaOpenArgument);
 	ECS_COMPONENT_DEFINE(world, IsaArg);
 	ECS_COMPONENT_DEFINE(world, IsaCmd);
 	ECS_COMPONENT_DEFINE(world, IsaChannel);
@@ -346,6 +397,13 @@ void IsaImport(ecs_world_t *world)
 	}});
 
 	ecs_struct(world,
+	{.entity = ecs_id(IsaOpenArgument),
+	.members = {
+	{.name = "driver", .type = ecs_id(ecs_entity_t)},
+	{.name = "type", .type = ecs_id(ecs_id_t)},
+	}});
+
+	ecs_struct(world,
 	{.entity = ecs_id(IsaArg),
 	.members = {
 	{.name = "value", .type = ecs_id(ecs_string_t)},
@@ -368,18 +426,21 @@ void IsaImport(ecs_world_t *world)
 	{.name = "get_take_type", .type = ecs_id(ecs_uptr_t)},
 	{.name = "write", .type = ecs_id(ecs_uptr_t)},
 	{.name = "take", .type = ecs_id(ecs_uptr_t)},
+	{.name = "open", .type = ecs_id(ecs_uptr_t)},
 	}});
 
-	g_isa_stack_channel = ecs_entity(world, {.name = "StackChannel"});
+	/* Scoped under the module, giving it the full path "isa.Stack". */
+	g_isa_stack_channel = ecs_entity(world, {.name = "Stack"});
 	ecs_add_id(world, g_isa_stack_channel, EcsPrefab);
-	ecs_set(world, g_isa_stack_channel, IsaChannel, {.get_write_type = ch_stack_get_write_type, .get_take_type = ch_stack_get_take_type, .write = ch_stack_write, .take = ch_stack_take});
+	ecs_set(world, g_isa_stack_channel, IsaChannel, {.get_write_type = ch_stack_get_write_type, .get_take_type = ch_stack_get_take_type, .write = ch_stack_write, .take = ch_stack_take, .open = ch_stack_open});
 
-	g_isa_stream_channel = ecs_entity(world, {.name = "StreamChannel"});
+	/* Scoped under the module, giving it the full path "isa.Stream". */
+	g_isa_stream_channel = ecs_entity(world, {.name = "Stream"});
 	ecs_add_id(world, g_isa_stream_channel, EcsPrefab);
 	ecs_set(world, g_isa_stream_channel, IsaChannel, {.get_write_type = ch_stream_get_write_type, .write = ch_stream_write});
 
-	ecs_entity_t create_stack_cmd = ecs_entity(world, {.name = "CREATE_STACK"});
-	ecs_set(world, create_stack_cmd, IsaCmd, {.execute = IsaRun_create_stack, .args = {{.required = true}, {.required = true}}, .arg_count = 2});
+	ecs_entity_t open_cmd = ecs_entity(world, {.name = "OPEN"});
+	ecs_set(world, open_cmd, IsaCmd, {.execute = IsaRun_open, .args = {{.required = true}, {.required = true}}, .arg_count = 2});
 
 	ecs_entity_t transfer_cmd = ecs_entity(world, {.name = "TRANSFER"});
 	ecs_set(world, transfer_cmd, IsaCmd, {.execute = IsaRun_transfer, .args = {{.required = true}, {.required = true}, {.required_type = ecs_id(IsaTransferConfig)}}, .arg_count = 3});
