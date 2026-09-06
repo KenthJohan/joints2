@@ -8,9 +8,9 @@ typedef struct {
 	ecs_entity_t (*get_write_type)(ecs_world_t *world, ecs_entity_t entity);
 	/** Returns the type values taken from `entity` have, or 0 if any type is allowed. */
 	ecs_entity_t (*get_take_type)(ecs_world_t *world, ecs_entity_t entity);
-	bool (*write)(ecs_world_t *world, ecs_entity_t entity, ecs_entity_t type, void *value);
-	/** Takes one value into a caller-owned buffer and returns its component type. */
-	bool (*take)(ecs_world_t *world, ecs_entity_t entity, ecs_entity_t *type, void **value);
+	bool (*write)(ecs_world_t *world, ecs_entity_t entity, ecs_value_t value);
+	/** Takes one value into a caller-owned buffer, returned via `value->type`/`value->ptr`. */
+	bool (*take)(ecs_world_t *world, ecs_entity_t entity, ecs_value_t *value);
 } isa_channel_t;
 
 /** `isa_channel_t` get_write_type handler for `IsaStack`, defined in channels/ch_stack_interface.c. */
@@ -20,13 +20,13 @@ ecs_entity_t ch_stack_get_write_type(ecs_world_t *world, ecs_entity_t entity);
 ecs_entity_t ch_stack_get_take_type(ecs_world_t *world, ecs_entity_t entity);
 
 /** `isa_channel_t` write handler for `IsaStack`, defined in channels/ch_stack_interface.c. */
-bool ch_stack_write(ecs_world_t *world, ecs_entity_t entity, ecs_entity_t type, void *value);
+bool ch_stack_write(ecs_world_t *world, ecs_entity_t entity, ecs_value_t value);
 
 /** `isa_channel_t` take handler for `IsaStack`, defined in channels/ch_stack_interface.c. */
-bool ch_stack_take(ecs_world_t *world, ecs_entity_t entity, ecs_entity_t *type, void **value);
+bool ch_stack_take(ecs_world_t *world, ecs_entity_t entity, ecs_value_t *value);
 
 /** `isa_channel_t` get_write_type handler for `IsaTextStream`, defined in channels/ch_stream_interface.c. */
 ecs_entity_t ch_stream_get_write_type(ecs_world_t *world, ecs_entity_t entity);
 
 /** `isa_channel_t` write handler for `IsaTextStream`, defined in channels/ch_stream_interface.c. */
-bool ch_stream_write(ecs_world_t *world, ecs_entity_t entity, ecs_entity_t type, void *value);
+bool ch_stream_write(ecs_world_t *world, ecs_entity_t entity, ecs_value_t value);

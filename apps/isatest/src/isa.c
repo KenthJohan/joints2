@@ -77,11 +77,11 @@ static ecs_entity_t IsaInterface_get_write_type(ecs_world_t *world, ecs_entity_t
 }
 
 /** Takes one value from the `isa_channel_t` matching `iface`. */
-static bool IsaInterface_take(ecs_world_t *world, ecs_entity_t iface, ecs_entity_t *type, void **value)
+static bool IsaInterface_take(ecs_world_t *world, ecs_entity_t iface, ecs_value_t *value)
 {
 	for (int i = 0; i < 2; i++) {
 		if (ecs_has_id(world, iface, g_isa_dispatch[i].iface) && g_isa_dispatch[i].take != NULL) {
-			return g_isa_dispatch[i].take(world, iface, type, value);
+			return g_isa_dispatch[i].take(world, iface, value);
 		}
 	}
 	return false;
@@ -134,11 +134,11 @@ static bool IsaRun_resolve_operand(ecs_world_t *world, ecs_entity_t iface, const
 }
 
 /** "WRITE" callback: finds the `isa_channel_t` matching `iface`'s component and invokes it. */
-static bool IsaInterface_write(ecs_world_t *world, ecs_entity_t iface, ecs_entity_t type, void *value)
+static bool IsaInterface_write(ecs_world_t *world, ecs_entity_t iface, ecs_value_t value)
 {
 	for (int i = 0; i < 2; i++) {
 		if (ecs_has_id(world, iface, g_isa_dispatch[i].iface)) {
-			return g_isa_dispatch[i].write(world, iface, type, value);
+			return g_isa_dispatch[i].write(world, iface, value);
 		}
 	}
 	return false;
@@ -164,14 +164,13 @@ static bool IsaRun_transfer(ecs_world_t *world, char *args[])
 		return false;
 	}
 	
-	ecs_entity_t type;
-	void        *value;
-	if (!IsaInterface_take(world, src, &type, &value)) {
+	ecs_value_t value = {0};
+	if (!IsaInterface_take(world, src, &value)) {
 		return false;
 	}
 
-	bool ok = IsaInterface_write(world, dst, type, value);
-	ecs_os_free(value);
+	bool ok = IsaInterface_write(world, dst, value);
+	ecs_os_free(value.ptr);
 	return ok;
 }
 
@@ -191,7 +190,7 @@ static bool IsaRun_write(ecs_world_t *world, char *args[])
 		return false;
 	}
 
-	bool ok = IsaInterface_write(world, entity, type, value);
+	bool ok = IsaInterface_write(world, entity, (ecs_value_t){.type = type, .ptr = value});
 	ecs_os_free(value);
 	return ok;
 }

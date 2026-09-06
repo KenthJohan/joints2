@@ -17,8 +17,8 @@ ecs_entity_t ch_stack_get_take_type(ecs_world_t *world, ecs_entity_t entity)
 }
 
 /** `isa_channel_t` write handler for `IsaStack`: appends `value` onto the `entity` stack.
- * `value` must be a raw component value of `stack->type`. */
-bool ch_stack_write(ecs_world_t *world, ecs_entity_t entity, ecs_entity_t type, void *value)
+ * `value.ptr` must be a raw component value of `stack->type`. */
+bool ch_stack_write(ecs_world_t *world, ecs_entity_t entity, ecs_value_t value)
 {
 	if (!ecs_has(world, entity, IsaStack)) {
 		return false;
@@ -27,14 +27,14 @@ bool ch_stack_write(ecs_world_t *world, ecs_entity_t entity, ecs_entity_t type, 
 	IsaStack *stack = ecs_ensure(world, entity, IsaStack);
 	bool      ok;
 
-	if (type == stack->type) {
+	if (value.type == stack->type) {
 		const EcsComponent *comp = ecs_get(world, stack->type, EcsComponent);
 		if (comp != NULL && comp->size != 0) {
 			if (stack->vec.size == 0) {
 				ecs_vec_init(NULL, &stack->vec, comp->size, 0);
 			}
 			void *elem = ecs_vec_append(NULL, &stack->vec, comp->size);
-			ecs_os_memcpy(elem, value, comp->size);
+			ecs_os_memcpy(elem, value.ptr, comp->size);
 			ok = true;
 		} else {
 			ok = false;
@@ -50,7 +50,7 @@ bool ch_stack_write(ecs_world_t *world, ecs_entity_t entity, ecs_entity_t type, 
 }
 
 /** `isa_channel_t` take handler for `IsaStack`: removes and copies its top value. */
-bool ch_stack_take(ecs_world_t *world, ecs_entity_t entity, ecs_entity_t *type, void **value)
+bool ch_stack_take(ecs_world_t *world, ecs_entity_t entity, ecs_value_t *value)
 {
 	if (!ecs_has(world, entity, IsaStack)) {
 		return false;
@@ -72,7 +72,7 @@ bool ch_stack_take(ecs_world_t *world, ecs_entity_t entity, ecs_entity_t *type, 
 	ecs_vec_remove_last(&stack->vec);
 	ecs_modified(world, entity, IsaStack);
 
-	*type  = stack->type;
-	*value = copy;
+	value->type = stack->type;
+	value->ptr  = copy;
 	return true;
 }
