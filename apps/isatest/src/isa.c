@@ -106,7 +106,8 @@ static bool IsaRun_parse_value(ecs_world_t *world, ecs_entity_t type, const char
 		return false;
 	}
 
-	void       *buf = ecs_os_malloc(comp->size);
+	/* Must be zeroed: types like strings free their previous value before assigning. */
+	void       *buf = ecs_os_calloc(comp->size);
 	const char *ptr = ecs_ptr_from_json(world, type, buf, value, NULL);
 	if (ptr == NULL) {
 		ecs_os_free(buf);

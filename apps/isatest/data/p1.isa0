@@ -21,7 +21,7 @@ WRITE        isa.Stdout {5,5,3}
 WRITE        isa.Stdout {5,5,3}
 TRANSFER     isa.Stdout       POSITIONS2
 
-WRITE        isa.Stdout hello-via-write
+WRITE        isa.Stdout "hello-via-write" AS flecs.meta.string
 TRANSFER     isa.Stdout       POSITIONS2
 
 
