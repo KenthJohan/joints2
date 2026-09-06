@@ -69,9 +69,7 @@ static isa_channel_t g_isa_dispatch[2];
 
 /** Finds the `isa_channel_t` matching `iface`'s component and returns the type it requires,
  * or 0 if any type is allowed (or no matching interface is found). */
-static ecs_entity_t IsaInterface_get_type(
-ecs_world_t *world,
-ecs_entity_t iface)
+static ecs_entity_t IsaInterface_get_type(ecs_world_t *world, ecs_entity_t iface)
 {
 	for (int i = 0; i < 2; i++) {
 		if (ecs_has_id(world, iface, g_isa_dispatch[i].iface)) {
@@ -82,11 +80,7 @@ ecs_entity_t iface)
 }
 
 /** Takes one value from the `isa_channel_t` matching `iface`. */
-static bool IsaInterface_take(
-ecs_world_t  *world,
-ecs_entity_t  iface,
-ecs_entity_t *type,
-void        **value)
+static bool IsaInterface_take(ecs_world_t *world, ecs_entity_t iface, ecs_entity_t *type, void **value)
 {
 	for (int i = 0; i < 2; i++) {
 		if (ecs_has_id(world, iface, g_isa_dispatch[i].iface) && g_isa_dispatch[i].take != NULL) {
@@ -97,11 +91,7 @@ void        **value)
 }
 
 /** Parses `value` as JSON of `type` into a newly allocated buffer (caller must free). */
-static bool IsaRun_parse_value(
-ecs_world_t *world,
-ecs_entity_t type,
-const char  *value,
-void       **out_value)
+static bool IsaRun_parse_value(ecs_world_t *world, ecs_entity_t type, const char *value, void **out_value)
 {
 	const EcsComponent *comp = ecs_get(world, type, EcsComponent);
 	if (comp == NULL || comp->size == 0) {
@@ -122,13 +112,7 @@ void       **out_value)
 /** Resolves a literal `value` targeting `iface` to a raw value and its type.
  * An explicit type takes precedence; otherwise the interface's required type
  * determines whether the value is parsed as JSON. */
-static bool IsaRun_resolve_operand(
-ecs_world_t  *world,
-ecs_entity_t  iface,
-const char   *value,
-const char   *type_name,
-ecs_entity_t *out_type,
-void        **out_value)
+static bool IsaRun_resolve_operand(ecs_world_t *world, ecs_entity_t iface, const char *value, const char *type_name, ecs_entity_t *out_type, void **out_value)
 {
 	if (value == NULL) {
 		return false;
@@ -153,11 +137,7 @@ void        **out_value)
 }
 
 /** "WRITE" callback: finds the `isa_channel_t` matching `iface`'s component and invokes it. */
-static bool IsaInterface_write(
-ecs_world_t *world,
-ecs_entity_t iface,
-ecs_entity_t type,
-void        *value)
+static bool IsaInterface_write(ecs_world_t *world, ecs_entity_t iface, ecs_entity_t type, void *value)
 {
 	for (int i = 0; i < 2; i++) {
 		if (ecs_has_id(world, iface, g_isa_dispatch[i].iface)) {
@@ -167,9 +147,7 @@ void        *value)
 	return false;
 }
 
-static bool IsaRun_create_stack(
-ecs_world_t *world,
-char        *args[])
+static bool IsaRun_create_stack(ecs_world_t *world, char *args[])
 {
 	ecs_entity_t type = ecs_lookup(world, args[1]);
 	if (type == 0) {
@@ -181,9 +159,7 @@ char        *args[])
 	return true;
 }
 
-static bool IsaRun_transfer(
-ecs_world_t *world,
-char        *args[])
+static bool IsaRun_transfer(ecs_world_t *world, char *args[])
 {
 	ecs_entity_t dst = ecs_lookup(world, args[0]);
 	ecs_entity_t src = ecs_lookup(world, args[1]);
@@ -202,9 +178,7 @@ char        *args[])
 	return ok;
 }
 
-static bool IsaRun_write(
-ecs_world_t *world,
-char        *args[])
+static bool IsaRun_write(ecs_world_t *world, char *args[])
 {
 	ecs_entity_t entity = ecs_lookup(world, args[0]);
 	if (entity == 0) {
@@ -231,10 +205,7 @@ static const isa_ifcmd_t g_isa_interfaces[] = {
 {.name = "WRITE", .execute = IsaRun_write, .args = {{.required = true}, {.required = true}, {.value = "AS"}, {}}, .arg_count = 4},
 };
 
-static bool IsaRun_parse_args(
-const isa_ifcmd_t *cmd,
-char             **saveptr,
-char              *args[])
+static bool IsaRun_parse_args(const isa_ifcmd_t *cmd, char **saveptr, char *args[])
 {
 	for (int i = 0; i < cmd->arg_count; i++) {
 		args[i] = strtok_r(NULL, " \t", saveptr);
@@ -251,9 +222,7 @@ char              *args[])
 	return true;
 }
 
-bool IsaRun(
-ecs_world_t *world,
-const char  *script)
+bool IsaRun(ecs_world_t *world, const char *script)
 {
 	bool          ok      = true;
 	char         *buf     = ecs_os_strdup(script);
