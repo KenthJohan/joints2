@@ -1,13 +1,19 @@
 #include "../isa_internal.h"
 
-/** `isa_channel_t` get_type handler for `IsaStack`: values must match the stack's own type. */
-ecs_entity_t ch_stack_get_type(ecs_world_t *world, ecs_entity_t entity)
+/** `isa_channel_t` get_write_type handler for `IsaStack`: values must match the stack's own type. */
+ecs_entity_t ch_stack_get_write_type(ecs_world_t *world, ecs_entity_t entity)
 {
 	if (!ecs_has(world, entity, IsaStack)) {
 		return 0;
 	}
 	const IsaStack *stack = ecs_get(world, entity, IsaStack);
 	return stack->type;
+}
+
+/** `isa_channel_t` get_take_type handler for `IsaStack`: values have the stack's own type. */
+ecs_entity_t ch_stack_get_take_type(ecs_world_t *world, ecs_entity_t entity)
+{
+	return ch_stack_get_write_type(world, entity);
 }
 
 /** `isa_channel_t` write handler for `IsaStack`: appends `value` onto the `entity` stack.

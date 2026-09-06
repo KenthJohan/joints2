@@ -66,11 +66,11 @@ static isa_channel_t g_isa_dispatch[2];
 
 /** Finds the `isa_channel_t` matching `iface`'s component and returns the type it requires,
  * or 0 if any type is allowed (or no matching interface is found). */
-static ecs_entity_t IsaInterface_get_type(ecs_world_t *world, ecs_entity_t iface)
+static ecs_entity_t IsaInterface_get_write_type(ecs_world_t *world, ecs_entity_t iface)
 {
 	for (int i = 0; i < 2; i++) {
 		if (ecs_has_id(world, iface, g_isa_dispatch[i].iface)) {
-			return g_isa_dispatch[i].get_type(world, iface);
+			return g_isa_dispatch[i].get_write_type(world, iface);
 		}
 	}
 	return 0;
@@ -115,7 +115,7 @@ static bool IsaRun_resolve_operand(ecs_world_t *world, ecs_entity_t iface, const
 		return false;
 	}
 
-	ecs_entity_t type = type_name ? ecs_lookup(world, type_name) : IsaInterface_get_type(world, iface);
+	ecs_entity_t type = type_name ? ecs_lookup(world, type_name) : IsaInterface_get_write_type(world, iface);
 	if (type_name != NULL && type == 0) {
 		return false;
 	}
@@ -163,7 +163,7 @@ static bool IsaRun_transfer(ecs_world_t *world, char *args[])
 	if (dst == 0 || src == 0) {
 		return false;
 	}
-
+	
 	ecs_entity_t type;
 	void        *value;
 	if (!IsaInterface_take(world, src, &type, &value)) {
@@ -311,8 +311,8 @@ void IsaImport(ecs_world_t *world)
 	{.name = "counter", .type = ecs_id(ecs_i32_t)},
 	}});
 
-	g_isa_dispatch[0] = (isa_channel_t){.iface = ecs_id(IsaStack), .get_type = ch_stack_get_type, .write = ch_stack_write, .take = ch_stack_take};
-	g_isa_dispatch[1] = (isa_channel_t){.iface = ecs_id(IsaTextStream), .get_type = ch_stream_get_type, .write = ch_stream_write};
+	g_isa_dispatch[0] = (isa_channel_t){.iface = ecs_id(IsaStack), .get_write_type = ch_stack_get_write_type, .get_take_type = ch_stack_get_take_type, .write = ch_stack_write, .take = ch_stack_take};
+	g_isa_dispatch[1] = (isa_channel_t){.iface = ecs_id(IsaTextStream), .get_write_type = ch_stream_get_write_type, .write = ch_stream_write};
 
 	/* Scoped under the module, giving it the full path "isa.Stdout". */
 	ecs_entity_t stdout_e = ecs_entity(world, {.name = "Stdout"});

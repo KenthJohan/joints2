@@ -1,7 +1,7 @@
 #include "../isa_internal.h"
 
-/** `isa_channel_t` get_type handler for `IsaTextStream`: accepts any type. */
-ecs_entity_t ch_stream_get_type(ecs_world_t *world, ecs_entity_t entity)
+/** `isa_channel_t` get_write_type handler for `IsaTextStream`: accepts any type. */
+ecs_entity_t ch_stream_get_write_type(ecs_world_t *world, ecs_entity_t entity)
 {
 	(void)world;
 	(void)entity;
