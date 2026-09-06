@@ -6,6 +6,18 @@ ECS_COMPONENT_DECLARE(IsaTextStream);
 ECS_COMPONENT_DECLARE(IsaTransferConfig);
 static ECS_COMPONENT_DECLARE(IsaArg);
 static ECS_COMPONENT_DECLARE(IsaCmd);
+static ECS_COMPONENT_DECLARE(IsaChannel);
+
+/** Write handler for one `IsaChannel` implementor, set on the component entity it dispatches for. */
+typedef struct {
+	/** Returns the type values written to `entity` must have, or 0 if any type is allowed. */
+	ecs_entity_t (*get_write_type)(ecs_world_t *world, ecs_entity_t entity);
+	/** Returns the type values taken from `entity` have, or 0 if any type is allowed. */
+	ecs_entity_t (*get_take_type)(ecs_world_t *world, ecs_entity_t entity);
+	bool (*write)(ecs_world_t *world, ecs_entity_t entity, ecs_value_t value);
+	/** Takes one value into a caller-owned buffer, returned via `value->type`/`value->ptr`. */
+	bool (*take)(ecs_world_t *world, ecs_entity_t entity, ecs_value_t *value);
+} IsaChannel;
 
 typedef struct {
 	// If null then any next string is accepted, otherwise only this string must be next.
@@ -24,6 +36,10 @@ typedef struct {
 
 /** Module entity, used to look up command entities registered as its children by name. */
 static ecs_entity_t g_isa_module;
+
+/** IsaChannel prefabs; instances inherit their dispatch via EcsIsA. */
+static ecs_entity_t g_isa_stack_channel;
+static ecs_entity_t g_isa_stream_channel;
 
 typedef struct {
 	uint32_t line_number;
@@ -67,31 +83,19 @@ static void IsaProgram_fini(isa_program_t *program)
 	ecs_vec_fini(NULL, &program->lines, sizeof(isa_line_t));
 }
 
-/** Dispatch table mapping a target's component to its `isa_channel_t` handlers.
- * Populated in `IsaImport` once the component ids are known. */
-static isa_channel_t g_isa_dispatch[2];
-
-/** Finds the `isa_channel_t` matching `iface`'s component and returns the type it requires,
+/** Finds the `IsaChannel` matching `iface`'s component and returns the type it requires,
  * or 0 if any type is allowed (or no matching interface is found). */
 static ecs_entity_t IsaInterface_get_write_type(ecs_world_t *world, ecs_entity_t iface)
 {
-	for (int i = 0; i < 2; i++) {
-		if (ecs_has_id(world, iface, g_isa_dispatch[i].iface)) {
-			return g_isa_dispatch[i].get_write_type(world, iface);
-		}
-	}
-	return 0;
+	const IsaChannel *channel = ecs_get(world, iface, IsaChannel);
+	return channel ? channel->get_write_type(world, iface) : 0;
 }
 
-/** Takes one value from the `isa_channel_t` matching `iface`. */
+/** Takes one value from the `IsaChannel` matching `iface`. */
 static bool IsaInterface_take(ecs_world_t *world, ecs_entity_t iface, ecs_value_t *value)
 {
-	for (int i = 0; i < 2; i++) {
-		if (ecs_has_id(world, iface, g_isa_dispatch[i].iface) && g_isa_dispatch[i].take != NULL) {
-			return g_isa_dispatch[i].take(world, iface, value);
-		}
-	}
-	return false;
+	const IsaChannel *channel = ecs_get(world, iface, IsaChannel);
+	return channel && channel->take ? channel->take(world, iface, value) : false;
 }
 
 /** Parses `value` as JSON of `type` into a newly allocated buffer (caller must free). */
@@ -140,15 +144,11 @@ static bool IsaRun_resolve_operand(ecs_world_t *world, ecs_entity_t iface, const
 	return true;
 }
 
-/** "WRITE" callback: finds the `isa_channel_t` matching `iface`'s component and invokes it. */
+/** "WRITE" callback: finds the `IsaChannel` matching `iface`'s component and invokes it. */
 static bool IsaInterface_write(ecs_world_t *world, ecs_entity_t iface, ecs_value_t value)
 {
-	for (int i = 0; i < 2; i++) {
-		if (ecs_has_id(world, iface, g_isa_dispatch[i].iface)) {
-			return g_isa_dispatch[i].write(world, iface, value);
-		}
-	}
-	return false;
+	const IsaChannel *channel = ecs_get(world, iface, IsaChannel);
+	return channel ? channel->write(world, iface, value) : false;
 }
 
 static bool IsaRun_create_stack(ecs_world_t *world, char *args[])
@@ -159,6 +159,7 @@ static bool IsaRun_create_stack(ecs_world_t *world, char *args[])
 	}
 
 	ecs_entity_t entity = ecs_entity(world, {.name = args[0]});
+	ecs_add_pair(world, entity, EcsIsA, g_isa_stack_channel);
 	ecs_set(world, entity, IsaStack, {.type = type});
 	return true;
 }
@@ -304,6 +305,7 @@ void IsaImport(ecs_world_t *world)
 	ECS_COMPONENT_DEFINE(world, IsaTransferConfig);
 	ECS_COMPONENT_DEFINE(world, IsaArg);
 	ECS_COMPONENT_DEFINE(world, IsaCmd);
+	ECS_COMPONENT_DEFINE(world, IsaChannel);
 
 	ecs_struct(world,
 	{.entity = ecs_id(IsaStack),
@@ -323,8 +325,38 @@ void IsaImport(ecs_world_t *world)
 	{.name = "timeout", .type = ecs_id(ecs_f32_t)},
 	}});
 
-	g_isa_dispatch[0] = (isa_channel_t){.iface = ecs_id(IsaStack), .get_write_type = ch_stack_get_write_type, .get_take_type = ch_stack_get_take_type, .write = ch_stack_write, .take = ch_stack_take};
-	g_isa_dispatch[1] = (isa_channel_t){.iface = ecs_id(IsaTextStream), .get_write_type = ch_stream_get_write_type, .write = ch_stream_write};
+	ecs_struct(world,
+	{.entity = ecs_id(IsaArg),
+	.members = {
+	{.name = "value", .type = ecs_id(ecs_string_t)},
+	{.name = "required", .type = ecs_id(ecs_bool_t)},
+	{.name = "required_type", .type = ecs_id(ecs_id_t)},
+	}});
+
+	ecs_struct(world,
+	{.entity = ecs_id(IsaCmd),
+	.members = {
+	{.name = "execute", .type = ecs_id(ecs_uptr_t)},
+	{.name = "args", .type = ecs_id(IsaArg), .count = 8},
+	{.name = "arg_count", .type = ecs_id(ecs_i32_t)},
+	}});
+
+	ecs_struct(world,
+	{.entity = ecs_id(IsaChannel),
+	.members = {
+	{.name = "get_write_type", .type = ecs_id(ecs_uptr_t)},
+	{.name = "get_take_type", .type = ecs_id(ecs_uptr_t)},
+	{.name = "write", .type = ecs_id(ecs_uptr_t)},
+	{.name = "take", .type = ecs_id(ecs_uptr_t)},
+	}});
+
+	g_isa_stack_channel = ecs_entity(world, {.name = "StackChannel"});
+	ecs_add_id(world, g_isa_stack_channel, EcsPrefab);
+	ecs_set(world, g_isa_stack_channel, IsaChannel, {.get_write_type = ch_stack_get_write_type, .get_take_type = ch_stack_get_take_type, .write = ch_stack_write, .take = ch_stack_take});
+
+	g_isa_stream_channel = ecs_entity(world, {.name = "StreamChannel"});
+	ecs_add_id(world, g_isa_stream_channel, EcsPrefab);
+	ecs_set(world, g_isa_stream_channel, IsaChannel, {.get_write_type = ch_stream_get_write_type, .write = ch_stream_write});
 
 	ecs_entity_t create_stack_cmd = ecs_entity(world, {.name = "CREATE_STACK"});
 	ecs_set(world, create_stack_cmd, IsaCmd, {.execute = IsaRun_create_stack, .args = {{.required = true}, {.required = true}}, .arg_count = 2});
@@ -337,5 +369,6 @@ void IsaImport(ecs_world_t *world)
 
 	/* Scoped under the module, giving it the full path "isa.Stdout". */
 	ecs_entity_t stdout_e = ecs_entity(world, {.name = "Stdout"});
+	ecs_add_pair(world, stdout_e, EcsIsA, g_isa_stream_channel);
 	ecs_set(world, stdout_e, IsaTextStream, {.counter = 0, .file = stdout});
 }
