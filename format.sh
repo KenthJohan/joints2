@@ -9,4 +9,4 @@ for f in "${IGNORE_FILES[@]}"; do
 done
 
 find apps        \( -name "*.c" -o -name "*.h" \) "${IGNORE[@]}" | xargs clang-format -i
-find vendor/draw \( -name "*.c" -o -name "*.h" \) "${IGNORE[@]}" | xargs clang-format -i
+find vendor/egg  \( -name "*.c" -o -name "*.h" \) "${IGNORE[@]}" | xargs clang-format -i

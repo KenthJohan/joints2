@@ -1,9 +1,7 @@
 #include "../isa_internal.h"
 
 /** `isa_channel_t` get_type handler for `IsaStack`: values must match the stack's own type. */
-ecs_entity_t ch_stack_get_type(
-ecs_world_t *world,
-ecs_entity_t entity)
+ecs_entity_t ch_stack_get_type(ecs_world_t *world, ecs_entity_t entity)
 {
 	if (!ecs_has(world, entity, IsaStack)) {
 		return 0;
@@ -14,11 +12,7 @@ ecs_entity_t entity)
 
 /** `isa_channel_t` write handler for `IsaStack`: appends `value` onto the `entity` stack.
  * `value` must be a raw component value of `stack->type`. */
-bool ch_stack_write(
-ecs_world_t *world,
-ecs_entity_t entity,
-ecs_entity_t type,
-void        *value)
+bool ch_stack_write(ecs_world_t *world, ecs_entity_t entity, ecs_entity_t type, void *value)
 {
 	if (!ecs_has(world, entity, IsaStack)) {
 		return false;
@@ -50,11 +44,7 @@ void        *value)
 }
 
 /** `isa_channel_t` take handler for `IsaStack`: removes and copies its top value. */
-bool ch_stack_take(
-ecs_world_t  *world,
-ecs_entity_t  entity,
-ecs_entity_t *type,
-void        **value)
+bool ch_stack_take(ecs_world_t *world, ecs_entity_t entity, ecs_entity_t *type, void **value)
 {
 	if (!ecs_has(world, entity, IsaStack)) {
 		return false;

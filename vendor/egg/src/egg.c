@@ -237,7 +237,7 @@ float u1, float v1, float useTexture, uint8_t r, uint8_t g, uint8_t b, uint8_t a
 }
 
 static void sAddTriangle(egg_t *egg, float x0, float y0, float x1, float y1, float x2, float y2, float instanceIndex,
-						 float useTexture, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+float useTexture, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
 	sAppendVertex(egg, x0, y0, instanceIndex, 0.0f, 0.0f, useTexture, r, g, b, a);
 	sAppendVertex(egg, x1, y1, instanceIndex, 0.0f, 0.0f, useTexture, r, g, b, a);
@@ -510,23 +510,23 @@ void egg_draw_text(egg_t *egg, float x, float y, float rotationCos, float rotati
 }
 
 static void sAddLine(egg_t *egg, float x1, float y1, float x2, float y2, float thickness, float instanceIndex,
-	uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
 	if (egg == NULL || thickness <= 0.0f) {
 		return;
 	}
 
-	float dx = x2 - x1;
-	float dy = y2 - y1;
+	float dx     = x2 - x1;
+	float dy     = y2 - y1;
 	float length = sqrtf(dx * dx + dy * dy);
 	if (length <= 0.0f) {
 		return;
 	}
 
 	float scaledThickness = thickness * egg->pixelScale;
-	float halfThickness = scaledThickness * 0.5f;
-	float nx = -dy / length * halfThickness;
-	float ny = dx / length * halfThickness;
+	float halfThickness   = scaledThickness * 0.5f;
+	float nx              = -dy / length * halfThickness;
+	float ny              = dx / length * halfThickness;
 
 	float p1x = x1 + nx;
 	float p1y = y1 + ny;
@@ -548,11 +548,11 @@ void egg_draw_line(egg_t *egg, float x1, float y1, float x2, float y2, float thi
 	}
 
 	sAppendTransform(egg, 0.0f, 0.0f, 1.0f, 0.0f);
-	float instanceIndex = (float)(egg->transforms.count - 1);
-	uint8_t r = 0;
-	uint8_t g = 0;
-	uint8_t b = 0;
-	uint8_t a = 0;
+	float   instanceIndex = (float)(egg->transforms.count - 1);
+	uint8_t r             = 0;
+	uint8_t g             = 0;
+	uint8_t b             = 0;
+	uint8_t a             = 0;
 	sColorBytes(color, &r, &g, &b, &a);
 
 	sAddLine(egg, x1, y1, x2, y2, thickness, instanceIndex, r, g, b, a);
@@ -585,16 +585,16 @@ void egg_draw_point(egg_t *egg, float x, float y, float size, egg_color_t color)
 	}
 
 	sAppendTransform(egg, x, y, 1.0f, 0.0f);
-	float instanceIndex = (float)(egg->transforms.count - 1);
-	uint8_t r = 0;
-	uint8_t g = 0;
-	uint8_t b = 0;
-	uint8_t a = 0;
+	float   instanceIndex = (float)(egg->transforms.count - 1);
+	uint8_t r             = 0;
+	uint8_t g             = 0;
+	uint8_t b             = 0;
+	uint8_t a             = 0;
 	sColorBytes(color, &r, &g, &b, &a);
 
 	float scaledSize = size * egg->pixelScale;
 	sAddQuad(egg, -scaledSize, -scaledSize, scaledSize, scaledSize, instanceIndex, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
-		r, g, b, a);
+	r, g, b, a);
 }
 
 void egg_draw_circle(egg_t *egg, float x, float y, float radius, egg_color_t color)
@@ -604,11 +604,11 @@ void egg_draw_circle(egg_t *egg, float x, float y, float radius, egg_color_t col
 	}
 
 	sAppendTransform(egg, x, y, 1.0f, 0.0f);
-	float instanceIndex = (float)(egg->transforms.count - 1);
-	uint8_t r = 0;
-	uint8_t g = 0;
-	uint8_t b = 0;
-	uint8_t a = 0;
+	float   instanceIndex = (float)(egg->transforms.count - 1);
+	uint8_t r             = 0;
+	uint8_t g             = 0;
+	uint8_t b             = 0;
+	uint8_t a             = 0;
 	sColorBytes(color, &r, &g, &b, &a);
 
 	sAddCircleFilled(egg, 0.0f, 0.0f, radius, instanceIndex, r, g, b, a);
@@ -621,17 +621,17 @@ void egg_draw_circle_outline(egg_t *egg, float x, float y, float radius, float t
 	}
 
 	sAppendTransform(egg, 0.0f, 0.0f, 1.0f, 0.0f);
-	float instanceIndex = (float)(egg->transforms.count - 1);
-	uint8_t r = 0;
-	uint8_t g = 0;
-	uint8_t b = 0;
-	uint8_t a = 0;
+	float   instanceIndex = (float)(egg->transforms.count - 1);
+	uint8_t r             = 0;
+	uint8_t g             = 0;
+	uint8_t b             = 0;
+	uint8_t a             = 0;
 	sColorBytes(color, &r, &g, &b, &a);
 
-	int segments = 32;
+	int   segments        = 32;
 	float scaledThickness = thickness * egg->pixelScale;
-	float innerRadius = radius - scaledThickness * 0.5f;
-	float outerRadius = radius + scaledThickness * 0.5f;
+	float innerRadius     = radius - scaledThickness * 0.5f;
+	float outerRadius     = radius + scaledThickness * 0.5f;
 	if (innerRadius < 0.0f) {
 		innerRadius = 0.0f;
 	}
@@ -650,29 +650,29 @@ void egg_draw_circle_outline(egg_t *egg, float x, float y, float radius, float t
 		float y1Inner = y + sinf(angle1) * innerRadius;
 
 		sAddTriangle(egg, x0Outer, y0Outer, x1Outer, y1Outer, x1Inner, y1Inner, instanceIndex, 0.0f,
-			r, g, b, a);
+		r, g, b, a);
 		sAddTriangle(egg, x0Outer, y0Outer, x1Inner, y1Inner, x0Inner, y0Inner, instanceIndex, 0.0f,
-			r, g, b, a);
+		r, g, b, a);
 	}
 }
 
 void egg_draw_capsule_outline(egg_t *egg, float x1, float y1, float x2, float y2, float radius, float thickness,
-	egg_color_t color)
+egg_color_t color)
 {
 	if (egg == NULL || egg->initialized == 0 || radius <= 0.0f || thickness <= 0.0f) {
 		return;
 	}
 
 	sAppendTransform(egg, 0.0f, 0.0f, 1.0f, 0.0f);
-	float instanceIndex = (float)(egg->transforms.count - 1);
-	uint8_t r = 0;
-	uint8_t g = 0;
-	uint8_t b = 0;
-	uint8_t a = 0;
+	float   instanceIndex = (float)(egg->transforms.count - 1);
+	uint8_t r             = 0;
+	uint8_t g             = 0;
+	uint8_t b             = 0;
+	uint8_t a             = 0;
 	sColorBytes(color, &r, &g, &b, &a);
 
-	float dx = x2 - x1;
-	float dy = y2 - y1;
+	float dx     = x2 - x1;
+	float dy     = y2 - y1;
 	float length = sqrtf(dx * dx + dy * dy);
 	if (length <= 0.0f) {
 		return;
@@ -682,47 +682,47 @@ void egg_draw_capsule_outline(egg_t *egg, float x1, float y1, float x2, float y2
 	float ny = dy / length;
 
 	float halfLength = length * 0.5f;
-	float centerX = (x1 + x2) * 0.5f;
-	float centerY = (y1 + y2) * 0.5f;
+	float centerX    = (x1 + x2) * 0.5f;
+	float centerY    = (y1 + y2) * 0.5f;
 
 	sAddLine(egg, x1, y1, x2, y2, thickness, instanceIndex, r, g, b, a);
 
 	int segments = 24;
 	for (int i = 0; i < segments; ++i) {
-		float t0 = (float)i / (float)segments;
-		float t1 = (float)(i + 1) / (float)segments;
+		float t0     = (float)i / (float)segments;
+		float t1     = (float)(i + 1) / (float)segments;
 		float angle0 = EGG_PI + t0 * EGG_PI;
 		float angle1 = EGG_PI + t1 * EGG_PI;
 
-		float ox0 = centerX + nx * halfLength + cosf(angle0) * radius;
-		float oy0 = centerY + ny * halfLength + sinf(angle0) * radius;
-		float ox1 = centerX + nx * halfLength + cosf(angle1) * radius;
-		float oy1 = centerY + ny * halfLength + sinf(angle1) * radius;
+		float ox0             = centerX + nx * halfLength + cosf(angle0) * radius;
+		float oy0             = centerY + ny * halfLength + sinf(angle0) * radius;
+		float ox1             = centerX + nx * halfLength + cosf(angle1) * radius;
+		float oy1             = centerY + ny * halfLength + sinf(angle1) * radius;
 		float scaledThickness = thickness * egg->pixelScale;
-		float ix0 = centerX + nx * halfLength + cosf(angle0) * (radius - scaledThickness * 0.5f);
-		float iy0 = centerY + ny * halfLength + sinf(angle0) * (radius - scaledThickness * 0.5f);
-		float ix1 = centerX + nx * halfLength + cosf(angle1) * (radius - scaledThickness * 0.5f);
-		float iy1 = centerY + ny * halfLength + sinf(angle1) * (radius - scaledThickness * 0.5f);
+		float ix0             = centerX + nx * halfLength + cosf(angle0) * (radius - scaledThickness * 0.5f);
+		float iy0             = centerY + ny * halfLength + sinf(angle0) * (radius - scaledThickness * 0.5f);
+		float ix1             = centerX + nx * halfLength + cosf(angle1) * (radius - scaledThickness * 0.5f);
+		float iy1             = centerY + ny * halfLength + sinf(angle1) * (radius - scaledThickness * 0.5f);
 
 		sAddTriangle(egg, ox0, oy0, ox1, oy1, ix1, iy1, instanceIndex, 0.0f, r, g, b, a);
 		sAddTriangle(egg, ox0, oy0, ix1, iy1, ix0, iy0, instanceIndex, 0.0f, r, g, b, a);
 	}
 
 	for (int i = 0; i < segments; ++i) {
-		float t0 = (float)i / (float)segments;
-		float t1 = (float)(i + 1) / (float)segments;
+		float t0     = (float)i / (float)segments;
+		float t1     = (float)(i + 1) / (float)segments;
 		float angle0 = 0.0f + t0 * EGG_PI;
 		float angle1 = 0.0f + t1 * EGG_PI;
 
-		float ox0 = centerX - nx * halfLength + cosf(angle0) * radius;
-		float oy0 = centerY - ny * halfLength + sinf(angle0) * radius;
-		float ox1 = centerX - nx * halfLength + cosf(angle1) * radius;
-		float oy1 = centerY - ny * halfLength + sinf(angle1) * radius;
+		float ox0             = centerX - nx * halfLength + cosf(angle0) * radius;
+		float oy0             = centerY - ny * halfLength + sinf(angle0) * radius;
+		float ox1             = centerX - nx * halfLength + cosf(angle1) * radius;
+		float oy1             = centerY - ny * halfLength + sinf(angle1) * radius;
 		float scaledThickness = thickness * egg->pixelScale;
-		float ix0 = centerX - nx * halfLength + cosf(angle0) * (radius - scaledThickness * 0.5f);
-		float iy0 = centerY - ny * halfLength + sinf(angle0) * (radius - scaledThickness * 0.5f);
-		float ix1 = centerX - nx * halfLength + cosf(angle1) * (radius - scaledThickness * 0.5f);
-		float iy1 = centerY - ny * halfLength + sinf(angle1) * (radius - scaledThickness * 0.5f);
+		float ix0             = centerX - nx * halfLength + cosf(angle0) * (radius - scaledThickness * 0.5f);
+		float iy0             = centerY - ny * halfLength + sinf(angle0) * (radius - scaledThickness * 0.5f);
+		float ix1             = centerX - nx * halfLength + cosf(angle1) * (radius - scaledThickness * 0.5f);
+		float iy1             = centerY - ny * halfLength + sinf(angle1) * (radius - scaledThickness * 0.5f);
 
 		sAddTriangle(egg, ox0, oy0, ox1, oy1, ix1, iy1, instanceIndex, 0.0f, r, g, b, a);
 		sAddTriangle(egg, ox0, oy0, ix1, iy1, ix0, iy0, instanceIndex, 0.0f, r, g, b, a);
@@ -736,11 +736,11 @@ void egg_draw_transform(egg_t *egg, float x, float y, float rotationCos, float r
 	}
 
 	sAppendTransform(egg, x, y, rotationCos, rotationSin);
-	float instanceIndex = (float)(egg->transforms.count - 1);
-	uint8_t r = 0;
-	uint8_t g = 0;
-	uint8_t b = 0;
-	uint8_t a = 0;
+	float   instanceIndex = (float)(egg->transforms.count - 1);
+	uint8_t r             = 0;
+	uint8_t g             = 0;
+	uint8_t b             = 0;
+	uint8_t a             = 0;
 	sColorBytes(color, &r, &g, &b, &a);
 
 	float scaledThickness = 0.05f * egg->pixelScale;
@@ -778,11 +778,11 @@ void egg_draw_bounds(egg_t *egg, float minX, float minY, float maxX, float maxY,
 	}
 
 	sAppendTransform(egg, 0.0f, 0.0f, 1.0f, 0.0f);
-	float instanceIndex = (float)(egg->transforms.count - 1);
-	uint8_t r = 0;
-	uint8_t g = 0;
-	uint8_t b = 0;
-	uint8_t a = 0;
+	float   instanceIndex = (float)(egg->transforms.count - 1);
+	uint8_t r             = 0;
+	uint8_t g             = 0;
+	uint8_t b             = 0;
+	uint8_t a             = 0;
 	sColorBytes(color, &r, &g, &b, &a);
 
 	float scaledThickness = 0.05f * egg->pixelScale;
@@ -793,7 +793,7 @@ void egg_draw_bounds(egg_t *egg, float minX, float minY, float maxX, float maxY,
 }
 
 void egg_draw_polygon(egg_t *egg, const egg_vec2_t *vertices, int vertex_count, float tx, float ty,
-					 float rot_c, float rot_s, egg_color_t color)
+float rot_c, float rot_s, egg_color_t color)
 {
 	if (egg == NULL || egg->initialized == 0 || vertices == NULL || vertex_count < 3) {
 		return;
@@ -811,7 +811,7 @@ void egg_draw_polygon(egg_t *egg, const egg_vec2_t *vertices, int vertex_count, 
 
 	for (int i = 1; i + 1 < vertex_count; ++i) {
 		sAddTriangle(egg, vertices[0].x, vertices[0].y, vertices[i].x, vertices[i].y, vertices[i + 1].x, vertices[i + 1].y,
-				instanceIndex, 0.0f, r, g, b, a);
+		instanceIndex, 0.0f, r, g, b, a);
 	}
 }
 

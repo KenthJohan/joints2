@@ -1,9 +1,7 @@
 #include "../isa_internal.h"
 
 /** `isa_channel_t` get_type handler for `IsaTextStream`: accepts any type. */
-ecs_entity_t ch_stream_get_type(
-ecs_world_t *world,
-ecs_entity_t entity)
+ecs_entity_t ch_stream_get_type(ecs_world_t *world, ecs_entity_t entity)
 {
 	(void)world;
 	(void)entity;
@@ -12,11 +10,7 @@ ecs_entity_t entity)
 
 /** `isa_channel_t` write handler for `IsaTextStream`: prints `value` with an incrementing counter.
  * `type` 0 means `value` is literal text, otherwise it's a raw component value. */
-bool ch_stream_write(
-ecs_world_t *world,
-ecs_entity_t entity,
-ecs_entity_t type,
-void        *value)
+bool ch_stream_write(ecs_world_t *world, ecs_entity_t entity, ecs_entity_t type, void *value)
 {
 	if (!ecs_has(world, entity, IsaTextStream)) {
 		return false;

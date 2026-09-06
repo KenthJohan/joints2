@@ -20,7 +20,7 @@ typedef struct {
 
 typedef struct {
 	uint32_t line_number;
-	char * text;
+	char    *text;
 } isa_line_t;
 
 typedef struct {
@@ -28,8 +28,8 @@ typedef struct {
 } isa_program_t;
 
 static void IsaProgram_parse(
-	char          *script,
-	isa_program_t *program)
+char          *script,
+isa_program_t *program)
 {
 	ecs_vec_init(NULL, &program->lines, sizeof(isa_line_t), 0);
 
@@ -46,9 +46,9 @@ static void IsaProgram_parse(
 		}
 		*cursor = '\0';
 
-		isa_line_t *line = ecs_vec_append(NULL, &program->lines, sizeof(isa_line_t));
+		isa_line_t *line  = ecs_vec_append(NULL, &program->lines, sizeof(isa_line_t));
 		line->line_number = line_number++;
-		line->text = line_start;
+		line->text        = line_start;
 
 		if (finished) {
 			break;
@@ -58,7 +58,7 @@ static void IsaProgram_parse(
 }
 
 static void IsaProgram_fini(
-	isa_program_t *program)
+isa_program_t *program)
 {
 	ecs_vec_fini(NULL, &program->lines, sizeof(isa_line_t));
 }
@@ -255,14 +255,14 @@ bool IsaRun(
 ecs_world_t *world,
 const char  *script)
 {
-	bool           ok      = true;
+	bool          ok      = true;
 	char         *buf     = ecs_os_strdup(script);
 	isa_program_t program = {0};
 	IsaProgram_parse(buf, &program);
 
 	isa_line_t *lines = ecs_vec_first(&program.lines);
 	for (int i = 0; i < program.lines.count; i++) {
-		char *line = lines[i].text;
+		char *line    = lines[i].text;
 		char *tok_sav = NULL;
 		char *op      = strtok_r(line, " \t", &tok_sav);
 		if (op == NULL) {
