@@ -19,7 +19,7 @@ int main(int argc, char *argv[])
 #endif
 
 	char *file_content = eg_file_load_alloc("data/p1.isa0", NULL);
-	printf("Loaded file content: %s\n", file_content);
+	printf("Loaded file content: \n%s\n", file_content);
 
 	if (!IsaRun(world, file_content)) {
 		printf("Failed to run isa script\n");
