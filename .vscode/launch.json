@@ -72,6 +72,24 @@
 			"linux": {
 				"externalConsole": false,
 			}
+		},
+		{
+			"name": "Debug EgGpusSdl_test",
+			"type": "cppdbg",
+			"request": "launch",
+			"stopAtEntry": false,
+			"cwd": "${workspaceFolder}/vendor/eg/EgGpusSdl/test/EgGpusSdl_test",
+			"environment": [
+				{
+					"name": "LD_LIBRARY_PATH",
+					"value": "${env:HOME}/bake3/x64-Linux/debug/lib/:/usr/local/lib/"
+				}
+			],
+			"program": "${workspaceFolder}/vendor/eg/EgGpusSdl/test/EgGpusSdl_test/.bake/x64-Linux-debug/EgGpusSdl_test",
+			"args": [],
+			"linux": {
+				"externalConsole": false
+			}
 		}
 	]
 }

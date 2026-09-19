@@ -7,6 +7,7 @@
 #include <EgDisplaysSdl.h>
 #include <EgGpus.h>
 #include <EgGpusSdl.h>
+#include <EgSpirv.h>
 
 int main(int argc, char *argv[])
 {
@@ -16,6 +17,7 @@ int main(int argc, char *argv[])
 
 	ecs_world_t *world = ecs_init_w_args(argc, argv);
 
+	ECS_IMPORT(world, FlecsUnits);
 	ECS_IMPORT(world, EgWindows);
 	ECS_IMPORT(world, EgWindowsSdl);
 	ECS_IMPORT(world, EgButtons);
@@ -24,6 +26,7 @@ int main(int argc, char *argv[])
 	ECS_IMPORT(world, EgDisplaysSdl);
 	ECS_IMPORT(world, EgGpus);
 	ECS_IMPORT(world, EgGpusSdl);
+	ECS_IMPORT(world, EgSpirv);
 
 	ecs_log_set_level(0);
 	ecs_script_run_file(world, "config/windows.flecs");

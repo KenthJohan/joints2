@@ -5,6 +5,7 @@
         "language": "c",
         "use": [
             "flecs",
+			"EgSpirv",
 			"ecsx",
 			"EgSpatials",
 			"EgSpatialsSystems",
@@ -16,6 +17,7 @@
 			"EgDisplaysSdl",
 			"EgGpus",
 			"EgGpusSdl",
+			"EgSpirv",
 			"EgFs",
 			"EgBase",
 			"egmisc",
@@ -47,6 +49,7 @@
 			"ecsx",
 			"flecs",
 			"SDL3",
+			"spirv-cross-c-shared",
 			"stdc++",
 			"m"
 		],
