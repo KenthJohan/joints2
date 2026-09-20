@@ -25,10 +25,8 @@ gpu0 {
 	}
 
     shader_vertex {
-        eg.spirv.ShaderCreateInfo : {
-            path: "data/vertex.spv",
-            stage: 0
-        }
+        eg.spirv.Reflect : {stage: Vertex}
+        eg.gpus.ShaderCreateInfo : {stage: Vertex}
         (flecs.core.DependsOn, $spvfile)
     }
 
