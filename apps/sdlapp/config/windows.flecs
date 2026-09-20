@@ -33,6 +33,8 @@ gpu0 {
     }
 }
 
+const result: entity = eg.fs.path1("./project.json")
+
 
 struct Position(x: f32, y: f32)
 struct Vertex123(p:{f32,count:3, unit: flecs.units.Length.Meters}, c:{f32,count:4, unit: flecs.units.Color.Rgb})

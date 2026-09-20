@@ -8,6 +8,7 @@
 #include <EgGpus.h>
 #include <EgGpusSdl.h>
 #include <EgSpirv.h>
+#include <EgFs.h>
 
 int main(int argc, char *argv[])
 {
@@ -27,6 +28,7 @@ int main(int argc, char *argv[])
 	ECS_IMPORT(world, EgGpus);
 	ECS_IMPORT(world, EgGpusSdl);
 	ECS_IMPORT(world, EgSpirv);
+	ECS_IMPORT(world, EgFs);
 
 	ecs_log_set_level(0);
 	ecs_script_run_file(world, "config/windows.flecs");
