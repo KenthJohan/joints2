@@ -18,7 +18,6 @@
 #define ISATEST_BAKE_CONFIG_H
 
 /* Headers of public dependencies */
-#include <egmisc.h>
 #include <ecsx.h>
 #include <EgSpatials.h>
 #include <flecs.h>

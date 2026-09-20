@@ -1,5 +1,5 @@
 #include <flecs.h>
-#include <egmisc.h>
+#include <ecsx/ecsx_file.h>
 #include <EgSpatials.h>
 #include "isa.h"
 
@@ -18,7 +18,7 @@ int main(int argc, char *argv[])
 	printf("Flecs Explorer: %s\n", "https://www.flecs.dev/explorer/?page=rest&host=localhost");
 #endif
 
-	char *file_content = eg_file_load_alloc("data/p1.isa0", NULL);
+	char *file_content = ecsx_file_load_alloc("data/p1.isa0", NULL);
 	printf("Loaded file content: \n%s\n", file_content);
 
 	if (!IsaRun(world, file_content)) {

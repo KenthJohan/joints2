@@ -19,7 +19,6 @@
 			"EgFs",
 			"EgGlslang",
 			"egmath",
-			"egmisc",
 			"box2d",
 			"egg"
         ],
@@ -45,7 +44,6 @@
 			"EgFs",
 			"EgBase",
 			"EgGlslang",
-			"egmisc",
 			"egmath",
 			"ecsx",
 			"box2d",

@@ -4,7 +4,6 @@
     "value": {
         "language": "c",
         "use": [
-			"egmisc",
 			"ecsx",
 			"EgSpatials",
             "flecs"
@@ -17,7 +16,6 @@
 			"_FORTIFY_SOURCE=2"
 		],
 		"lib": [
-			"egmisc",
 			"ecsx",
 			"EgSpatials",
 			"flecs"
