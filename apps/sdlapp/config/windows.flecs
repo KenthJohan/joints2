@@ -37,6 +37,7 @@ const result: entity = eg.fs.path1("./project.json")
 
 $result {
     eg.fs.Content
+    eg.fs.Sync
 }
 
 struct Position(x: f32, y: f32)
