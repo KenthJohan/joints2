@@ -13,6 +13,11 @@ displays {
     eg.displays.Update
 }
 
+const spvfile: entity = eg.fs.path1("./data/vertex.spv")
+
+$spvfile {
+    eg.fs.Reader
+}
 
 gpu0 {
 	eg.gpus.DeviceCreateInfo : {
@@ -24,6 +29,7 @@ gpu0 {
             path: "data/vertex.spv",
             stage: 0
         }
+        (flecs.core.DependsOn, $spvfile)
     }
 
     texture0 {
@@ -33,12 +39,7 @@ gpu0 {
     }
 }
 
-const result: entity = eg.fs.path1("./project.json")
 
-$result {
-    eg.fs.Content
-    eg.fs.Sync
-}
 
 struct Position(x: f32, y: f32)
 struct Vertex123(p:{f32,count:3, unit: flecs.units.Length.Meters}, c:{f32,count:4, unit: flecs.units.Color.Rgb})
