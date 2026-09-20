@@ -78,6 +78,9 @@ static void AppDrawText_Draw(ecs_iter_t *it)
 	EgBaseFont        *f   = ecs_field_self(it, EgBaseFont, 4);
 	EgShapesRectangle *r   = ecs_field_shared(it, EgShapesRectangle, 5);
 
+	(void)r;
+	(void)cam;
+
 	for (int i = 0; i < it->count; ++i, ++p, ++t, ++f) {
 		if (t->value == NULL) {
 			continue; // Skip empty strings
