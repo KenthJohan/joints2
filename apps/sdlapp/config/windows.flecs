@@ -13,11 +13,24 @@ displays {
     eg.displays.Update
 }
 
-const spvfile: entity = eg.fs.path1("./data/vertex.spv")
+const shader_file_vertex: entity = eg.fs.path1("./data/vertex.spv")
+const shader_file_fragment: entity = eg.fs.path1("./data/fragment.spv")
 
-$spvfile {
+$shader_file_vertex {
     eg.fs.Reader
 }
+
+$shader_file_fragment {
+    eg.fs.Reader
+}
+
+struct Position(x: f32, y: f32)
+struct Vertex123(p:{f32,count:3, unit: flecs.units.Length.Meters}, c:{f32,count:4, unit: flecs.units.Color.Rgb})
+{
+    p {eg.gpus.Location : {0}}
+    c {eg.gpus.Location : {1}}
+}
+
 
 gpu0 {
 	eg.gpus.DeviceCreateInfo : {
@@ -27,7 +40,13 @@ gpu0 {
     shader_vertex {
         eg.spirv.Reflect : {stage: Vertex}
         eg.gpus.ShaderCreateInfo : {stage: Vertex}
-        (flecs.core.DependsOn, $spvfile)
+        (flecs.core.DependsOn, $shader_file_vertex)
+    }
+    
+    shader_fragment {
+        eg.spirv.Reflect : {stage: Fragment}
+        eg.gpus.ShaderCreateInfo : {stage: Fragment}
+        (flecs.core.DependsOn, $shader_file_fragment)
     }
 
     texture0 {
@@ -35,13 +54,16 @@ gpu0 {
 		eg.gpus.TextureCreateInfo : {sample_count: 1}
         Rectangle : {w: 1024, h: 1024}
     }
+
+    pip {
+        eg.gpus.GraphicsPipelineCreateInfo : {
+            shader_vertex: shader_vertex,
+            shader_fragment: shader_fragment,
+            sample_count: 1
+        }
+        (flecs.core.DependsOn, Vertex123)
+    }
 }
 
 
 
-struct Position(x: f32, y: f32)
-struct Vertex123(p:{f32,count:3, unit: flecs.units.Length.Meters}, c:{f32,count:4, unit: flecs.units.Color.Rgb})
-{
-    p {eg.gpus.Location : {0}}
-    c {eg.gpus.Location : {1}}
-}
