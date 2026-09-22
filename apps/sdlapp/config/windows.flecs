@@ -24,11 +24,18 @@ $shader_file_fragment {
     eg.fs.Reader
 }
 
-struct Position(x: f32, y: f32)
-struct Vertex123(p:{f32,count:3, unit: flecs.units.Length.Meters}, c:{f32,count:4, unit: flecs.units.Color.Rgb})
+struct Vertex123(pos:{f32,count:2, unit: flecs.units.Length.Meters}, uv:{f32,count:2, unit: flecs.units.Length.Meters}, color:{u8, count:4, unit: flecs.units.Color.Rgb})
 {
-    p {eg.gpus.Location : {0}}
-    c {eg.gpus.Location : {1}}
+    pos {
+        eg.gpus.Location : {0}
+    }
+    uv {
+        eg.gpus.Location : {1}
+    }
+    color {
+        eg.gpus.Location : {2}
+        eg.spatials.Normalized
+    }
 }
 
 
@@ -57,11 +64,11 @@ gpu0 {
 
     pip {
         eg.gpus.GraphicsPipelineCreateInfo : {
-            shader_vertex: shader_vertex,
-            shader_fragment: shader_fragment,
             sample_count: 1
         }
         (flecs.core.DependsOn, Vertex123)
+        (flecs.core.DependsOn, shader_vertex)
+        (flecs.core.DependsOn, shader_fragment)
     }
 }
 
