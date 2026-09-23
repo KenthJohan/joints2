@@ -1,0 +1,13 @@
+{
+	"id": "SDLGpuSampledTextureOrder",
+	"type": "application",
+	"value": {
+		"language": "c",
+		"public": false
+	},
+	"lang.c": {
+		"c-standard": "gnu99",
+		"lib": ["SDL3"],
+		"cflags": ["-Wall", "-Wextra", "-Werror"]
+	}
+}

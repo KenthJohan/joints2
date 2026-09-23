@@ -56,8 +56,6 @@ static void draw_demo_render(ecs_world_t *world, ecs_entity_t e_window, ecs_enti
 		}
 		demo->claimed = true;
 		printf("Swapchain format: %d (pipeline expects %d)\n", SDL_GetGPUSwapchainTextureFormat(dev->object, win->object), SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM);
-		// Recreate the sampled image after the window claim initializes the presentation device state.
-		ecs_modified(world, e_white_texture, EgGpusTextureCreateInfo);
 		return;
 	}
 
