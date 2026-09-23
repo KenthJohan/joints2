@@ -60,10 +60,41 @@ gpu0 {
         (flecs.core.DependsOn, $shader_file_fragment)
     }
 
-    texture0 {
+    depth_texture {
         eg.gpus.Texture
-		eg.gpus.TextureCreateInfo : {sample_count: 1}
+        eg.gpus.TextureCreateInfo : {
+            sample_count: 1,
+            usage: DepthStencil,
+            format: D16Unorm
+        }
         Rectangle : {w: 1024, h: 1024}
+    }
+
+    vertex_buffer {
+        eg.gpus.BufferCreateInfo : {
+            size: 120,
+            usage: Vertex
+        }
+    }
+
+    white_texture {
+        eg.gpus.Texture
+        eg.gpus.TextureCreateInfo : {
+            sample_count: 1,
+            usage: Sampled,
+            format: Rgba8Unorm
+        }
+        Rectangle : {w: 1, h: 1}
+    }
+
+    nearest_sampler {
+        eg.gpus.SamplerCreateInfo : {
+            min_filter: Nearest,
+            mag_filter: Nearest,
+            address_mode_u: ClampToEdge,
+            address_mode_v: ClampToEdge,
+            address_mode_w: ClampToEdge
+        }
     }
 
     pip {

@@ -22,10 +22,8 @@ typedef struct
 
 typedef struct
 {
-	bool             claimed;
-	SDL_GPUBuffer   *vertex_buffer;
-	SDL_GPUTexture  *white_texture;
-	SDL_GPUSampler  *sampler;
+	bool claimed;
+	bool uploaded;
 } DrawDemo;
 
 // Vertex uniform buffer layout must match `UBO` in data/shader.vert (uScale, uTranslate).
@@ -35,16 +33,19 @@ typedef struct
 	float translate[2];
 } DrawDemoVertexUBO;
 
-// Renders a single rectangle using the gpu0/pip/texture0 entities from windows.flecs.
+// Renders a single rectangle using the gpu0/pip/depth_texture entities from windows.flecs.
 // The required GPU objects are created asynchronously by EgGpusSdl systems, so this
 // function is a no-op until the device, pipeline and depth texture are all ready.
-static void draw_demo_render(ecs_world_t *world, ecs_entity_t e_window, ecs_entity_t e_device, ecs_entity_t e_pipeline, ecs_entity_t e_depth, DrawDemo *demo)
+static void draw_demo_render(ecs_world_t *world, ecs_entity_t e_window, ecs_entity_t e_device, ecs_entity_t e_pipeline, ecs_entity_t e_depth, ecs_entity_t e_vertex_buffer, ecs_entity_t e_white_texture, ecs_entity_t e_sampler, DrawDemo *demo)
 {
-	const EgWindowsWindow         *win   = ecs_get(world, e_window, EgWindowsWindow);
-	const EgGpusDevice             *dev   = ecs_get(world, e_device, EgGpusDevice);
-	const EgGpusGraphicsPipeline  *pip   = ecs_get(world, e_pipeline, EgGpusGraphicsPipeline);
-	const EgGpusTexture           *depth = ecs_get(world, e_depth, EgGpusTexture);
-	if (!win || !win->object || !dev || !dev->object || !pip || !pip->object || !depth || !depth->object) {
+	const EgWindowsWindow        *win   = ecs_get(world, e_window, EgWindowsWindow);
+	const EgGpusDevice           *dev   = ecs_get(world, e_device, EgGpusDevice);
+	const EgGpusGraphicsPipeline *pip   = ecs_get(world, e_pipeline, EgGpusGraphicsPipeline);
+	const EgGpusTexture          *depth = ecs_get(world, e_depth, EgGpusTexture);
+	const EgGpusBuffer           *vertex_buffer = ecs_get(world, e_vertex_buffer, EgGpusBuffer);
+	const EgGpusTexture          *white_texture = ecs_get(world, e_white_texture, EgGpusTexture);
+	const EgGpusSampler          *sampler = ecs_get(world, e_sampler, EgGpusSampler);
+	if (!win || !win->object || !dev || !dev->object || !pip || !pip->object || !depth || !depth->object || !vertex_buffer || !vertex_buffer->object || !white_texture || !white_texture->object || !sampler || !sampler->object) {
 		return; // GPU resources are not ready yet.
 	}
 
@@ -55,92 +56,26 @@ static void draw_demo_render(ecs_world_t *world, ecs_entity_t e_window, ecs_enti
 		}
 		demo->claimed = true;
 		printf("Swapchain format: %d (pipeline expects %d)\n", SDL_GetGPUSwapchainTextureFormat(dev->object, win->object), SDL_GPU_TEXTUREFORMAT_B8G8R8A8_UNORM);
+		// Recreate the sampled image after the window claim initializes the presentation device state.
+		ecs_modified(world, e_white_texture, EgGpusTextureCreateInfo);
+		return;
 	}
 
-	if (!demo->vertex_buffer) {
+	if (!demo->uploaded) {
 		DrawDemoVertex vertices[6] = {
-		{.pos = {-0.5f, -0.5f}, .uv = {0.0f, 1.0f}, .color = {255, 255, 255, 255}},
-		{.pos = {0.5f, -0.5f}, .uv = {1.0f, 1.0f}, .color = {255, 255, 255, 255}},
-		{.pos = {0.5f, 0.5f}, .uv = {1.0f, 0.0f}, .color = {255, 255, 255, 255}},
-		{.pos = {-0.5f, -0.5f}, .uv = {0.0f, 1.0f}, .color = {255, 255, 255, 255}},
-		{.pos = {0.5f, 0.5f}, .uv = {1.0f, 0.0f}, .color = {255, 255, 255, 255}},
-		{.pos = {-0.5f, 0.5f}, .uv = {0.0f, 0.0f}, .color = {255, 255, 255, 255}},
+			{.pos = {-0.5f, -0.5f}, .uv = {0.0f, 1.0f}, .color = {255, 255, 255, 255}},
+			{.pos = {0.5f, -0.5f}, .uv = {1.0f, 1.0f}, .color = {255, 255, 255, 255}},
+			{.pos = {0.5f, 0.5f}, .uv = {1.0f, 0.0f}, .color = {255, 255, 255, 255}},
+			{.pos = {-0.5f, -0.5f}, .uv = {0.0f, 1.0f}, .color = {255, 255, 255, 255}},
+			{.pos = {0.5f, 0.5f}, .uv = {1.0f, 0.0f}, .color = {255, 255, 255, 255}},
+			{.pos = {-0.5f, 0.5f}, .uv = {0.0f, 0.0f}, .color = {255, 255, 255, 255}},
 		};
-		Uint32 size = sizeof(vertices);
-
-		SDL_GPUBufferCreateInfo vb_info = {.usage = SDL_GPU_BUFFERUSAGE_VERTEX, .size = size};
-		demo->vertex_buffer            = SDL_CreateGPUBuffer(dev->object, &vb_info);
-		if (!demo->vertex_buffer) {
-			printf("SDL_CreateGPUBuffer() failed: %s\n", SDL_GetError());
+		uint8_t                         white_pixel[4] = {255, 255, 255, 255};
+		if (!EgGpusSdlUploadBuffer(dev, vertex_buffer, vertices, sizeof(vertices)) || !EgGpusSdlUploadTexture2D(dev, white_texture, white_pixel, sizeof(white_pixel), 1, 1)) {
+			printf("Failed to upload draw resources: %s\n", SDL_GetError());
 			return;
 		}
-		SDL_SetGPUBufferName(dev->object, demo->vertex_buffer, "draw_demo_rectangle");
-
-		SDL_GPUTransferBufferCreateInfo tb_info = {.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, .size = size};
-		SDL_GPUTransferBuffer          *transfer = SDL_CreateGPUTransferBuffer(dev->object, &tb_info);
-		if (!transfer) {
-			printf("SDL_CreateGPUTransferBuffer() failed: %s\n", SDL_GetError());
-			return;
-		}
-		void *map = SDL_MapGPUTransferBuffer(dev->object, transfer, false);
-		memcpy(map, vertices, size);
-		SDL_UnmapGPUTransferBuffer(dev->object, transfer);
-
-		SDL_GPUCommandBuffer *upload_cmd  = SDL_AcquireGPUCommandBuffer(dev->object);
-		SDL_GPUCopyPass       *copy_pass   = SDL_BeginGPUCopyPass(upload_cmd);
-		SDL_GPUTransferBufferLocation src = {.transfer_buffer = transfer, .offset = 0};
-		SDL_GPUBufferRegion           dst = {.buffer = demo->vertex_buffer, .offset = 0, .size = size};
-		SDL_UploadToGPUBuffer(copy_pass, &src, &dst, false);
-		SDL_EndGPUCopyPass(copy_pass);
-		SDL_SubmitGPUCommandBuffer(upload_cmd);
-		SDL_ReleaseGPUTransferBuffer(dev->object, transfer);
-
-		// The fragment shader samples a texture; bind a plain white 1x1 texture so aColor shows through unmodified.
-		SDL_GPUTextureCreateInfo tex_info = {0};
-		tex_info.type                     = SDL_GPU_TEXTURETYPE_2D;
-		tex_info.format                   = SDL_GPU_TEXTUREFORMAT_R8G8B8A8_UNORM;
-		tex_info.usage                    = SDL_GPU_TEXTUREUSAGE_SAMPLER;
-		tex_info.width                    = 1;
-		tex_info.height                   = 1;
-		tex_info.layer_count_or_depth     = 1;
-		tex_info.num_levels               = 1;
-		tex_info.sample_count             = SDL_GPU_SAMPLECOUNT_1;
-		demo->white_texture               = SDL_CreateGPUTexture(dev->object, &tex_info);
-		if (!demo->white_texture) {
-			printf("SDL_CreateGPUTexture() failed: %s\n", SDL_GetError());
-			return;
-		}
-		SDL_SetGPUTextureName(dev->object, demo->white_texture, "draw_demo_white");
-
-		uint8_t                          white_pixel[4] = {255, 255, 255, 255};
-		SDL_GPUTransferBufferCreateInfo tex_tb_info    = {.usage = SDL_GPU_TRANSFERBUFFERUSAGE_UPLOAD, .size = sizeof(white_pixel)};
-		SDL_GPUTransferBuffer          *tex_transfer   = SDL_CreateGPUTransferBuffer(dev->object, &tex_tb_info);
-		void                            *tex_map        = SDL_MapGPUTransferBuffer(dev->object, tex_transfer, false);
-		memcpy(tex_map, white_pixel, sizeof(white_pixel));
-		SDL_UnmapGPUTransferBuffer(dev->object, tex_transfer);
-
-		SDL_GPUCommandBuffer      *tex_upload_cmd = SDL_AcquireGPUCommandBuffer(dev->object);
-		SDL_GPUCopyPass           *tex_copy_pass   = SDL_BeginGPUCopyPass(tex_upload_cmd);
-		SDL_GPUTextureTransferInfo tex_src         = {.transfer_buffer = tex_transfer, .offset = 0};
-		SDL_GPUTextureRegion       tex_dst         = {.texture = demo->white_texture, .w = 1, .h = 1, .d = 1};
-		SDL_UploadToGPUTexture(tex_copy_pass, &tex_src, &tex_dst, false);
-		SDL_EndGPUCopyPass(tex_copy_pass);
-		SDL_SubmitGPUCommandBuffer(tex_upload_cmd);
-		SDL_ReleaseGPUTransferBuffer(dev->object, tex_transfer);
-
-		SDL_GPUSamplerCreateInfo sampler_info = {0};
-		sampler_info.min_filter               = SDL_GPU_FILTER_NEAREST;
-		sampler_info.mag_filter               = SDL_GPU_FILTER_NEAREST;
-		sampler_info.mipmap_mode              = SDL_GPU_SAMPLERMIPMAPMODE_NEAREST;
-		sampler_info.address_mode_u           = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
-		sampler_info.address_mode_v           = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
-		sampler_info.address_mode_w           = SDL_GPU_SAMPLERADDRESSMODE_CLAMP_TO_EDGE;
-		demo->sampler                         = SDL_CreateGPUSampler(dev->object, &sampler_info);
-		if (!demo->sampler) {
-			printf("SDL_CreateGPUSampler() failed: %s\n", SDL_GetError());
-			exit(EXIT_FAILURE);
-			return;
-		}
+		demo->uploaded = true;
 	}
 
 	SDL_GPUCommandBuffer *cmd = SDL_AcquireGPUCommandBuffer(dev->object);
@@ -182,9 +117,9 @@ static void draw_demo_render(ecs_world_t *world, ecs_entity_t e_window, ecs_enti
 
 	SDL_GPURenderPass *pass = SDL_BeginGPURenderPass(cmd, &color_target, 1, &depth_target);
 	SDL_BindGPUGraphicsPipeline(pass, pip->object);
-	SDL_GPUBufferBinding vb_binding = {.buffer = demo->vertex_buffer, .offset = 0};
+	SDL_GPUBufferBinding vb_binding = {.buffer = vertex_buffer->object, .offset = 0};
 	SDL_BindGPUVertexBuffers(pass, 0, &vb_binding, 1);
-	SDL_GPUTextureSamplerBinding tex_binding = {.texture = demo->white_texture, .sampler = demo->sampler};
+	SDL_GPUTextureSamplerBinding tex_binding = {.texture = white_texture->object, .sampler = sampler->object};
 	SDL_BindGPUFragmentSamplers(pass, 0, &tex_binding, 1);
 	SDL_DrawGPUPrimitives(pass, 6, 1, 0, 0);
 	SDL_EndGPURenderPass(pass);
@@ -226,9 +161,12 @@ int main(int argc, char *argv[])
 
 	ecs_entity_t e_gpu_device = ecs_lookup(world, "gpu0");
 	ecs_entity_t e_pipeline   = ecs_lookup(world, "gpu0.pip");
-	ecs_entity_t e_depth      = ecs_lookup(world, "gpu0.texture0");
-	if (!e_gpu_device || !e_pipeline || !e_depth) {
-		printf("Failed to find gpu0/pip/texture0 entities\n");
+	ecs_entity_t e_depth      = ecs_lookup(world, "gpu0.depth_texture");
+	ecs_entity_t e_vertex_buffer = ecs_lookup(world, "gpu0.vertex_buffer");
+	ecs_entity_t e_white_texture = ecs_lookup(world, "gpu0.white_texture");
+	ecs_entity_t e_sampler       = ecs_lookup(world, "gpu0.nearest_sampler");
+	if (!e_gpu_device || !e_pipeline || !e_depth || !e_vertex_buffer || !e_white_texture || !e_sampler) {
+		printf("Failed to find draw resource entities\n");
 		return -1;
 	}
 
@@ -240,6 +178,9 @@ int main(int argc, char *argv[])
 	DrawDemo draw_demo = {0};
 
 	while (1) {
+		if (ecs_should_quit(world)) {
+			break;
+		}
 		if (ecs_has(world, e_window, EgWindowsCloseRequest)) {
 			printf("Window should close\n");
 		}
@@ -248,20 +189,7 @@ int main(int argc, char *argv[])
 			break;
 		}
 		ecs_progress(world, 1.0f / 60.0f);
-		draw_demo_render(world, e_window, e_gpu_device, e_pipeline, e_depth, &draw_demo);
-	}
-
-	if (draw_demo.vertex_buffer) {
-		const EgGpusDevice *dev = ecs_get(world, e_gpu_device, EgGpusDevice);
-		if (dev && dev->object) {
-			SDL_ReleaseGPUBuffer(dev->object, draw_demo.vertex_buffer);
-			if (draw_demo.white_texture) {
-				SDL_ReleaseGPUTexture(dev->object, draw_demo.white_texture);
-			}
-			if (draw_demo.sampler) {
-				SDL_ReleaseGPUSampler(dev->object, draw_demo.sampler);
-			}
-		}
+		draw_demo_render(world, e_window, e_gpu_device, e_pipeline, e_depth, e_vertex_buffer, e_white_texture, e_sampler, &draw_demo);
 	}
 
 	ecs_fini(world);
