@@ -1,6 +1,5 @@
-@color #FF99FF
-cameras {}
 module cameras
+
 using eg.spatials
 
 cam0 {

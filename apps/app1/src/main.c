@@ -50,11 +50,11 @@ int main(int argc, char *argv[])
 	ecs_log_set_level(-1);
 
 	ecs_log_set_level(0);
-	ecs_script_run_file(world, "config/camera.flecs");
+	ecs_script_run_file(world, "config/cameras.flecs");
 	ecs_log_set_level(-1);
 
 	ecs_log_set_level(0);
-	ecs_script_run_file(world, "config/hud.flecs");
+	ecs_script_run_file(world, "config/huds.flecs");
 	ecs_log_set_level(-1);
 
 	ecs_log_set_level(0);

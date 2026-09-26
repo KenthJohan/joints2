@@ -1,10 +1,9 @@
-// Forward declare the camera so that it can be used in the window draw context
-cameras.cam0 {}
-cameras.cam_hud {}
-
 module eg.windows
+
 using eg.shapes
 using eg.spatials
+using eg.windows
+
 
 window1 {
     WindowCreateInfo : {debug: false, enable_opengl: true}

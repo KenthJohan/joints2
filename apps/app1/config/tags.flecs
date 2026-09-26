@@ -1,7 +1,41 @@
-@color #FF99FF
-tags {}
-module tags
+@color #99FFCC
+physics {
 
-mouse_hover {}
-mouse_drag {}
-mouse_focus {}
+}
+
+@color #99FFCC
+cameras {
+    cam0 {}
+    cam_hud {}
+}
+
+@color #99FFCC
+tags {
+    mouse_hover {}
+    mouse_drag {}
+    mouse_focus {}
+}
+
+
+@color #99FFCC
+root {
+    hud_text_title {}
+}
+
+@color #99FFCC
+keybindings {
+}
+
+@color #99FFCC
+huds {
+}
+
+eg {
+    windows {
+        window1 {
+            drawctx_1 {}
+            drawctx_hud {}
+            mouse_normalized {}
+        }
+    }
+}
