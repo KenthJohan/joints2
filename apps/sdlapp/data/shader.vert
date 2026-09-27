@@ -1,7 +1,19 @@
 #version 450 core
 layout(location = 0) in vec2 aPos;
 layout(location = 1) in vec2 aUV;
-layout(location = 2) in vec4 aColor;
+layout(location = 2) in uint aWidgetIndex;
+
+struct WidgetData
+{
+    vec4 color;
+    vec4 clip_rect;
+    uint texture_index;
+};
+
+layout(set=0, binding=0, std430) readonly buffer WidgetBuffer
+{
+    WidgetData widgets[];
+} widget_buffer;
 
 layout(set=1,binding=0) uniform UBO
 {
@@ -9,16 +21,18 @@ layout(set=1,binding=0) uniform UBO
     vec2 uTranslate;
 } ubo;
 
-layout(location = 0) out struct
-{
-    vec4 Color;
-    vec2 UV;
-} Out;
+layout(location = 0) out vec4 vColor;
+layout(location = 1) out vec4 vClipRect;
+layout(location = 2) out vec2 vUV;
+layout(location = 3) flat out uint vTextureIndex;
 
 void main()
 {
-    Out.Color = aColor;
-    Out.UV = aUV;
+    WidgetData widget = widget_buffer.widgets[aWidgetIndex];
+    vColor = widget.color;
+    vClipRect = widget.clip_rect;
+    vUV = aUV;
+    vTextureIndex = widget.texture_index;
     gl_Position = vec4(aPos * ubo.uScale + ubo.uTranslate, 0, 1);
     gl_Position.y *= -1.0f;
 }

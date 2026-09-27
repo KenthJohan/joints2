@@ -31,7 +31,7 @@ typedef struct
 // Renders a single rectangle using the gpu0/pip/depth_texture entities from windows.flecs.
 // The required GPU objects are created asynchronously by EgGpusSdl systems, so this
 // function is a no-op until the device, pipeline and depth texture are all ready.
-static void draw_demo_render(ecs_world_t *world, ecs_entity_t e_window, ecs_entity_t e_device, ecs_entity_t e_pipeline, ecs_entity_t e_depth, ecs_entity_t e_vertex_buffer, ecs_entity_t e_index_buffer, ecs_entity_t e_white_texture, ecs_entity_t e_sampler, DrawDemo *demo)
+static void draw_demo_render(ecs_world_t *world, ecs_entity_t e_window, ecs_entity_t e_device, ecs_entity_t e_pipeline, ecs_entity_t e_depth, ecs_entity_t e_vertex_buffer, ecs_entity_t e_index_buffer, ecs_entity_t e_widget_buffer, ecs_entity_t e_white_texture, ecs_entity_t e_sampler, DrawDemo *demo)
 {
 	const EgWindowsWindow        *win           = ecs_get(world, e_window, EgWindowsWindow);
 	const EgGpusDevice           *dev           = ecs_get(world, e_device, EgGpusDevice);
@@ -39,9 +39,10 @@ static void draw_demo_render(ecs_world_t *world, ecs_entity_t e_window, ecs_enti
 	const EgGpusTexture          *depth         = ecs_get(world, e_depth, EgGpusTexture);
 	const EgGpusBuffer           *vertex_buffer = ecs_get(world, e_vertex_buffer, EgGpusBuffer);
 	const EgGpusBuffer           *index_buffer  = ecs_get(world, e_index_buffer, EgGpusBuffer);
+	const EgGpusBuffer           *widget_buffer = ecs_get(world, e_widget_buffer, EgGpusBuffer);
 	const EgGpusTexture          *white_texture = ecs_get(world, e_white_texture, EgGpusTexture);
 	const EgGpusSampler          *sampler       = ecs_get(world, e_sampler, EgGpusSampler);
-	if (!win || !win->object || !dev || !dev->object || !pip || !pip->object || !depth || !depth->object || !vertex_buffer || !vertex_buffer->object || !index_buffer || !index_buffer->object || !white_texture || !white_texture->object || !sampler || !sampler->object) {
+	if (!win || !win->object || !dev || !dev->object || !pip || !pip->object || !depth || !depth->object || !vertex_buffer || !vertex_buffer->object || !index_buffer || !index_buffer->object || !widget_buffer || !widget_buffer->object || !white_texture || !white_texture->object || !sampler || !sampler->object) {
 		return; // GPU resources are not ready yet.
 	}
 
@@ -57,7 +58,7 @@ static void draw_demo_render(ecs_world_t *world, ecs_entity_t e_window, ecs_enti
 
 	if (!demo->texture_uploaded) {
 		uint8_t white_pixel[4] = {255, 255, 255, 255};
-		if (!EgGpusSdlUploadTexture2D(dev, white_texture, white_pixel, sizeof(white_pixel), 1, 1)) {
+		if (!EgGpusSdlUploadTextureArrayLayer(dev, white_texture, white_pixel, sizeof(white_pixel), 0, 1, 1)) {
 			printf("Failed to upload draw resources: %s\n", SDL_GetError());
 			return;
 		}
@@ -66,9 +67,10 @@ static void draw_demo_render(ecs_world_t *world, ecs_entity_t e_window, ecs_enti
 
 	float clip[4] = {0.0f, 0.0f, 1024.0f, 1024.0f}; // Matches window1's Rectangle in config/windows.flecs.
 	eg_drawlist_reset(&demo->drawlist);
-	eg_drawlist_new_cmd(&demo->drawlist, clip, (uint64_t)(intptr_t)white_texture->object);
+	float color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+	eg_drawlist_new_cmd(&demo->drawlist, clip, color, 0);
 	eg_drawlist_add_rect(&demo->drawlist, -0.5f, -0.5f, 0.5f, 0.5f);
-	if (!backend_sdlgpu_upload(&demo->drawlist, dev, vertex_buffer, index_buffer)) {
+	if (!backend_sdlgpu_upload(&demo->drawlist, dev, vertex_buffer, index_buffer, widget_buffer)) {
 		printf("Failed to upload drawlist: %s\n", SDL_GetError());
 		return;
 	}
@@ -111,7 +113,7 @@ static void draw_demo_render(ecs_world_t *world, ecs_entity_t e_window, ecs_enti
 	SDL_PushGPUVertexUniformData(cmd, 0, &ubo, sizeof(ubo));
 
 	SDL_GPURenderPass *pass = SDL_BeginGPURenderPass(cmd, &color_target, 1, &depth_target);
-	backend_sdlgpu_draw(&demo->drawlist, pass, pip, vertex_buffer, index_buffer, sampler);
+	backend_sdlgpu_draw(&demo->drawlist, pass, pip, vertex_buffer, index_buffer, widget_buffer, white_texture, sampler);
 	SDL_EndGPURenderPass(pass);
 
 	SDL_SubmitGPUCommandBuffer(cmd);
@@ -154,9 +156,10 @@ int main(int argc, char *argv[])
 	ecs_entity_t e_depth         = ecs_lookup(world, "gpu0.depth_texture");
 	ecs_entity_t e_vertex_buffer = ecs_lookup(world, "gpu0.vertex_buffer");
 	ecs_entity_t e_index_buffer  = ecs_lookup(world, "gpu0.index_buffer");
+	ecs_entity_t e_widget_buffer = ecs_lookup(world, "gpu0.widget_buffer");
 	ecs_entity_t e_white_texture = ecs_lookup(world, "gpu0.white_texture");
 	ecs_entity_t e_sampler       = ecs_lookup(world, "gpu0.nearest_sampler");
-	if (!e_gpu_device || !e_pipeline || !e_depth || !e_vertex_buffer || !e_index_buffer || !e_white_texture || !e_sampler) {
+	if (!e_gpu_device || !e_pipeline || !e_depth || !e_vertex_buffer || !e_index_buffer || !e_widget_buffer || !e_white_texture || !e_sampler) {
 		printf("Failed to find draw resource entities\n");
 		return -1;
 	}
@@ -181,7 +184,7 @@ int main(int argc, char *argv[])
 			break;
 		}
 		ecs_progress(world, 1.0f / 60.0f);
-		draw_demo_render(world, e_window, e_gpu_device, e_pipeline, e_depth, e_vertex_buffer, e_index_buffer, e_white_texture, e_sampler, &draw_demo);
+		draw_demo_render(world, e_window, e_gpu_device, e_pipeline, e_depth, e_vertex_buffer, e_index_buffer, e_widget_buffer, e_white_texture, e_sampler, &draw_demo);
 	}
 
 	eg_drawlist_fini(&draw_demo.drawlist);
