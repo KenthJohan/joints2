@@ -68,7 +68,7 @@ static void draw_demo_render(ecs_world_t *world, ecs_entity_t e_window, ecs_enti
 	float clip[4] = {0.0f, 0.0f, 1024.0f, 1024.0f}; // Matches window1's Rectangle in config/windows.flecs.
 	eg_drawlist_reset(&demo->drawlist);
 	float color[4] = {1.0f, 1.0f, 1.0f, 1.0f};
-	eg_drawlist_new_cmd(&demo->drawlist, clip, color, 0);
+	eg_drawlist_new_widget(&demo->drawlist, clip, color, 0);
 	eg_drawlist_add_rect(&demo->drawlist, -0.5f, -0.5f, 0.5f, 0.5f);
 	if (!backend_sdlgpu_upload(&demo->drawlist, dev, vertex_buffer, index_buffer, widget_buffer)) {
 		printf("Failed to upload drawlist: %s\n", SDL_GetError());

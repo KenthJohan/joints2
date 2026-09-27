@@ -15,7 +15,7 @@ void eg_drawlist_fini(eg_drawlist_t *drawlist)
 	ecs_vec_fini_t(NULL, &drawlist->vertices, eg_drawvert_t);
 }
 
-void eg_drawlist_new_cmd(eg_drawlist_t *drawlist, float clip[4], float color[4], uint32_t texture_layer)
+void eg_drawlist_new_widget(eg_drawlist_t *drawlist, float clip[4], float color[4], uint32_t texture_layer)
 {
 	ecs_assert(texture_layer < EG_DRAWLIST_MAX_TEXTURE_LAYERS, ECS_INVALID_PARAMETER,
 	"drawlist texture layer is out of range");
@@ -29,7 +29,7 @@ void eg_drawlist_new_cmd(eg_drawlist_t *drawlist, float clip[4], float color[4],
 void eg_drawlist_add_rect(eg_drawlist_t *drawlist, float x1, float y1, float x2, float y2)
 {
 	ecs_assert(ecs_vec_count(&drawlist->widgets) > 0, ECS_INVALID_PARAMETER,
-	"eg_drawlist_new_cmd must be called before eg_drawlist_add_rect");
+	"eg_drawlist_new_widget must be called before eg_drawlist_add_rect");
 
 	uint32_t widget_index = (uint32_t)ecs_vec_count(&drawlist->widgets) - 1;
 	uint32_t base_vertex  = (uint32_t)ecs_vec_count(&drawlist->vertices);

@@ -26,7 +26,7 @@ void eg_drawlist_init(eg_drawlist_t *drawlist);
 
 void eg_drawlist_fini(eg_drawlist_t *drawlist);
 
-void eg_drawlist_new_cmd(eg_drawlist_t *drawlist, float clip[4], float color[4], uint32_t texture_layer);
+void eg_drawlist_new_widget(eg_drawlist_t *drawlist, float clip[4], float color[4], uint32_t texture_layer);
 
 void eg_drawlist_add_rect(eg_drawlist_t *drawlist, float x1, float y1, float x2, float y2);
 
