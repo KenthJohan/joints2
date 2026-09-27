@@ -72,8 +72,15 @@ gpu0 {
 
     vertex_buffer {
         eg.gpus.BufferCreateInfo : {
-            size: 120,
+            size: 5120,
             usage: Vertex
+        }
+    }
+
+    index_buffer {
+        eg.gpus.BufferCreateInfo : {
+            size: 2048,
+            usage: Index
         }
     }
 
