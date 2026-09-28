@@ -5,15 +5,15 @@
 
 typedef struct {
 	float    color[4];
-	float    clip_rect[4];
-	uint32_t texture_index;
-	uint32_t padding[3];
+	float    clip[4];
+	uint32_t texture_layer;
+	uint32_t pad[3];
 } eg_widget_data_t;
 
 typedef struct {
-	float   pos[2]; // (x, y) screen coordinates
-	float   uv[2];  // (u, v)
-	uint32_t widget_index;
+	float    pos[2]; // (x, y) screen coordinates
+	float    uv[2];  // (u, v)
+	uint32_t index;
 } eg_drawvert_t;
 
 typedef struct {

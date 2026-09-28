@@ -6,8 +6,8 @@ layout(location = 2) in uint aWidgetIndex;
 struct WidgetData
 {
     vec4 color;
-    vec4 clip_rect;
-    uint texture_index;
+    vec4 clip;
+    uint texture_layer;
 };
 
 layout(set=0, binding=0, std430) readonly buffer WidgetBuffer
@@ -30,9 +30,9 @@ void main()
 {
     WidgetData widget = widget_buffer.widgets[aWidgetIndex];
     vColor = widget.color;
-    vClipRect = widget.clip_rect;
+    vClipRect = widget.clip;
     vUV = aUV;
-    vTextureIndex = widget.texture_index;
+    vTextureIndex = widget.texture_layer;
     gl_Position = vec4(aPos * ubo.uScale + ubo.uTranslate, 0, 1);
     gl_Position.y *= -1.0f;
 }
