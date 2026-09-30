@@ -459,8 +459,8 @@ void IsaImport(ecs_world_t *world)
 	&(IsaCmd){
 	.execute = IsaRun_open,
 	.args    = {
-	[ARG_OPEN_ENTITY]   = {.required = true},
-	[ARG_OPEN_ARGUMENT] = {.required = true}},
+    [ARG_OPEN_ENTITY]   = {.required = true},
+    [ARG_OPEN_ARGUMENT] = {.required = true}},
 	.arg_count = ARG_OPEN_COUNT});
 
 	ecs_entity_t transfer_cmd = ecs_entity(world, {.name = "TRANSFER"});
@@ -468,9 +468,9 @@ void IsaImport(ecs_world_t *world)
 	&(IsaCmd){
 	.execute = IsaRun_transfer,
 	.args    = {
-	[ARG_TRANSFER_DESTINATION] = {.required = true},
-	[ARG_TRANSFER_OPERATOR]    = {.value = "<--"},
-	[ARG_TRANSFER_SOURCE]      = {.required = true}},
+    [ARG_TRANSFER_DESTINATION] = {.required = true},
+    [ARG_TRANSFER_OPERATOR]    = {.value = "<--"},
+    [ARG_TRANSFER_SOURCE]      = {.required = true}},
 	.arg_count = ARG_TRANSFER_COUNT,
 	});
 
@@ -479,11 +479,11 @@ void IsaImport(ecs_world_t *world)
 	&(IsaCmd){
 	.execute = IsaRun_write,
 	.args    = {
-	[ARG_WRITE_ENTITY]   = {.required = true},
-	[ARG_WRITE_OPERATOR] = {.value = "<--"},
-	[ARG_WRITE_VALUE]    = {.required = true},
-	[ARG_WRITE_AS]       = {.value = "AS"},
-	[ARG_WRITE_TYPE]     = {}},
+    [ARG_WRITE_ENTITY]   = {.required = true},
+    [ARG_WRITE_OPERATOR] = {.value = "<--"},
+    [ARG_WRITE_VALUE]    = {.required = true},
+    [ARG_WRITE_AS]       = {.value = "AS"},
+    [ARG_WRITE_TYPE]     = {}},
 	.arg_count = ARG_WRITE_COUNT,
 	});
 

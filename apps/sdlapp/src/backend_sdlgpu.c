@@ -5,8 +5,8 @@
 bool backend_sdlgpu_upload(const eg_drawlist_t *drawlist, const EgGpusDevice *device, const EgGpusBuffer *vertex_buffer, const EgGpusBuffer *index_buffer, const EgGpusBuffer *widget_buffer)
 {
 	int32_t vertex_count = ecs_vec_count(&drawlist->vertices);
-	int32_t index_count   = ecs_vec_count(&drawlist->indices);
-	int32_t widget_count  = ecs_vec_count(&drawlist->widgets);
+	int32_t index_count  = ecs_vec_count(&drawlist->indices);
+	int32_t widget_count = ecs_vec_count(&drawlist->widgets);
 	if (vertex_count == 0 || index_count == 0) {
 		return true; // Nothing to draw this frame.
 	}
@@ -40,4 +40,3 @@ void backend_sdlgpu_draw(const eg_drawlist_t *drawlist, SDL_GPURenderPass *rende
 
 	SDL_DrawGPUIndexedPrimitives(render_pass, (Uint32)index_count, 1, 0, 0, 0);
 }
-

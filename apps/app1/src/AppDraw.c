@@ -73,7 +73,7 @@ static void AppDrawText_Draw(ecs_iter_t *it)
 {
 	AppDrawContext    *d   = ecs_field_shared(it, AppDrawContext, 0);
 	EgCamerasState    *cam = ecs_field_shared(it, EgCamerasState, 1);
-	Transformation    *p   = ecs_field_self(it, Transformation, 2);
+	Matrix4           *p   = ecs_field_self(it, Matrix4, 2);
 	EgBaseText        *t   = ecs_field_self(it, EgBaseText, 3);
 	EgBaseFont        *f   = ecs_field_self(it, EgBaseFont, 4);
 	EgShapesRectangle *r   = ecs_field_shared(it, EgShapesRectangle, 5);
@@ -103,7 +103,7 @@ static void AppDrawShapesRectangle_Draw(ecs_iter_t *it)
 {
 	AppDrawContext    *d = ecs_field_shared(it, AppDrawContext, 0);
 	EgShapesRectangle *r = ecs_field_self(it, EgShapesRectangle, 1);
-	Transformation    *p = ecs_field_self(it, Transformation, 2);
+	Matrix4           *p = ecs_field_self(it, Matrix4, 2);
 	for (int i = 0; i < it->count; ++i, ++r, ++p) {
 		float x = p->matrix.c3[0];
 		float y = p->matrix.c3[1];
@@ -184,12 +184,12 @@ void AppDrawImport(ecs_world_t *world)
 
 	ecs_system(world,
 	{.entity     = ecs_entity(world, {.name = "AppDrawText_Draw"}),
-	.phase       = EcsOnUpdate,
+	.phase       = EcsPostUpdate,
 	.callback    = AppDrawText_Draw,
 	.query.terms = {
 	{.id = ecs_id(AppDrawContext), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
 	{.id = ecs_id(EgCamerasState), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
-	{.id = ecs_id(Transformation), .src.id = EcsSelf, .inout = EcsIn},
+	{.id = ecs_id(Matrix4), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(EgBaseText), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(EgBaseFont), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(EgShapesRectangle), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
@@ -197,12 +197,12 @@ void AppDrawImport(ecs_world_t *world)
 
 	ecs_system(world,
 	{.entity     = ecs_entity(world, {.name = "AppDrawShapesRectangle_Draw"}),
-	.phase       = EcsOnUpdate,
+	.phase       = EcsPostUpdate,
 	.callback    = AppDrawShapesRectangle_Draw,
 	.query.terms = {
 	{.id = ecs_id(AppDrawContext), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
 	{.id = ecs_id(EgShapesRectangle), .src.id = EcsSelf, .inout = EcsIn},
-	{.id = ecs_id(Transformation), .src.id = EcsSelf, .inout = EcsIn},
+	{.id = ecs_id(Matrix4), .src.id = EcsSelf, .inout = EcsIn},
 	}});
 
 	ecs_observer(world,

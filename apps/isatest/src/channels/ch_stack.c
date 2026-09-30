@@ -28,7 +28,7 @@ bool ch_stack_write(ecs_world_t *world, ecs_entity_t entity, ecs_value_t value)
 	if (value.type != stack->type) {
 		return false;
 	}
-	
+
 	const EcsComponent *comp = ecs_get(world, stack->type, EcsComponent);
 	ecs_assert(comp != NULL, ECS_INVALID_PARAMETER, NULL);
 	ecs_assert(comp->size != 0, ECS_INVALID_PARAMETER, NULL);
@@ -62,7 +62,7 @@ bool ch_stack_take(ecs_world_t *world, ecs_entity_t entity, ecs_value_t *value)
 	const EcsComponent *comp = ecs_get(world, stack->type, EcsComponent);
 	ecs_assert(comp != NULL, ECS_INVALID_PARAMETER, NULL);
 	ecs_assert(comp->size != 0, ECS_INVALID_PARAMETER, NULL);
-	
+
 	void *elem = ecs_vec_get(&stack->vec, comp->size, stack->vec.count - 1);
 	void *copy = ecs_os_malloc(comp->size);
 	ecs_os_memcpy(copy, elem, comp->size);
