@@ -17,10 +17,6 @@ tags {
 }
 
 
-@color #99FFCC
-root {
-    hud_text_title {}
-}
 
 @color #99FFCC
 keybindings {
@@ -28,6 +24,9 @@ keybindings {
 
 @color #99FFCC
 huds {
+    root {
+        hud_text_title {}
+    }
 }
 
 eg {

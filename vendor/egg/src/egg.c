@@ -90,7 +90,7 @@ static const char *kEggVertexShaderSource =
 "    float c = instanceTransform.z;\n"
 "    float s = instanceTransform.w;\n"
 "    vec2 p = vec2(v_position.x, v_position.y);\n"
-"    p = vec2((c * p.x + s * p.y) + x, (-s * p.x + c * p.y) + y);\n"
+"    p = vec2((c * p.x - s * p.y) + x, (s * p.x + c * p.y) + y);\n"
 "    gl_Position = projectionMatrix * vec4(p, 0.0f, 1.0f);\n"
 "}\n";
 
