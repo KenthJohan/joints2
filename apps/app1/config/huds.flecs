@@ -3,7 +3,7 @@ using eg.spatials
 using eg.shapes
 
 prefab transform {
-	RotateOrder2
+	RotateOrder1
 	Transformation
 	Position3World
 	Orientation

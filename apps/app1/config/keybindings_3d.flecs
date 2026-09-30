@@ -1,5 +1,3 @@
-@color #FF99FF
-keybindings {}
 module keybindings
 using eg.spatials
 using eg.buttons
@@ -88,5 +86,37 @@ camera_move_dz {
         component:Velocity3, 
         byte_offset:8, 
         factor: -$TRANSLATE_SPEED
+    }
+}
+
+
+
+rotate_text1 {
+    eg.buttons.Binding : {
+        button0:eg.buttons.SCANCODE_Y, 
+        button1:eg.buttons.SCANCODE_U, 
+        mask:eg.buttons.BUTTON_HELD 
+    }
+    eg.buttons.Incrementer : {
+        entity:huds.root, 
+        component:Rotate3, 
+        byte_offset:8, 
+        factor: 0.005
+    }
+}
+
+
+
+rotate_text2 {
+    eg.buttons.Binding : {
+        button0:eg.buttons.SCANCODE_I, 
+        button1:eg.buttons.SCANCODE_O, 
+        mask:eg.buttons.BUTTON_HELD 
+    }
+    eg.buttons.Incrementer : {
+        entity:huds.root.hud_text_hint, 
+        component:Rotate3, 
+        byte_offset:8, 
+        factor: 0.005
     }
 }

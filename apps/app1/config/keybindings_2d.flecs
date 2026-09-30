@@ -62,8 +62,8 @@ camera_move_dz {
 
 rotate_text1 {
     eg.buttons.Binding : {
-        button0:eg.buttons.SCANCODE_E, 
-        button1:eg.buttons.SCANCODE_Q, 
+        button0:eg.buttons.SCANCODE_Y, 
+        button1:eg.buttons.SCANCODE_U, 
         mask:eg.buttons.BUTTON_HELD 
     }
     eg.buttons.Incrementer : {
@@ -78,8 +78,8 @@ rotate_text1 {
 
 rotate_text2 {
     eg.buttons.Binding : {
-        button0:eg.buttons.SCANCODE_T, 
-        button1:eg.buttons.SCANCODE_Y, 
+        button0:eg.buttons.SCANCODE_I, 
+        button1:eg.buttons.SCANCODE_O, 
         mask:eg.buttons.BUTTON_HELD 
     }
     eg.buttons.Incrementer : {
