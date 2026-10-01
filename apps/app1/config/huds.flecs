@@ -65,7 +65,7 @@ root2d : element2d {
         Position2 : {300, 300}
         Rectangle : {w: 200, h: 100}
         Flow : {direction: {x: 1, y: 0}}
-        Color : {color: 0xFFFF0000}
+        Color : {color: 0xFFFFFFFF}
 
         child_a : element2d {
             Rectangle : {w: 40, h: 40}
@@ -73,15 +73,15 @@ root2d : element2d {
         }
         child_b : element2d {
             Rectangle : {w: 60, h: 30}
-            Color : {color: 0xF66000FF}
+            Color : {color: 0xFF6058FF}
         }
         child_c : element2d {
             Rectangle : {w: 60, h: 30}
-            Color : {color: 0xFF0077FF}
+            Color : {color: 0xFF007733}
         }
         child_d : element2d {
             Rectangle : {w: 60, h: 30}
-            Color : {color: 0x3F2F7700}
+            Color : {color: 0xFF2F2700}
         }
     }
 }

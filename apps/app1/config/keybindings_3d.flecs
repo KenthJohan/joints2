@@ -1,5 +1,6 @@
 module keybindings
 using eg.spatials
+using eg.shapes
 using eg.buttons
 
 const ROTATE_SPEED = 0.005
@@ -101,7 +102,9 @@ rotate_text1 {
         entity:huds.root3d, 
         component:Rotate3, 
         byte_offset:8, 
-        factor: 0.005
+        factor: 0.005,
+        w0: 0.0,
+        w1: 1.0
     }
 }
 
@@ -117,6 +120,25 @@ rotate_text2 {
         entity:huds.root3d.hud_text_hint, 
         component:Rotate3, 
         byte_offset:8, 
-        factor: 0.005
+        factor: 0.005,
+        w0: 0.0,
+        w1: 1.0
+    }
+}
+
+
+change_rectangle {
+    eg.buttons.Binding : {
+        button0:eg.buttons.SCANCODE_K, 
+        button1:eg.buttons.SCANCODE_L, 
+        mask:eg.buttons.BUTTON_HELD 
+    }
+    eg.buttons.Incrementer : {
+        entity:huds.root2d.flow_demo, 
+        component:Rectangle, 
+        byte_offset:0, 
+        factor: 0.5,
+        w0: 1.0,
+        w1: 1.0
     }
 }
