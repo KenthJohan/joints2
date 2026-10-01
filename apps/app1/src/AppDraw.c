@@ -76,7 +76,8 @@ static void AppDrawText_Draw(ecs_iter_t *it)
 	Matrix4           *p   = ecs_field_self(it, Matrix4, 2);
 	EgBaseText        *t   = ecs_field_self(it, EgBaseText, 3);
 	EgBaseFont        *f   = ecs_field_self(it, EgBaseFont, 4);
-	EgShapesRectangle *r   = ecs_field_shared(it, EgShapesRectangle, 5);
+	EgBaseColor       *col = ecs_field_self(it, EgBaseColor, 5);
+	EgShapesRectangle *r   = ecs_field_shared(it, EgShapesRectangle, 6);
 
 	(void)r;
 	(void)cam;
@@ -88,29 +89,48 @@ static void AppDrawText_Draw(ecs_iter_t *it)
 		if (t->value[0] == '\0') {
 			continue; // Skip empty strings
 		}
-		float font_size = f->font_size > 0.0f ? f->font_size : 24.0f;
+		float    font_size = f->font_size > 0.0f ? f->font_size : 24.0f;
+		uint32_t color     = col != NULL ? col[i].color : 0xFFFFFFFFu;
 		assert(d->egg != NULL);
 		float x = p->matrix.c3[0];
 		float y = p->matrix.c3[1];
 		float c = p->matrix.c0[0]; // Rotation cosine
 		float s = p->matrix.c0[1]; // Rotation sine
 		egg_draw_rectangle(d->egg, x, y, c, s, 10, 10, 0x0066FF00u);
-		egg_draw_text(d->egg, x, y, c, s, font_size, 0xFFFFFFFFu, t->value);
+		egg_draw_text(d->egg, x, y, c, s, font_size, color, t->value);
 	}
 }
 
-static void AppDrawShapesRectangle_Draw(ecs_iter_t *it)
+static void AppDrawShapesRectangle_Draw3D(ecs_iter_t *it)
 {
-	AppDrawContext    *d = ecs_field_shared(it, AppDrawContext, 0);
-	EgShapesRectangle *r = ecs_field_self(it, EgShapesRectangle, 1);
-	Matrix4           *p = ecs_field_self(it, Matrix4, 2);
+	AppDrawContext    *d   = ecs_field_shared(it, AppDrawContext, 0);
+	EgShapesRectangle *r   = ecs_field_self(it, EgShapesRectangle, 1);
+	Matrix4           *p   = ecs_field_self(it, Matrix4, 2);
+	EgBaseColor       *col = ecs_field_self(it, EgBaseColor, 3);
 	for (int i = 0; i < it->count; ++i, ++r, ++p) {
-		float x = p->matrix.c3[0];
-		float y = p->matrix.c3[1];
-		float c = p->matrix.c0[0];
-		float s = p->matrix.c0[1];
-		egg_draw_rectangle(d->egg, x, y, c, s, r->w, r->h, 0x00FFFF00u);
-		egg_draw_text(d->egg, x, y, c, s, 24.0f, 0xFFFFFFFFu, "Rectangle");
+		float    x     = p->matrix.c3[0];
+		float    y     = p->matrix.c3[1];
+		float    c     = p->matrix.c0[0];
+		float    s     = p->matrix.c0[1];
+		uint32_t color = col != NULL ? col[i].color : 0x00FFFF00u;
+		egg_draw_rectangle(d->egg, x, y, c, s, r->w, r->h, color);
+	}
+}
+
+static void AppDrawShapesRectangle_Draw2D(ecs_iter_t *it)
+{
+	AppDrawContext    *d   = ecs_field_shared(it, AppDrawContext, 0);
+	EgShapesRectangle *r   = ecs_field_self(it, EgShapesRectangle, 1);
+	Matrix3           *p   = ecs_field_self(it, Matrix3, 2);
+	EgBaseColor       *col = ecs_field_self(it, EgBaseColor, 3);
+	for (int i = 0; i < it->count; ++i, ++r, ++p) {
+		float    x     = p->matrix.c2[0];
+		float    y     = p->matrix.c2[1];
+		float    c     = p->matrix.c0[0];
+		float    s     = p->matrix.c0[1];
+		uint32_t color = col != NULL ? col[i].color : 0x00FFFF00u;
+		egg_draw_rectangle(d->egg, x, y, c, s, r->w, r->h, color);
+		egg_draw_rectangle(d->egg, x, y, c, s, 10, 10, 0x0000000FF);
 	}
 }
 
@@ -192,17 +212,30 @@ void AppDrawImport(ecs_world_t *world)
 	{.id = ecs_id(Matrix4), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(EgBaseText), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(EgBaseFont), .src.id = EcsSelf, .inout = EcsIn},
+	{.id = ecs_id(EgBaseColor), .src.id = EcsSelf, .inout = EcsIn, .oper = EcsOptional},
 	{.id = ecs_id(EgShapesRectangle), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
 	}});
 
 	ecs_system(world,
-	{.entity     = ecs_entity(world, {.name = "AppDrawShapesRectangle_Draw"}),
+	{.entity     = ecs_entity(world, {.name = "AppDrawShapesRectangle_Draw3D"}),
 	.phase       = EcsPostUpdate,
-	.callback    = AppDrawShapesRectangle_Draw,
+	.callback    = AppDrawShapesRectangle_Draw3D,
 	.query.terms = {
 	{.id = ecs_id(AppDrawContext), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
 	{.id = ecs_id(EgShapesRectangle), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(Matrix4), .src.id = EcsSelf, .inout = EcsIn},
+	{.id = ecs_id(EgBaseColor), .src.id = EcsSelf, .inout = EcsIn, .oper = EcsOptional},
+	}});
+
+	ecs_system(world,
+	{.entity     = ecs_entity(world, {.name = "AppDrawShapesRectangle_Draw2D"}),
+	.phase       = EcsPostUpdate,
+	.callback    = AppDrawShapesRectangle_Draw2D,
+	.query.terms = {
+	{.id = ecs_id(AppDrawContext), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
+	{.id = ecs_id(EgShapesRectangle), .src.id = EcsSelf, .inout = EcsIn},
+	{.id = ecs_id(Matrix3), .src.id = EcsSelf, .inout = EcsIn},
+	{.id = ecs_id(EgBaseColor), .src.id = EcsSelf, .inout = EcsIn, .oper = EcsOptional},
 	}});
 
 	ecs_observer(world,

@@ -51,7 +51,9 @@ void AppDrawBox2dImport(ecs_world_t *world)
 	.phase       = EcsOnUpdate,
 	.callback    = AppDrawBox2dContext_Create,
 	.query.terms = {
-	{.id = ecs_id(AppDrawContext), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn}, {.id = ecs_id(AppDrawBox2dContextCreate), .src.id = EcsSelf, .inout = EcsIn}, {.id = ecs_id(AppDrawBox2dContext), .oper = EcsNot}, // Adds this
+	{.id = ecs_id(AppDrawContext), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
+	{.id = ecs_id(AppDrawBox2dContextCreate), .src.id = EcsSelf, .inout = EcsIn},
+	{.id = ecs_id(AppDrawBox2dContext), .oper = EcsNot}, // Adds this
 	}});
 
 	ecs_system(world,

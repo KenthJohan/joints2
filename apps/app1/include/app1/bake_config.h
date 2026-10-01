@@ -32,6 +32,7 @@
 #include <EgPhysicsBox2d.h>
 #include <EgFs.h>
 #include <EgGlslang.h>
+#include <EgUi.h>
 #include <egmath.h>
 #include <box2d.h>
 #include <egg.h>

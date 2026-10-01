@@ -18,6 +18,7 @@
 			"EgPhysicsBox2d",
 			"EgFs",
 			"EgGlslang",
+			"EgUi",
 			"egmath",
 			"box2d",
 			"egg"
@@ -44,6 +45,7 @@
 			"EgFs",
 			"EgBase",
 			"EgGlslang",
+			"EgUi",
 			"egmath",
 			"ecsx",
 			"box2d",

@@ -98,7 +98,7 @@ rotate_text1 {
         mask:eg.buttons.BUTTON_HELD 
     }
     eg.buttons.Incrementer : {
-        entity:huds.root, 
+        entity:huds.root3d, 
         component:Rotate3, 
         byte_offset:8, 
         factor: 0.005
@@ -114,7 +114,7 @@ rotate_text2 {
         mask:eg.buttons.BUTTON_HELD 
     }
     eg.buttons.Incrementer : {
-        entity:huds.root.hud_text_hint, 
+        entity:huds.root3d.hud_text_hint, 
         component:Rotate3, 
         byte_offset:8, 
         factor: 0.005

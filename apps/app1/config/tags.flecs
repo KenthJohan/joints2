@@ -22,12 +22,7 @@ tags {
 keybindings {
 }
 
-@color #99FFCC
-huds {
-    root {
-        hud_text_title {}
-    }
-}
+
 
 eg {
     windows {
@@ -37,4 +32,10 @@ eg {
             mouse_normalized {}
         }
     }
+}
+
+
+@color #99FFCC
+huds {
+    (flecs.core.DependsOn, eg.windows.window1.drawctx_hud)
 }
