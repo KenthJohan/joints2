@@ -60,11 +60,11 @@ root2d : element2d {
 }
 
 root2d : element2d {
-    // Lays its children out left-to-right, wrapping to a new line at 200 units wide
+    // Lays its children out left-to-right, moving down when a row reaches the parent edge
     flow_demo : element2d {
         Position2 : {300, 300}
         Rectangle : {w: 200, h: 100}
-        Flow : {direction: {x: 1, y: 0}}
+        Flow : {direction: Right, wrap: Down}
         Color : {color: 0xFFFFFFFF}
 
         child_a : element2d {
