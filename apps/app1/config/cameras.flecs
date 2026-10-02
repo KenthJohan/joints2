@@ -44,5 +44,11 @@ cam_hud {
     // Quaternion order here is x, y, z, w
     // Identity rotation: no pitch, no yaw, no roll
     Orientation : {0, 0, 0, 1}
+
+    mouse_unproject {
+        eg.cameras.Unproject
+        Position2 : {0, 0}
+        (flecs.core.DependsOn, eg.windows.window1.mouse_normalized)
+    }
 }
 

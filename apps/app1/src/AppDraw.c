@@ -235,7 +235,7 @@ void AppDrawImport(ecs_world_t *world)
 	{.id = ecs_id(AppDrawContext), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
 	{.id = ecs_id(EgShapesRectangle), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(Matrix3), .src.id = EcsSelf, .inout = EcsIn},
-	{.id = ecs_id(EgBaseColor), .src.id = EcsSelf, .inout = EcsIn, .oper = EcsOptional},
+	{.id = ecs_id(EgBaseColor), .src.id = EcsSelf, .inout = EcsIn},
 	}});
 
 	ecs_observer(world,

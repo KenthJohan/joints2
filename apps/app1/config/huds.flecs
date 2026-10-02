@@ -57,6 +57,7 @@ root3d : element3d {
 }
 
 root2d : element2d {
+    (eg.ui.MouseHitTesting, cameras.cam_hud.mouse_unproject) : {tag: tags.mouse_hover}
 }
 
 root2d : element2d {
@@ -65,7 +66,7 @@ root2d : element2d {
         Position2 : {300, 300}
         Rectangle : {w: 200, h: 100}
         Flow : {direction: Right, wrap: Down}
-        Color : {color: 0xFFFFFFFF}
+        //Color : {color: 0xFFFFFFFF}
 
         child_a : element2d {
             Rectangle : {w: 40, h: 40}
@@ -81,6 +82,33 @@ root2d : element2d {
         }
         child_d : element2d {
             Rectangle : {w: 60, h: 30}
+            Color : {color: 0xFF2F2700}
+        }
+    }
+
+    // Cells are placed by Cell {row, col}; rows/columns size to their largest child
+    table_demo : element2d {
+        Position2 : {300, 500}
+        Table : {row_gap: 5, col_gap: 5}
+
+        cell_a : element2d {
+            Cell : {row: 0, col: 0}
+            Rectangle : {w: 40, h: 40}
+            Color : {color: 0xFF44FF00}
+        }
+        cell_b : element2d {
+            Cell : {row: 0, col: 1}
+            Rectangle : {w: 80, h: 20}
+            Color : {color: 0xFF6058FF}
+        }
+        cell_c : element2d {
+            Cell : {row: 1, col: 0}
+            Rectangle : {w: 60, h: 30}
+            Color : {color: 0xFF007733}
+        }
+        cell_d : element2d {
+            Cell : {row: 1, col: 1}
+            Rectangle : {w: 30, h: 30}
             Color : {color: 0xFF2F2700}
         }
     }
