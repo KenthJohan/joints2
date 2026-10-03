@@ -33,6 +33,8 @@ void egg_draw_transform(egg_t *egg, int32_t z, float x, float y, float rotationC
 
 void egg_draw_rectangle(egg_t *egg, int32_t z, float x, float y, float rotationCos, float rotationSin, float width, float height, egg_color_t color);
 
+void egg_draw_rectangle_outline(egg_t *egg, int32_t z, float x, float y, float rotationCos, float rotationSin, float width, float height, float thickness, egg_color_t color);
+
 void egg_draw_bounds(egg_t *egg, int32_t z, float minX, float minY, float maxX, float maxY, egg_color_t color);
 
 void egg_draw_polygon(egg_t *egg, int32_t z, const egg_vec2_t *vertices, int vertex_count, float tx, float ty, float rot_c, float rot_s, egg_color_t color);

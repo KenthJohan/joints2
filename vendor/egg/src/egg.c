@@ -838,6 +838,33 @@ void egg_draw_rectangle(egg_t *egg, int32_t z, float x, float y, float rotationC
 	sAddQuad(l, -halfWidth, -halfHeight, halfWidth, halfHeight, instanceIndex, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, r, g, b, a);
 }
 
+void egg_draw_rectangle_outline(egg_t *egg, int32_t z, float x, float y, float rotationCos, float rotationSin, float width, float height, float thickness, egg_color_t color)
+{
+	if (egg == NULL || egg->initialized == 0 || width <= 0.0f || height <= 0.0f || thickness <= 0.0f) {
+		return;
+	}
+
+	egg_drawlist_t *l = sGetList(egg, z);
+	if (l == NULL) {
+		return;
+	}
+
+	sAppendTransform(l, x, y, rotationCos, rotationSin);
+	float   instanceIndex = (float)(l->transforms.count - 1);
+	float   halfWidth     = width * 0.5f;
+	float   halfHeight    = height * 0.5f;
+	uint8_t r             = 0;
+	uint8_t g             = 0;
+	uint8_t b             = 0;
+	uint8_t a             = 0;
+	sColorBytes(color, &r, &g, &b, &a);
+
+	sAddLine(egg, l, -halfWidth, -halfHeight, halfWidth, -halfHeight, thickness, instanceIndex, r, g, b, a);
+	sAddLine(egg, l, halfWidth, -halfHeight, halfWidth, halfHeight, thickness, instanceIndex, r, g, b, a);
+	sAddLine(egg, l, halfWidth, halfHeight, -halfWidth, halfHeight, thickness, instanceIndex, r, g, b, a);
+	sAddLine(egg, l, -halfWidth, halfHeight, -halfWidth, -halfHeight, thickness, instanceIndex, r, g, b, a);
+}
+
 void egg_draw_bounds(egg_t *egg, int32_t z, float minX, float minY, float maxX, float maxY, egg_color_t color)
 {
 	if (egg == NULL || egg->initialized == 0) {

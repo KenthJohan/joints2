@@ -73,7 +73,7 @@ root2d : element2d {
         }
         child_c : element2d {
             Rectangle : {w: 60, h: 30}
-            Color : {color: 0xFF007733}
+            Color : {color: 0xFF337733}
         }
         child_d : element2d {
             Rectangle : {w: 60, h: 30}

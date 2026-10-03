@@ -72,9 +72,9 @@ void AppDrawNameAtPosition_Draw(ecs_iter_t *it)
 			float y = m3->matrix.c2[1];
 			float c = m3->matrix.c0[0];
 			float s = m3->matrix.c0[1];
-			printf("Drawing name '%s' at position (%f, %f) with rotation (c=%f, s=%f)\n", name, x, y, c, s);
+			//printf("Drawing name '%s' at position (%f, %f) with rotation (c=%f, s=%f)\n", name, x, y, c, s);
 			egg_draw_text(d->egg, APP_DRAW_Z_TEXT, x, y, c, s, 0.5f, b->color, name);
-			egg_draw_rectangle(d->egg, APP_DRAW_Z_SHAPES, x, y, c, s, 20, 20, 0x0066FF00u);
+			egg_draw_rectangle_outline(d->egg, APP_DRAW_Z_SHAPES, x, y, c, s, 20, 20, 2.0f, 0x0066FF00u);
 		}
 	} else if (m4) {
 		for (int i = 0; i < it->count; ++i, ++m4) {
@@ -84,8 +84,9 @@ void AppDrawNameAtPosition_Draw(ecs_iter_t *it)
 			float y = m4->matrix.c3[1];
 			float c = 1.0f; // Rotation cosine
 			float s = 0.0f; // Rotation sine
-			printf("Drawing name '%s' at position (%f, %f) with rotation (c=%f, s=%f)\n", name, x, y, c, s);
+			//printf("Drawing name '%s' at position (%f, %f) with rotation (c=%f, s=%f)\n", name, x, y, c, s);
 			egg_draw_text(d->egg, APP_DRAW_Z_TEXT, x, y, c, s, 0.5f, b->color, name);
+			egg_draw_rectangle_outline(d->egg, APP_DRAW_Z_SHAPES, x, y, c, s, 20, 20, 2.0f, 0x0066FF00u);
 		}
 	}
 }
