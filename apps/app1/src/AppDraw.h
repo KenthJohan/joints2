@@ -3,8 +3,9 @@
 #include <egg.h>
 
 typedef struct {
-	egg_t *egg;
-	float  pixelScale;
+	egg_render_t *render;
+	egg_draw_t   *draw;
+	float         pixelScale;
 } AppDrawContext;
 
 enum {

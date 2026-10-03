@@ -112,20 +112,38 @@ int egg_font_bake(egg_font_t *font, unsigned char *bitmap)
 	return 1;
 }
 
-void egg_dl_init(egg_draw_t *d)
+egg_draw_t *egg_draw_create(void)
 {
-	memset(d, 0, sizeof(*d));
+	egg_draw_t *d      = calloc(1, sizeof(*d));
+	unsigned char *bmp = malloc(EGG_ATLAS_WIDTH * EGG_ATLAS_HEIGHT);
+	if (d == NULL || bmp == NULL || !egg_font_bake(&d->font, bmp)) {
+		free(bmp);
+		free(d);
+		return NULL;
+	}
+
+	free(bmp);
 	d->pixelScale = 1.0f;
+	return d;
 }
 
-void egg_dl_destroy(egg_draw_t *d)
+void egg_draw_destroy(egg_draw_t *d)
 {
+	if (d == NULL) {
+		return;
+	}
+
 	for (int32_t i = 0; i < d->listCount; ++i) {
 		free(d->lists[i].vertices.data);
 		free(d->lists[i].transforms.data);
 	}
 	free(d->lists);
-	memset(d, 0, sizeof(*d));
+	free(d);
+}
+
+void egg_draw_set_pixel_scale(egg_draw_t *d, float pixelScale)
+{
+	d->pixelScale = pixelScale > 0.0f ? pixelScale : 1.0f;
 }
 
 static egg_drawlist_t *sGetList(egg_draw_t *d, int32_t z)
@@ -263,7 +281,7 @@ static void sAddLine(const sBatch_t *batch, float pixelScale, float x1, float y1
 	sAddTriangle(l, p2x, p2y, p4x, p4y, p3x, p3y, batch->instanceIndex, 0.0f, batch->r, batch->g, batch->b, batch->a);
 }
 
-void egg_dl_text(egg_draw_t *d, const egg_font_t *font, int32_t z, float x, float y, float rotationCos, float rotationSin, float fontSize, egg_color_t color, const char *string)
+void egg_draw_text(egg_draw_t *d, int32_t z, float x, float y, float rotationCos, float rotationSin, float fontSize, egg_color_t color, const char *string)
 {
 	if (string == NULL) {
 		return;
@@ -287,12 +305,12 @@ void egg_dl_text(egg_draw_t *d, const egg_font_t *font, int32_t z, float x, floa
 		int codepoint = (unsigned char)*p;
 		if (codepoint == '\n') {
 			cursorX = startX;
-			cursorY -= font->lineHeight * scale;
+			cursorY -= d->font.lineHeight * scale;
 			continue;
 		}
 
 		if (codepoint == '\t') {
-			cursorX += 4.0f * font->lineHeight * 0.5f * scale;
+			cursorX += 4.0f * d->font.lineHeight * 0.5f * scale;
 			continue;
 		}
 
@@ -301,7 +319,7 @@ void egg_dl_text(egg_draw_t *d, const egg_font_t *font, int32_t z, float x, floa
 		}
 
 		stbtt_aligned_quad q;
-		stbtt_GetBakedQuad(font->glyphs, EGG_ATLAS_WIDTH, EGG_ATLAS_HEIGHT, codepoint - EGG_FIRST_CHAR, &cursorX,
+		stbtt_GetBakedQuad(d->font.glyphs, EGG_ATLAS_WIDTH, EGG_ATLAS_HEIGHT, codepoint - EGG_FIRST_CHAR, &cursorX,
 		&cursorY, &q, 1);
 
 		float dx0 = q.x0 - startX;
@@ -318,7 +336,7 @@ void egg_dl_text(egg_draw_t *d, const egg_font_t *font, int32_t z, float x, floa
 	}
 }
 
-void egg_dl_line(egg_draw_t *d, int32_t z, float x1, float y1, float x2, float y2, float thickness, egg_color_t color)
+void egg_draw_line(egg_draw_t *d, int32_t z, float x1, float y1, float x2, float y2, float thickness, egg_color_t color)
 {
 	sBatch_t batch;
 	if (!sBeginBatch(&batch, d, z, 0.0f, 0.0f, 1.0f, 0.0f, color)) {
@@ -328,7 +346,7 @@ void egg_dl_line(egg_draw_t *d, int32_t z, float x1, float y1, float x2, float y
 	sAddLine(&batch, d->pixelScale, x1, y1, x2, y2, thickness);
 }
 
-void egg_dl_point(egg_draw_t *d, int32_t z, float x, float y, float size, egg_color_t color)
+void egg_draw_point(egg_draw_t *d, int32_t z, float x, float y, float size, egg_color_t color)
 {
 	if (size <= 0.0f) {
 		return;
@@ -344,7 +362,7 @@ void egg_dl_point(egg_draw_t *d, int32_t z, float x, float y, float size, egg_co
 	0.0f, batch.r, batch.g, batch.b, batch.a);
 }
 
-void egg_dl_circle(egg_draw_t *d, int32_t z, float x, float y, float radius, egg_color_t color)
+void egg_draw_circle(egg_draw_t *d, int32_t z, float x, float y, float radius, egg_color_t color)
 {
 	if (radius <= 0.0f) {
 		return;
@@ -370,7 +388,7 @@ void egg_dl_circle(egg_draw_t *d, int32_t z, float x, float y, float radius, egg
 	}
 }
 
-void egg_dl_circle_outline(egg_draw_t *d, int32_t z, float x, float y, float radius, float thickness, egg_color_t color)
+void egg_draw_circle_outline(egg_draw_t *d, int32_t z, float x, float y, float radius, float thickness, egg_color_t color)
 {
 	if (radius <= 0.0f || thickness <= 0.0f) {
 		return;
@@ -432,7 +450,7 @@ static void sAddCap(const sBatch_t *batch, float cx, float cy, float startAngle,
 	}
 }
 
-void egg_dl_capsule_outline(egg_draw_t *d, int32_t z, float x1, float y1, float x2, float y2, float radius, float thickness,
+void egg_draw_capsule_outline(egg_draw_t *d, int32_t z, float x1, float y1, float x2, float y2, float radius, float thickness,
 egg_color_t color)
 {
 	if (radius <= 0.0f || thickness <= 0.0f) {
@@ -465,7 +483,7 @@ egg_color_t color)
 	sAddCap(&batch, centerX - nx * halfLength, centerY - ny * halfLength, 0.0f, radius, innerRadius, segments);
 }
 
-void egg_dl_transform(egg_draw_t *d, int32_t z, float x, float y, float rotationCos, float rotationSin, float scale, egg_color_t color)
+void egg_draw_transform(egg_draw_t *d, int32_t z, float x, float y, float rotationCos, float rotationSin, float scale, egg_color_t color)
 {
 	sBatch_t batch;
 	if (!sBeginBatch(&batch, d, z, x, y, rotationCos, rotationSin, color)) {
@@ -476,7 +494,7 @@ void egg_dl_transform(egg_draw_t *d, int32_t z, float x, float y, float rotation
 	sAddLine(&batch, d->pixelScale, 0.0f, 0.0f, 0.0f, scale, 0.05f);
 }
 
-void egg_dl_rectangle(egg_draw_t *d, int32_t z, float x, float y, float rotationCos, float rotationSin, float width, float height, egg_color_t color)
+void egg_draw_rectangle(egg_draw_t *d, int32_t z, float x, float y, float rotationCos, float rotationSin, float width, float height, egg_color_t color)
 {
 	if (width <= 0.0f || height <= 0.0f) {
 		return;
@@ -493,7 +511,7 @@ void egg_dl_rectangle(egg_draw_t *d, int32_t z, float x, float y, float rotation
 	0.0f, batch.r, batch.g, batch.b, batch.a);
 }
 
-void egg_dl_rectangle_outline(egg_draw_t *d, int32_t z, float x, float y, float rotationCos, float rotationSin, float width, float height, float thickness, egg_color_t color)
+void egg_draw_rectangle_outline(egg_draw_t *d, int32_t z, float x, float y, float rotationCos, float rotationSin, float width, float height, float thickness, egg_color_t color)
 {
 	if (width <= 0.0f || height <= 0.0f || thickness <= 0.0f) {
 		return;
@@ -512,7 +530,7 @@ void egg_dl_rectangle_outline(egg_draw_t *d, int32_t z, float x, float y, float 
 	sAddLine(&batch, d->pixelScale, -halfWidth, halfHeight, -halfWidth, -halfHeight, thickness);
 }
 
-void egg_dl_bounds(egg_draw_t *d, int32_t z, float minX, float minY, float maxX, float maxY, egg_color_t color)
+void egg_draw_bounds(egg_draw_t *d, int32_t z, float minX, float minY, float maxX, float maxY, egg_color_t color)
 {
 	sBatch_t batch;
 	if (!sBeginBatch(&batch, d, z, 0.0f, 0.0f, 1.0f, 0.0f, color)) {
@@ -525,7 +543,7 @@ void egg_dl_bounds(egg_draw_t *d, int32_t z, float minX, float minY, float maxX,
 	sAddLine(&batch, d->pixelScale, minX, maxY, minX, minY, 0.05f);
 }
 
-void egg_dl_polygon(egg_draw_t *d, int32_t z, const egg_vec2_t *vertices, int vertex_count, float tx, float ty,
+void egg_draw_polygon(egg_draw_t *d, int32_t z, const egg_vec2_t *vertices, int vertex_count, float tx, float ty,
 float rot_c, float rot_s, egg_color_t color)
 {
 	if (vertices == NULL || vertex_count < 3) {

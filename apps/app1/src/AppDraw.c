@@ -22,9 +22,9 @@ static void Test_Render(ecs_iter_t *it)
 		// printf("Test_Render called with %d entities\n", it->count);
 
 		draw->pixelScale = camera->pixelScale * 1.0f; // Keep the egg-scale near the camera-derived size.
-		if (draw->egg != NULL) {
-			egg_set_pixel_scale(draw->egg, draw->pixelScale);
-			egg_flush(draw->egg, (float *)&camera->vp);
+		if (draw->render != NULL && draw->draw != NULL) {
+			egg_draw_set_pixel_scale(draw->draw, draw->pixelScale);
+			egg_flush(draw->render, draw->draw, (float *)&camera->vp);
 		}
 	}
 }
@@ -36,12 +36,15 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 	ecs_entity_t          e_window = ecs_field_src(it, 1);
 	printf("window_entity: %s\n", ecs_get_name(it->world, e_window));
 	for (int i = 0; i < it->count; ++i, ++def) {
-		egg_t *egg = egg_init();
-		if (egg == NULL) {
+		egg_render_t *render = egg_render_init();
+		egg_draw_t   *draw   = egg_draw_create();
+		if (render == NULL || draw == NULL) {
+			egg_render_destroy(render);
+			egg_draw_destroy(draw);
 			continue;
 		}
 
-		ecs_set(it->world, it->entities[i], AppDrawContext, {egg, 1.0f});
+		ecs_set(it->world, it->entities[i], AppDrawContext, {render, draw, 1.0f});
 
 		// The window system will call this render system using `ecs_run()` every frame
 		// by putting it as a child of the window entity.
@@ -63,7 +66,7 @@ void AppDrawNameAtPosition_Draw(ecs_iter_t *it)
 	WorldTransform3           *m3 = ecs_field_self(it, WorldTransform3, 1);
 	WorldTransform4           *m4 = ecs_field_self(it, WorldTransform4, 2);
 	AppDrawNameAtPositionRule *b  = ecs_field_shared(it, AppDrawNameAtPositionRule, 3);
-	assert(d->egg != NULL);
+	assert(d->draw != NULL);
 	if (m3) {
 		for (int i = 0; i < it->count; ++i, ++m3, ++m4) {
 			char const *name = ecs_get_name(it->world, it->entities[i]);
@@ -73,8 +76,8 @@ void AppDrawNameAtPosition_Draw(ecs_iter_t *it)
 			float c = m3->matrix.c0[0];
 			float s = m3->matrix.c0[1];
 			//printf("Drawing name '%s' at position (%f, %f) with rotation (c=%f, s=%f)\n", name, x, y, c, s);
-			egg_draw_text(d->egg, APP_DRAW_Z_TEXT, x, y, c, s, 0.5f, b->color, name);
-			egg_draw_rectangle_outline(d->egg, APP_DRAW_Z_SHAPES, x, y, c, s, 20, 20, 2.0f, 0x0066FF00u);
+			egg_draw_text(d->draw, APP_DRAW_Z_TEXT, x, y, c, s, 0.5f, b->color, name);
+			egg_draw_rectangle_outline(d->draw, APP_DRAW_Z_SHAPES, x, y, c, s, 20, 20, 2.0f, 0x0066FF00u);
 		}
 	} else if (m4) {
 		for (int i = 0; i < it->count; ++i, ++m4) {
@@ -85,8 +88,8 @@ void AppDrawNameAtPosition_Draw(ecs_iter_t *it)
 			float c = 1.0f; // Rotation cosine
 			float s = 0.0f; // Rotation sine
 			//printf("Drawing name '%s' at position (%f, %f) with rotation (c=%f, s=%f)\n", name, x, y, c, s);
-			egg_draw_text(d->egg, APP_DRAW_Z_TEXT, x, y, c, s, 0.5f, b->color, name);
-			egg_draw_rectangle_outline(d->egg, APP_DRAW_Z_SHAPES, x, y, c, s, 20, 20, 2.0f, 0x0066FF00u);
+			egg_draw_text(d->draw, APP_DRAW_Z_TEXT, x, y, c, s, 0.5f, b->color, name);
+			egg_draw_rectangle_outline(d->draw, APP_DRAW_Z_SHAPES, x, y, c, s, 20, 20, 2.0f, 0x0066FF00u);
 		}
 	}
 }
@@ -113,13 +116,13 @@ static void AppDrawText_Draw(ecs_iter_t *it)
 		}
 		float    font_size = f->font_size > 0.0f ? f->font_size : 24.0f;
 		uint32_t color     = col != NULL ? col[i].color : 0xFFFFFFFFu;
-		assert(d->egg != NULL);
+		assert(d->draw != NULL);
 		float x = p->matrix.c3[0];
 		float y = p->matrix.c3[1];
 		float c = p->matrix.c0[0]; // Rotation cosine
 		float s = p->matrix.c0[1]; // Rotation sine
-		egg_draw_rectangle(d->egg, APP_DRAW_Z_SHAPES, x, y, c, s, 10, 10, 0x0066FF00u);
-		egg_draw_text(d->egg, APP_DRAW_Z_TEXT, x, y, c, s, font_size, color, t->value);
+		egg_draw_rectangle(d->draw, APP_DRAW_Z_SHAPES, x, y, c, s, 10, 10, 0x0066FF00u);
+		egg_draw_text(d->draw, APP_DRAW_Z_TEXT, x, y, c, s, font_size, color, t->value);
 	}
 }
 
@@ -135,7 +138,7 @@ static void AppDrawShapesRectangle_Draw3D(ecs_iter_t *it)
 		float    c     = p->matrix.c0[0];
 		float    s     = p->matrix.c0[1];
 		uint32_t color = col != NULL ? col[i].color : 0x00FFFF00u;
-		egg_draw_rectangle(d->egg, APP_DRAW_Z_SHAPES, x, y, c, s, r->w, r->h, color);
+		egg_draw_rectangle(d->draw, APP_DRAW_Z_SHAPES, x, y, c, s, r->w, r->h, color);
 	}
 }
 
@@ -151,9 +154,9 @@ static void AppDrawShapesRectangle_Draw2D(ecs_iter_t *it)
 		float    c     = p->matrix.c0[0];
 		float    s     = p->matrix.c0[1];
 		uint32_t color = col != NULL ? col[i].color : 0x00FFFF00u;
-		egg_draw_rectangle(d->egg, APP_DRAW_Z_SHAPES, x, y, c, s, r->w, r->h, color);
-		egg_draw_rectangle(d->egg, APP_DRAW_Z_SHAPES, x, y, c, s, 10, 10, 0x0000000FF);
-		egg_draw_text(d->egg, APP_DRAW_Z_TEXT, x, y, c, s, 12.0f, 0xFFFFFFFFu, "Debug");
+		egg_draw_rectangle(d->draw, APP_DRAW_Z_SHAPES, x, y, c, s, r->w, r->h, color);
+		egg_draw_rectangle(d->draw, APP_DRAW_Z_SHAPES, x, y, c, s, 10, 10, 0x0000000FF);
+		egg_draw_text(d->draw, APP_DRAW_Z_TEXT, x, y, c, s, 12.0f, 0xFFFFFFFFu, "Debug");
 	}
 }
 
@@ -203,7 +206,8 @@ void AppDrawImport(ecs_world_t *world)
 	ecs_struct(world,
 	{.entity = ecs_id(AppDrawContext),
 	.members = {
-	{.name = "egg", .type = ecs_id(ecs_uptr_t)},
+	{.name = "render", .type = ecs_id(ecs_uptr_t)},
+	{.name = "draw", .type = ecs_id(ecs_uptr_t)},
 	{.name = "pixelScale", .type = ecs_id(ecs_f32_t)},
 	}});
 

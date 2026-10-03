@@ -13,9 +13,7 @@
 
 #define EGG_TRANSFORM_CAPACITY 1024
 
-typedef struct egg_t {
-	egg_draw_t draw;
-	egg_font_t font;
+typedef struct egg_render_t {
 	GLuint     vaoId;
 	GLuint     vboId;
 	GLuint     transformBufferId;
@@ -26,7 +24,7 @@ typedef struct egg_t {
 	GLint      atlasUniform;
 	GLint      transformUniform;
 	int        initialized;
-} egg_t;
+} egg_render_t;
 
 static const char *kEggVertexShaderSource =
 "#version 330\n"
@@ -127,7 +125,7 @@ static GLuint sCreateProgram(const char *vertexSource, const char *fragmentSourc
 	return program;
 }
 
-static void sUploadAtlas(egg_t *egg, const unsigned char *bitmap)
+static void sUploadAtlas(egg_render_t *egg, const unsigned char *bitmap)
 {
 	glGenTextures(1, &egg->atlasTextureId);
 	glBindTexture(GL_TEXTURE_2D, egg->atlasTextureId);
@@ -142,14 +140,13 @@ static void sUploadAtlas(egg_t *egg, const unsigned char *bitmap)
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-egg_t *egg_init(void)
+egg_render_t *egg_render_init(void)
 {
-	egg_t *egg = (egg_t *)calloc(1, sizeof(egg_t));
+	egg_render_t *egg = (egg_render_t *)calloc(1, sizeof(egg_render_t));
 	if (egg == NULL) {
 		return NULL;
 	}
 
-	egg_dl_init(&egg->draw);
 	egg->programId = sCreateProgram(kEggVertexShaderSource, kEggFragmentShaderSource);
 	if (egg->programId == 0) {
 		fprintf(stderr, "egg: failed to create shader program\n");
@@ -190,10 +187,11 @@ egg_t *egg_init(void)
 	glBindTexture(GL_TEXTURE_BUFFER, 0);
 	glBindBuffer(GL_TEXTURE_BUFFER, 0);
 
+	egg_font_t     font;
 	unsigned char *bitmap = (unsigned char *)malloc(EGG_ATLAS_WIDTH * EGG_ATLAS_HEIGHT);
-	if (bitmap == NULL || !egg_font_bake(&egg->font, bitmap)) {
+	if (bitmap == NULL || !egg_font_bake(&font, bitmap)) {
 		free(bitmap);
-		egg_destroy(egg);
+		egg_render_destroy(egg);
 		return NULL;
 	}
 
@@ -204,7 +202,7 @@ egg_t *egg_init(void)
 	return egg;
 }
 
-void egg_destroy(egg_t *egg)
+void egg_render_destroy(egg_render_t *egg)
 {
 	if (egg == NULL) {
 		return;
@@ -229,103 +227,12 @@ void egg_destroy(egg_t *egg)
 		glDeleteProgram(egg->programId);
 	}
 
-	egg_dl_destroy(&egg->draw);
 	free(egg);
 }
 
-void egg_set_pixel_scale(egg_t *egg, float pixelScale)
+void egg_flush(egg_render_t *egg, egg_draw_t *draw, const float *projectionMatrix)
 {
-	if (egg == NULL) {
-		return;
-	}
-
-	egg->draw.pixelScale = pixelScale > 0.0f ? pixelScale : 1.0f;
-}
-
-#define EGG_READY(egg) ((egg) != NULL && (egg)->initialized != 0)
-
-void egg_draw_text(egg_t *egg, int32_t z, float x, float y, float rotationCos, float rotationSin, float fontSize, egg_color_t color, const char *string)
-{
-	if (EGG_READY(egg)) {
-		egg_dl_text(&egg->draw, &egg->font, z, x, y, rotationCos, rotationSin, fontSize, color, string);
-	}
-}
-
-void egg_draw_line(egg_t *egg, int32_t z, float x1, float y1, float x2, float y2, float thickness, egg_color_t color)
-{
-	if (EGG_READY(egg)) {
-		egg_dl_line(&egg->draw, z, x1, y1, x2, y2, thickness, color);
-	}
-}
-
-void egg_draw_point(egg_t *egg, int32_t z, float x, float y, float size, egg_color_t color)
-{
-	if (EGG_READY(egg)) {
-		egg_dl_point(&egg->draw, z, x, y, size, color);
-	}
-}
-
-void egg_draw_circle(egg_t *egg, int32_t z, float x, float y, float radius, egg_color_t color)
-{
-	if (EGG_READY(egg)) {
-		egg_dl_circle(&egg->draw, z, x, y, radius, color);
-	}
-}
-
-void egg_draw_circle_outline(egg_t *egg, int32_t z, float x, float y, float radius, float thickness, egg_color_t color)
-{
-	if (EGG_READY(egg)) {
-		egg_dl_circle_outline(&egg->draw, z, x, y, radius, thickness, color);
-	}
-}
-
-void egg_draw_capsule_outline(egg_t *egg, int32_t z, float x1, float y1, float x2, float y2, float radius, float thickness,
-egg_color_t color)
-{
-	if (EGG_READY(egg)) {
-		egg_dl_capsule_outline(&egg->draw, z, x1, y1, x2, y2, radius, thickness, color);
-	}
-}
-
-void egg_draw_transform(egg_t *egg, int32_t z, float x, float y, float rotationCos, float rotationSin, float scale, egg_color_t color)
-{
-	if (EGG_READY(egg)) {
-		egg_dl_transform(&egg->draw, z, x, y, rotationCos, rotationSin, scale, color);
-	}
-}
-
-void egg_draw_rectangle(egg_t *egg, int32_t z, float x, float y, float rotationCos, float rotationSin, float width, float height, egg_color_t color)
-{
-	if (EGG_READY(egg)) {
-		egg_dl_rectangle(&egg->draw, z, x, y, rotationCos, rotationSin, width, height, color);
-	}
-}
-
-void egg_draw_rectangle_outline(egg_t *egg, int32_t z, float x, float y, float rotationCos, float rotationSin, float width, float height, float thickness, egg_color_t color)
-{
-	if (EGG_READY(egg)) {
-		egg_dl_rectangle_outline(&egg->draw, z, x, y, rotationCos, rotationSin, width, height, thickness, color);
-	}
-}
-
-void egg_draw_bounds(egg_t *egg, int32_t z, float minX, float minY, float maxX, float maxY, egg_color_t color)
-{
-	if (EGG_READY(egg)) {
-		egg_dl_bounds(&egg->draw, z, minX, minY, maxX, maxY, color);
-	}
-}
-
-void egg_draw_polygon(egg_t *egg, int32_t z, const egg_vec2_t *vertices, int vertex_count, float tx, float ty,
-float rot_c, float rot_s, egg_color_t color)
-{
-	if (EGG_READY(egg)) {
-		egg_dl_polygon(&egg->draw, z, vertices, vertex_count, tx, ty, rot_c, rot_s, color);
-	}
-}
-
-void egg_flush(egg_t *egg, const float *projectionMatrix)
-{
-	if (!EGG_READY(egg)) {
+	if (egg == NULL || egg->initialized == 0 || draw == NULL) {
 		return;
 	}
 
@@ -339,8 +246,8 @@ void egg_flush(egg_t *egg, const float *projectionMatrix)
 	glUniform1i(egg->atlasUniform, 0);
 
 	// Lists are drawn in index order so higher z lands on top.
-	for (int32_t li = 0; li < egg->draw.listCount; ++li) {
-		egg_drawlist_t *l = &egg->draw.lists[li];
+	for (int32_t li = 0; li < draw->listCount; ++li) {
+		egg_drawlist_t *l = &draw->lists[li];
 		if (l->vertices.count == 0) {
 			l->transforms.count = 0;
 			continue;
