@@ -65,7 +65,7 @@ void AppDrawNameAtPosition_Draw(ecs_iter_t *it)
 	for (int i = 0; i < it->count; ++i, ++p) {
 		char const *name = ecs_get_name(it->world, it->entities[i]);
 		assert(d->egg != NULL);
-		egg_draw_text(d->egg, p->x, p->y, 1.0f, 0.0f, 0.5f, b->color, name);
+		egg_draw_text(d->egg, APP_DRAW_Z_TEXT, p->x, p->y, 1.0f, 0.0f, 0.5f, b->color, name);
 	}
 }
 
@@ -96,8 +96,8 @@ static void AppDrawText_Draw(ecs_iter_t *it)
 		float y = p->matrix.c3[1];
 		float c = p->matrix.c0[0]; // Rotation cosine
 		float s = p->matrix.c0[1]; // Rotation sine
-		egg_draw_rectangle(d->egg, x, y, c, s, 10, 10, 0x0066FF00u);
-		egg_draw_text(d->egg, x, y, c, s, font_size, color, t->value);
+		egg_draw_rectangle(d->egg, APP_DRAW_Z_SHAPES, x, y, c, s, 10, 10, 0x0066FF00u);
+		egg_draw_text(d->egg, APP_DRAW_Z_TEXT, x, y, c, s, font_size, color, t->value);
 	}
 }
 
@@ -113,7 +113,7 @@ static void AppDrawShapesRectangle_Draw3D(ecs_iter_t *it)
 		float    c     = p->matrix.c0[0];
 		float    s     = p->matrix.c0[1];
 		uint32_t color = col != NULL ? col[i].color : 0x00FFFF00u;
-		egg_draw_rectangle(d->egg, x, y, c, s, r->w, r->h, color);
+		egg_draw_rectangle(d->egg, APP_DRAW_Z_SHAPES, x, y, c, s, r->w, r->h, color);
 	}
 }
 
@@ -129,8 +129,8 @@ static void AppDrawShapesRectangle_Draw2D(ecs_iter_t *it)
 		float    c     = p->matrix.c0[0];
 		float    s     = p->matrix.c0[1];
 		uint32_t color = col != NULL ? col[i].color : 0x00FFFF00u;
-		egg_draw_rectangle(d->egg, x, y, c, s, r->w, r->h, color);
-		egg_draw_rectangle(d->egg, x, y, c, s, 10, 10, 0x0000000FF);
+		egg_draw_rectangle(d->egg, APP_DRAW_Z_SHAPES, x, y, c, s, r->w, r->h, color);
+		egg_draw_rectangle(d->egg, APP_DRAW_Z_SHAPES, x, y, c, s, 10, 10, 0x0000000FF);
 	}
 }
 
@@ -146,7 +146,7 @@ void AppDrawNameAtPositionRule_Observer(ecs_iter_t *it)
 		if (it->event == EcsOnSet) {
 			ecs_system(it->world,
 			{.entity     = ecs_entity(it->world, {.name = buffer}),
-			.phase       = EcsOnUpdate,
+			.phase       = EcsPostUpdate,
 			.callback    = AppDrawNameAtPosition_Draw,
 			.query.terms = {
 			{.id = ecs_id(AppDrawContext), .src.id = o->draw_e, .inout = EcsIn},

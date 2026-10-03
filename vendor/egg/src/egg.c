@@ -13,7 +13,6 @@
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "stb_truetype.h"
 
-#define EGG_BATCH_VERTEX_COUNT (6 * 1024)
 #define EGG_FIRST_CHAR         32
 #define EGG_ATLAS_WIDTH        512
 #define EGG_ATLAS_HEIGHT       512
@@ -49,10 +48,16 @@ typedef struct {
 	int32_t                   capacity;
 } egg_transform_buffer_t;
 
-typedef struct egg_t {
+typedef struct {
 	egg_vertex_buffer_t    vertices;
 	egg_transform_buffer_t transforms;
-	stbtt_bakedchar        glyphs[EGG_CHAR_COUNT];
+} egg_drawlist_t;
+
+typedef struct egg_t {
+	egg_drawlist_t *lists;
+	int32_t         listCount;
+	int32_t         listCapacity;
+	stbtt_bakedchar glyphs[EGG_CHAR_COUNT];
 	GLuint                 vaoId;
 	GLuint                 vboId;
 	GLuint                 transformBufferId;
@@ -186,68 +191,88 @@ static unsigned char *sLoadSystemFont(size_t *outSize)
 	return NULL;
 }
 
-static void sAppendVertex(egg_t *egg, float x, float y, float instanceIndex, float u, float v, float useTexture,
+static egg_drawlist_t *sGetList(egg_t *egg, int32_t z)
+{
+	if (z < 0) {
+		z = 0;
+	}
+
+	if (z >= egg->listCount) {
+		egg_drawlist_t *lists = sGrowBuffer(egg->lists, &egg->listCapacity, z + 1, sizeof(egg_drawlist_t));
+		if (lists == NULL) {
+			return NULL;
+		}
+		egg->lists = lists;
+		memset(egg->lists + egg->listCount, 0, (size_t)(z + 1 - egg->listCount) * sizeof(egg_drawlist_t));
+		egg->listCount = z + 1;
+	}
+
+	return &egg->lists[z];
+}
+
+static void sAppendVertex(egg_drawlist_t *l, float x, float y, float instanceIndex, float u, float v, float useTexture,
 uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
-	egg_vertex_t *vertices = sGrowBuffer(egg->vertices.data, &egg->vertices.capacity, egg->vertices.count + 1,
+	egg_vertex_t *vertices = sGrowBuffer(l->vertices.data, &l->vertices.capacity, l->vertices.count + 1,
 	sizeof(egg_vertex_t));
 	if (vertices == NULL) {
 		return;
 	}
 
-	egg->vertices.data                                    = (egg_vertex_t *)vertices;
-	egg->vertices.data[egg->vertices.count].position[0]   = x;
-	egg->vertices.data[egg->vertices.count].position[1]   = y;
-	egg->vertices.data[egg->vertices.count].instanceIndex = instanceIndex;
-	egg->vertices.data[egg->vertices.count].uv[0]         = u;
-	egg->vertices.data[egg->vertices.count].uv[1]         = v;
-	egg->vertices.data[egg->vertices.count].useTexture    = useTexture;
-	egg->vertices.data[egg->vertices.count].rgba[0]       = r;
-	egg->vertices.data[egg->vertices.count].rgba[1]       = g;
-	egg->vertices.data[egg->vertices.count].rgba[2]       = b;
-	egg->vertices.data[egg->vertices.count].rgba[3]       = a;
-	egg->vertices.count += 1;
+	l->vertices.data                                = vertices;
+	egg_vertex_t *dst                               = &l->vertices.data[l->vertices.count];
+	dst->position[0]                                = x;
+	dst->position[1]                                = y;
+	dst->instanceIndex                              = instanceIndex;
+	dst->uv[0]                                      = u;
+	dst->uv[1]                                      = v;
+	dst->useTexture                                 = useTexture;
+	dst->rgba[0]                                    = r;
+	dst->rgba[1]                                    = g;
+	dst->rgba[2]                                    = b;
+	dst->rgba[3]                                    = a;
+	l->vertices.count += 1;
 }
 
-static void sAppendTransform(egg_t *egg, float x, float y, float c, float s)
+static void sAppendTransform(egg_drawlist_t *l, float x, float y, float c, float s)
 {
-	egg_instance_transform_t *transforms = sGrowBuffer(egg->transforms.data, &egg->transforms.capacity,
-	egg->transforms.count + 1, sizeof(egg_instance_transform_t));
+	egg_instance_transform_t *transforms = sGrowBuffer(l->transforms.data, &l->transforms.capacity,
+	l->transforms.count + 1, sizeof(egg_instance_transform_t));
 	if (transforms == NULL) {
 		return;
 	}
 
-	egg->transforms.data                          = transforms;
-	egg->transforms.data[egg->transforms.count].x = x;
-	egg->transforms.data[egg->transforms.count].y = y;
-	egg->transforms.data[egg->transforms.count].c = c;
-	egg->transforms.data[egg->transforms.count].s = s;
-	egg->transforms.count += 1;
+	l->transforms.data                       = transforms;
+	l->transforms.data[l->transforms.count].x = x;
+	l->transforms.data[l->transforms.count].y = y;
+	l->transforms.data[l->transforms.count].c = c;
+	l->transforms.data[l->transforms.count].s = s;
+	l->transforms.count += 1;
 }
 
-static void sAddQuad(egg_t *egg, float x0, float y0, float x1, float y1, float instanceIndex, float u0, float v0,
+static void sAddQuad(egg_drawlist_t *l, float x0, float y0, float x1, float y1, float instanceIndex, float u0, float v0,
 float u1, float v1, float useTexture, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
-	sAppendVertex(egg, x0, y0, instanceIndex, u0, v0, useTexture, r, g, b, a);
-	sAppendVertex(egg, x1, y0, instanceIndex, u1, v0, useTexture, r, g, b, a);
-	sAppendVertex(egg, x1, y1, instanceIndex, u1, v1, useTexture, r, g, b, a);
-	sAppendVertex(egg, x0, y0, instanceIndex, u0, v0, useTexture, r, g, b, a);
-	sAppendVertex(egg, x1, y1, instanceIndex, u1, v1, useTexture, r, g, b, a);
-	sAppendVertex(egg, x0, y1, instanceIndex, u0, v1, useTexture, r, g, b, a);
+	sAppendVertex(l, x0, y0, instanceIndex, u0, v0, useTexture, r, g, b, a);
+	sAppendVertex(l, x1, y0, instanceIndex, u1, v0, useTexture, r, g, b, a);
+	sAppendVertex(l, x1, y1, instanceIndex, u1, v1, useTexture, r, g, b, a);
+	sAppendVertex(l, x0, y0, instanceIndex, u0, v0, useTexture, r, g, b, a);
+	sAppendVertex(l, x1, y1, instanceIndex, u1, v1, useTexture, r, g, b, a);
+	sAppendVertex(l, x0, y1, instanceIndex, u0, v1, useTexture, r, g, b, a);
 }
 
-static void sAddTriangle(egg_t *egg, float x0, float y0, float x1, float y1, float x2, float y2, float instanceIndex,
+static void sAddTriangle(egg_drawlist_t *l, float x0, float y0, float x1, float y1, float x2, float y2, float instanceIndex,
 float useTexture, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
-	sAppendVertex(egg, x0, y0, instanceIndex, 0.0f, 0.0f, useTexture, r, g, b, a);
-	sAppendVertex(egg, x1, y1, instanceIndex, 0.0f, 0.0f, useTexture, r, g, b, a);
-	sAppendVertex(egg, x2, y2, instanceIndex, 0.0f, 0.0f, useTexture, r, g, b, a);
+	sAppendVertex(l, x0, y0, instanceIndex, 0.0f, 0.0f, useTexture, r, g, b, a);
+	sAppendVertex(l, x1, y1, instanceIndex, 0.0f, 0.0f, useTexture, r, g, b, a);
+	sAppendVertex(l, x2, y2, instanceIndex, 0.0f, 0.0f, useTexture, r, g, b, a);
 }
 
-static void sAddGlyphQuad(egg_t *egg, stbtt_aligned_quad q, float instanceIndex, uint8_t r, uint8_t g, uint8_t b,
+static void sAddGlyphQuad(egg_drawlist_t *l, stbtt_aligned_quad q, float instanceIndex, uint8_t r, uint8_t g, uint8_t b,
 uint8_t a)
 {
-	sAddQuad(egg, q.x0, q.y0, q.x1, q.y1, instanceIndex, q.s0, q.t0, q.s1, q.t1, 1.0f, r, g, b, a);
+	sAddQuad(l, q.x0, q.y0, q.x1, q.y1, instanceIndex, q.s0, q.t0, q.s1, q.t1, 1.0f, r, g, b, a);
 }
 
 static GLuint sCompileShader(GLenum type, const char *source)
@@ -332,7 +357,6 @@ egg_t *egg_init(void)
 
 	glBindVertexArray(egg->vaoId);
 	glBindBuffer(GL_ARRAY_BUFFER, egg->vboId);
-	glBufferData(GL_ARRAY_BUFFER, EGG_BATCH_VERTEX_COUNT * sizeof(egg_vertex_t), NULL, GL_DYNAMIC_DRAW);
 
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
@@ -422,8 +446,11 @@ void egg_destroy(egg_t *egg)
 		glDeleteProgram(egg->programId);
 	}
 
-	free(egg->vertices.data);
-	free(egg->transforms.data);
+	for (int32_t i = 0; i < egg->listCount; ++i) {
+		free(egg->lists[i].vertices.data);
+		free(egg->lists[i].transforms.data);
+	}
+	free(egg->lists);
 	free(egg);
 }
 
@@ -452,9 +479,14 @@ static void sColorBytes(egg_color_t color, uint8_t *r, uint8_t *g, uint8_t *b, u
 	}
 }
 
-void egg_draw_text(egg_t *egg, float x, float y, float rotationCos, float rotationSin, float fontSize, egg_color_t color, const char *string)
+void egg_draw_text(egg_t *egg, int32_t z, float x, float y, float rotationCos, float rotationSin, float fontSize, egg_color_t color, const char *string)
 {
 	if (egg == NULL || egg->initialized == 0 || string == NULL) {
+		return;
+	}
+
+	egg_drawlist_t *l = sGetList(egg, z);
+	if (l == NULL) {
 		return;
 	}
 
@@ -472,8 +504,8 @@ void egg_draw_text(egg_t *egg, float x, float y, float rotationCos, float rotati
 	uint8_t a       = 0;
 	sColorBytes(color, &r, &g, &b, &a);
 
-	sAppendTransform(egg, x, y, rotationCos, rotationSin);
-	float instanceIndex = (float)(egg->transforms.count - 1);
+	sAppendTransform(l, x, y, rotationCos, rotationSin);
+	float instanceIndex = (float)(l->transforms.count - 1);
 
 	for (const char *p = string; *p != '\0'; ++p) {
 		int codepoint = (unsigned char)*p;
@@ -505,11 +537,11 @@ void egg_draw_text(egg_t *egg, float x, float y, float rotationCos, float rotati
 		q.x1      = startX + scale * dx1;
 		q.y1      = cursorY - scale * dy1;
 
-		sAddGlyphQuad(egg, q, instanceIndex, r, g, b, a);
+		sAddGlyphQuad(l, q, instanceIndex, r, g, b, a);
 	}
 }
 
-static void sAddLine(egg_t *egg, float x1, float y1, float x2, float y2, float thickness, float instanceIndex,
+static void sAddLine(egg_t *egg, egg_drawlist_t *l, float x1, float y1, float x2, float y2, float thickness, float instanceIndex,
 uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
 	if (egg == NULL || thickness <= 0.0f) {
@@ -537,30 +569,35 @@ uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 	float p4x = x2 - nx;
 	float p4y = y2 - ny;
 
-	sAddTriangle(egg, p1x, p1y, p2x, p2y, p3x, p3y, instanceIndex, 0.0f, r, g, b, a);
-	sAddTriangle(egg, p2x, p2y, p4x, p4y, p3x, p3y, instanceIndex, 0.0f, r, g, b, a);
+	sAddTriangle(l, p1x, p1y, p2x, p2y, p3x, p3y, instanceIndex, 0.0f, r, g, b, a);
+	sAddTriangle(l, p2x, p2y, p4x, p4y, p3x, p3y, instanceIndex, 0.0f, r, g, b, a);
 }
 
-void egg_draw_line(egg_t *egg, float x1, float y1, float x2, float y2, float thickness, egg_color_t color)
+void egg_draw_line(egg_t *egg, int32_t z, float x1, float y1, float x2, float y2, float thickness, egg_color_t color)
 {
 	if (egg == NULL || egg->initialized == 0) {
 		return;
 	}
 
-	sAppendTransform(egg, 0.0f, 0.0f, 1.0f, 0.0f);
-	float   instanceIndex = (float)(egg->transforms.count - 1);
+	egg_drawlist_t *l = sGetList(egg, z);
+	if (l == NULL) {
+		return;
+	}
+
+	sAppendTransform(l, 0.0f, 0.0f, 1.0f, 0.0f);
+	float   instanceIndex = (float)(l->transforms.count - 1);
 	uint8_t r             = 0;
 	uint8_t g             = 0;
 	uint8_t b             = 0;
 	uint8_t a             = 0;
 	sColorBytes(color, &r, &g, &b, &a);
 
-	sAddLine(egg, x1, y1, x2, y2, thickness, instanceIndex, r, g, b, a);
+	sAddLine(egg, l, x1, y1, x2, y2, thickness, instanceIndex, r, g, b, a);
 }
 
-static void sAddCircleFilled(egg_t *egg, float x, float y, float radius, float instanceIndex, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+static void sAddCircleFilled(egg_drawlist_t *l, float x, float y, float radius, float instanceIndex, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
-	if (egg == NULL || radius <= 0.0f) {
+	if (l == NULL || radius <= 0.0f) {
 		return;
 	}
 
@@ -574,18 +611,23 @@ static void sAddCircleFilled(egg_t *egg, float x, float y, float radius, float i
 		float x1 = x + cosf(angle1) * radius;
 		float y1 = y + sinf(angle1) * radius;
 
-		sAddTriangle(egg, x, y, x0, y0, x1, y1, instanceIndex, 0.0f, r, g, b, a);
+		sAddTriangle(l, x, y, x0, y0, x1, y1, instanceIndex, 0.0f, r, g, b, a);
 	}
 }
 
-void egg_draw_point(egg_t *egg, float x, float y, float size, egg_color_t color)
+void egg_draw_point(egg_t *egg, int32_t z, float x, float y, float size, egg_color_t color)
 {
 	if (egg == NULL || egg->initialized == 0 || size <= 0.0f) {
 		return;
 	}
 
-	sAppendTransform(egg, x, y, 1.0f, 0.0f);
-	float   instanceIndex = (float)(egg->transforms.count - 1);
+	egg_drawlist_t *l = sGetList(egg, z);
+	if (l == NULL) {
+		return;
+	}
+
+	sAppendTransform(l, x, y, 1.0f, 0.0f);
+	float   instanceIndex = (float)(l->transforms.count - 1);
 	uint8_t r             = 0;
 	uint8_t g             = 0;
 	uint8_t b             = 0;
@@ -593,35 +635,45 @@ void egg_draw_point(egg_t *egg, float x, float y, float size, egg_color_t color)
 	sColorBytes(color, &r, &g, &b, &a);
 
 	float scaledSize = size * egg->pixelScale;
-	sAddQuad(egg, -scaledSize, -scaledSize, scaledSize, scaledSize, instanceIndex, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
+	sAddQuad(l, -scaledSize, -scaledSize, scaledSize, scaledSize, instanceIndex, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f,
 	r, g, b, a);
 }
 
-void egg_draw_circle(egg_t *egg, float x, float y, float radius, egg_color_t color)
+void egg_draw_circle(egg_t *egg, int32_t z, float x, float y, float radius, egg_color_t color)
 {
 	if (egg == NULL || egg->initialized == 0 || radius <= 0.0f) {
 		return;
 	}
 
-	sAppendTransform(egg, x, y, 1.0f, 0.0f);
-	float   instanceIndex = (float)(egg->transforms.count - 1);
+	egg_drawlist_t *l = sGetList(egg, z);
+	if (l == NULL) {
+		return;
+	}
+
+	sAppendTransform(l, x, y, 1.0f, 0.0f);
+	float   instanceIndex = (float)(l->transforms.count - 1);
 	uint8_t r             = 0;
 	uint8_t g             = 0;
 	uint8_t b             = 0;
 	uint8_t a             = 0;
 	sColorBytes(color, &r, &g, &b, &a);
 
-	sAddCircleFilled(egg, 0.0f, 0.0f, radius, instanceIndex, r, g, b, a);
+	sAddCircleFilled(l, 0.0f, 0.0f, radius, instanceIndex, r, g, b, a);
 }
 
-void egg_draw_circle_outline(egg_t *egg, float x, float y, float radius, float thickness, egg_color_t color)
+void egg_draw_circle_outline(egg_t *egg, int32_t z, float x, float y, float radius, float thickness, egg_color_t color)
 {
 	if (egg == NULL || egg->initialized == 0 || radius <= 0.0f || thickness <= 0.0f) {
 		return;
 	}
 
-	sAppendTransform(egg, 0.0f, 0.0f, 1.0f, 0.0f);
-	float   instanceIndex = (float)(egg->transforms.count - 1);
+	egg_drawlist_t *l = sGetList(egg, z);
+	if (l == NULL) {
+		return;
+	}
+
+	sAppendTransform(l, 0.0f, 0.0f, 1.0f, 0.0f);
+	float   instanceIndex = (float)(l->transforms.count - 1);
 	uint8_t r             = 0;
 	uint8_t g             = 0;
 	uint8_t b             = 0;
@@ -649,22 +701,27 @@ void egg_draw_circle_outline(egg_t *egg, float x, float y, float radius, float t
 		float x1Inner = x + cosf(angle1) * innerRadius;
 		float y1Inner = y + sinf(angle1) * innerRadius;
 
-		sAddTriangle(egg, x0Outer, y0Outer, x1Outer, y1Outer, x1Inner, y1Inner, instanceIndex, 0.0f,
+		sAddTriangle(l, x0Outer, y0Outer, x1Outer, y1Outer, x1Inner, y1Inner, instanceIndex, 0.0f,
 		r, g, b, a);
-		sAddTriangle(egg, x0Outer, y0Outer, x1Inner, y1Inner, x0Inner, y0Inner, instanceIndex, 0.0f,
+		sAddTriangle(l, x0Outer, y0Outer, x1Inner, y1Inner, x0Inner, y0Inner, instanceIndex, 0.0f,
 		r, g, b, a);
 	}
 }
 
-void egg_draw_capsule_outline(egg_t *egg, float x1, float y1, float x2, float y2, float radius, float thickness,
+void egg_draw_capsule_outline(egg_t *egg, int32_t z, float x1, float y1, float x2, float y2, float radius, float thickness,
 egg_color_t color)
 {
 	if (egg == NULL || egg->initialized == 0 || radius <= 0.0f || thickness <= 0.0f) {
 		return;
 	}
 
-	sAppendTransform(egg, 0.0f, 0.0f, 1.0f, 0.0f);
-	float   instanceIndex = (float)(egg->transforms.count - 1);
+	egg_drawlist_t *l = sGetList(egg, z);
+	if (l == NULL) {
+		return;
+	}
+
+	sAppendTransform(l, 0.0f, 0.0f, 1.0f, 0.0f);
+	float   instanceIndex = (float)(l->transforms.count - 1);
 	uint8_t r             = 0;
 	uint8_t g             = 0;
 	uint8_t b             = 0;
@@ -685,7 +742,7 @@ egg_color_t color)
 	float centerX    = (x1 + x2) * 0.5f;
 	float centerY    = (y1 + y2) * 0.5f;
 
-	sAddLine(egg, x1, y1, x2, y2, thickness, instanceIndex, r, g, b, a);
+	sAddLine(egg, l, x1, y1, x2, y2, thickness, instanceIndex, r, g, b, a);
 
 	int segments = 24;
 	for (int i = 0; i < segments; ++i) {
@@ -704,8 +761,8 @@ egg_color_t color)
 		float ix1             = centerX + nx * halfLength + cosf(angle1) * (radius - scaledThickness * 0.5f);
 		float iy1             = centerY + ny * halfLength + sinf(angle1) * (radius - scaledThickness * 0.5f);
 
-		sAddTriangle(egg, ox0, oy0, ox1, oy1, ix1, iy1, instanceIndex, 0.0f, r, g, b, a);
-		sAddTriangle(egg, ox0, oy0, ix1, iy1, ix0, iy0, instanceIndex, 0.0f, r, g, b, a);
+		sAddTriangle(l, ox0, oy0, ox1, oy1, ix1, iy1, instanceIndex, 0.0f, r, g, b, a);
+		sAddTriangle(l, ox0, oy0, ix1, iy1, ix0, iy0, instanceIndex, 0.0f, r, g, b, a);
 	}
 
 	for (int i = 0; i < segments; ++i) {
@@ -724,19 +781,24 @@ egg_color_t color)
 		float ix1             = centerX - nx * halfLength + cosf(angle1) * (radius - scaledThickness * 0.5f);
 		float iy1             = centerY - ny * halfLength + sinf(angle1) * (radius - scaledThickness * 0.5f);
 
-		sAddTriangle(egg, ox0, oy0, ox1, oy1, ix1, iy1, instanceIndex, 0.0f, r, g, b, a);
-		sAddTriangle(egg, ox0, oy0, ix1, iy1, ix0, iy0, instanceIndex, 0.0f, r, g, b, a);
+		sAddTriangle(l, ox0, oy0, ox1, oy1, ix1, iy1, instanceIndex, 0.0f, r, g, b, a);
+		sAddTriangle(l, ox0, oy0, ix1, iy1, ix0, iy0, instanceIndex, 0.0f, r, g, b, a);
 	}
 }
 
-void egg_draw_transform(egg_t *egg, float x, float y, float rotationCos, float rotationSin, float scale, egg_color_t color)
+void egg_draw_transform(egg_t *egg, int32_t z, float x, float y, float rotationCos, float rotationSin, float scale, egg_color_t color)
 {
 	if (egg == NULL || egg->initialized == 0) {
 		return;
 	}
 
-	sAppendTransform(egg, x, y, rotationCos, rotationSin);
-	float   instanceIndex = (float)(egg->transforms.count - 1);
+	egg_drawlist_t *l = sGetList(egg, z);
+	if (l == NULL) {
+		return;
+	}
+
+	sAppendTransform(l, x, y, rotationCos, rotationSin);
+	float   instanceIndex = (float)(l->transforms.count - 1);
 	uint8_t r             = 0;
 	uint8_t g             = 0;
 	uint8_t b             = 0;
@@ -744,11 +806,11 @@ void egg_draw_transform(egg_t *egg, float x, float y, float rotationCos, float r
 	sColorBytes(color, &r, &g, &b, &a);
 
 	float scaledThickness = 0.05f * egg->pixelScale;
-	sAddLine(egg, 0.0f, 0.0f, scale, 0.0f, scaledThickness, instanceIndex, r, g, b, a);
-	sAddLine(egg, 0.0f, 0.0f, 0.0f, scale, scaledThickness, instanceIndex, r, g, b, a);
+	sAddLine(egg, l, 0.0f, 0.0f, scale, 0.0f, scaledThickness, instanceIndex, r, g, b, a);
+	sAddLine(egg, l, 0.0f, 0.0f, 0.0f, scale, scaledThickness, instanceIndex, r, g, b, a);
 }
 
-void egg_draw_rectangle(egg_t *egg, float x, float y, float rotationCos, float rotationSin, float width, float height, egg_color_t color)
+void egg_draw_rectangle(egg_t *egg, int32_t z, float x, float y, float rotationCos, float rotationSin, float width, float height, egg_color_t color)
 {
 	if (egg == NULL || egg->initialized == 0) {
 		return;
@@ -758,8 +820,13 @@ void egg_draw_rectangle(egg_t *egg, float x, float y, float rotationCos, float r
 		return;
 	}
 
-	sAppendTransform(egg, x, y, rotationCos, rotationSin);
-	float   instanceIndex = (float)(egg->transforms.count - 1);
+	egg_drawlist_t *l = sGetList(egg, z);
+	if (l == NULL) {
+		return;
+	}
+
+	sAppendTransform(l, x, y, rotationCos, rotationSin);
+	float   instanceIndex = (float)(l->transforms.count - 1);
 	float   halfWidth     = width * 0.5f;
 	float   halfHeight    = height * 0.5f;
 	uint8_t r             = 0;
@@ -768,17 +835,22 @@ void egg_draw_rectangle(egg_t *egg, float x, float y, float rotationCos, float r
 	uint8_t a             = 0;
 	sColorBytes(color, &r, &g, &b, &a);
 
-	sAddQuad(egg, -halfWidth, -halfHeight, halfWidth, halfHeight, instanceIndex, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, r, g, b, a);
+	sAddQuad(l, -halfWidth, -halfHeight, halfWidth, halfHeight, instanceIndex, 0.0f, 0.0f, 1.0f, 1.0f, 0.0f, r, g, b, a);
 }
 
-void egg_draw_bounds(egg_t *egg, float minX, float minY, float maxX, float maxY, egg_color_t color)
+void egg_draw_bounds(egg_t *egg, int32_t z, float minX, float minY, float maxX, float maxY, egg_color_t color)
 {
 	if (egg == NULL || egg->initialized == 0) {
 		return;
 	}
 
-	sAppendTransform(egg, 0.0f, 0.0f, 1.0f, 0.0f);
-	float   instanceIndex = (float)(egg->transforms.count - 1);
+	egg_drawlist_t *l = sGetList(egg, z);
+	if (l == NULL) {
+		return;
+	}
+
+	sAppendTransform(l, 0.0f, 0.0f, 1.0f, 0.0f);
+	float   instanceIndex = (float)(l->transforms.count - 1);
 	uint8_t r             = 0;
 	uint8_t g             = 0;
 	uint8_t b             = 0;
@@ -786,21 +858,26 @@ void egg_draw_bounds(egg_t *egg, float minX, float minY, float maxX, float maxY,
 	sColorBytes(color, &r, &g, &b, &a);
 
 	float scaledThickness = 0.05f * egg->pixelScale;
-	sAddLine(egg, minX, minY, maxX, minY, scaledThickness, instanceIndex, r, g, b, a);
-	sAddLine(egg, maxX, minY, maxX, maxY, scaledThickness, instanceIndex, r, g, b, a);
-	sAddLine(egg, maxX, maxY, minX, maxY, scaledThickness, instanceIndex, r, g, b, a);
-	sAddLine(egg, minX, maxY, minX, minY, scaledThickness, instanceIndex, r, g, b, a);
+	sAddLine(egg, l, minX, minY, maxX, minY, scaledThickness, instanceIndex, r, g, b, a);
+	sAddLine(egg, l, maxX, minY, maxX, maxY, scaledThickness, instanceIndex, r, g, b, a);
+	sAddLine(egg, l, maxX, maxY, minX, maxY, scaledThickness, instanceIndex, r, g, b, a);
+	sAddLine(egg, l, minX, maxY, minX, minY, scaledThickness, instanceIndex, r, g, b, a);
 }
 
-void egg_draw_polygon(egg_t *egg, const egg_vec2_t *vertices, int vertex_count, float tx, float ty,
+void egg_draw_polygon(egg_t *egg, int32_t z, const egg_vec2_t *vertices, int vertex_count, float tx, float ty,
 float rot_c, float rot_s, egg_color_t color)
 {
 	if (egg == NULL || egg->initialized == 0 || vertices == NULL || vertex_count < 3) {
 		return;
 	}
 
-	sAppendTransform(egg, tx, ty, rot_c, rot_s);
-	float   instanceIndex = (float)(egg->transforms.count - 1);
+	egg_drawlist_t *l = sGetList(egg, z);
+	if (l == NULL) {
+		return;
+	}
+
+	sAppendTransform(l, tx, ty, rot_c, rot_s);
+	float   instanceIndex = (float)(l->transforms.count - 1);
 	uint8_t r             = sColorByte(color, 16);
 	uint8_t g             = sColorByte(color, 8);
 	uint8_t b             = sColorByte(color, 0);
@@ -810,16 +887,14 @@ float rot_c, float rot_s, egg_color_t color)
 	}
 
 	for (int i = 1; i + 1 < vertex_count; ++i) {
-		sAddTriangle(egg, vertices[0].x, vertices[0].y, vertices[i].x, vertices[i].y, vertices[i + 1].x, vertices[i + 1].y,
+		sAddTriangle(l, vertices[0].x, vertices[0].y, vertices[i].x, vertices[i].y, vertices[i + 1].x, vertices[i + 1].y,
 		instanceIndex, 0.0f, r, g, b, a);
 	}
 }
 
 void egg_flush(egg_t *egg, const float *projectionMatrix)
 {
-	if (egg == NULL || egg->initialized == 0 || egg->vertices.count == 0) {
-		egg->vertices.count   = 0;
-		egg->transforms.count = 0;
+	if (egg == NULL || egg->initialized == 0) {
 		return;
 	}
 
@@ -832,26 +907,31 @@ void egg_flush(egg_t *egg, const float *projectionMatrix)
 	glBindTexture(GL_TEXTURE_2D, egg->atlasTextureId);
 	glUniform1i(egg->atlasUniform, 0);
 
-	glActiveTexture(GL_TEXTURE1);
-	glBindBuffer(GL_TEXTURE_BUFFER, egg->transformBufferId);
-	int32_t transformUploadCount = egg->transforms.count > 0 ? egg->transforms.count : 1;
-	glBufferData(GL_TEXTURE_BUFFER, (GLsizeiptr)(transformUploadCount * sizeof(egg_instance_transform_t)),
-	egg->transforms.count > 0 ? egg->transforms.data : NULL, GL_DYNAMIC_DRAW);
-	glBindTexture(GL_TEXTURE_BUFFER, egg->transformTextureId);
-	glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, egg->transformBufferId);
-	glUniform1i(egg->transformUniform, 1);
+	// Lists are drawn in index order so higher z lands on top.
+	for (int32_t li = 0; li < egg->listCount; ++li) {
+		egg_drawlist_t *l = &egg->lists[li];
+		if (l->vertices.count == 0) {
+			l->transforms.count = 0;
+			continue;
+		}
 
-	glBindVertexArray(egg->vaoId);
-	glBindBuffer(GL_ARRAY_BUFFER, egg->vboId);
+		glActiveTexture(GL_TEXTURE1);
+		glBindBuffer(GL_TEXTURE_BUFFER, egg->transformBufferId);
+		int32_t transformUploadCount = l->transforms.count > 0 ? l->transforms.count : 1;
+		glBufferData(GL_TEXTURE_BUFFER, (GLsizeiptr)(transformUploadCount * sizeof(egg_instance_transform_t)),
+		l->transforms.count > 0 ? l->transforms.data : NULL, GL_DYNAMIC_DRAW);
+		glBindTexture(GL_TEXTURE_BUFFER, egg->transformTextureId);
+		glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, egg->transformBufferId);
+		glUniform1i(egg->transformUniform, 1);
 
-	int32_t remaining = egg->vertices.count;
-	int32_t base      = 0;
-	while (remaining > 0) {
-		int32_t batchCount = remaining < EGG_BATCH_VERTEX_COUNT ? remaining : EGG_BATCH_VERTEX_COUNT;
-		glBufferSubData(GL_ARRAY_BUFFER, 0, (GLsizeiptr)(batchCount * sizeof(egg_vertex_t)), egg->vertices.data + base);
-		glDrawArrays(GL_TRIANGLES, 0, batchCount);
-		remaining -= batchCount;
-		base += batchCount;
+		glBindVertexArray(egg->vaoId);
+		glBindBuffer(GL_ARRAY_BUFFER, egg->vboId);
+
+		glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(l->vertices.count * sizeof(egg_vertex_t)), l->vertices.data, GL_DYNAMIC_DRAW);
+		glDrawArrays(GL_TRIANGLES, 0, l->vertices.count);
+
+		l->vertices.count   = 0;
+		l->transforms.count = 0;
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -863,7 +943,4 @@ void egg_flush(egg_t *egg, const float *projectionMatrix)
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glUseProgram(0);
 	glDisable(GL_BLEND);
-
-	egg->vertices.count   = 0;
-	egg->transforms.count = 0;
 }
