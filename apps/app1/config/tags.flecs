@@ -14,6 +14,9 @@ tags {
     mouse_hover {}
     mouse_drag {}
     mouse_focus {}
+    mouse_hover_hud {}
+    mouse_drag_hud {}
+    mouse_focus_hud {}
 }
 
 

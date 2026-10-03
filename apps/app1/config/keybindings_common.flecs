@@ -29,6 +29,18 @@ unselect {
     }
 }
 
+unselect_hud {
+    eg.buttons.Binding : {
+        button0:MOUSE_LEFT,
+        mask:BUTTON_PRESSED
+    }
+    eg.buttons.EngageRule : {
+        term: tags.mouse_focus_hud,
+        tag: tags.mouse_focus_hud,
+        add:false
+    }
+}
+
 // If the left mouse button is pressed,
 // add the mouse_focus tag for the entities which have the mouse_hover tag
 select {
@@ -39,6 +51,18 @@ select {
     eg.buttons.EngageRule : {
         term: tags.mouse_hover, 
         tag: tags.mouse_focus,
+        add:true
+    }
+}
+
+select_hud {
+    eg.buttons.Binding : {
+        button0:MOUSE_LEFT,
+        mask:BUTTON_PRESSED
+    }
+    eg.buttons.EngageRule : {
+        term: tags.mouse_hover_hud,
+        tag: tags.mouse_focus_hud,
         add:true
     }
 }
@@ -57,6 +81,18 @@ drag_begin {
     }
 }
 
+drag_begin_hud {
+    eg.buttons.Binding : {
+        button0:MOUSE_LEFT,
+        mask:BUTTON_PRESSED
+    }
+    eg.buttons.EngageRule : {
+        term: tags.mouse_hover_hud,
+        tag: tags.mouse_drag_hud,
+        add:true
+    }
+}
+
 // If the left mouse button is released,
 // remove the mouse_drag tag for the entities which have the mouse_drag tag
 drag_end {
@@ -67,6 +103,18 @@ drag_end {
     eg.buttons.EngageRule : {
         term: tags.mouse_drag, 
         tag: tags.mouse_drag,
+        add:false
+    }
+}
+
+drag_end_hud {
+    eg.buttons.Binding : {
+        button0:MOUSE_LEFT,
+        mask:BUTTON_RELEASED
+    }
+    eg.buttons.EngageRule : {
+        term: tags.mouse_drag_hud,
+        tag: tags.mouse_drag_hud,
         add:false
     }
 }

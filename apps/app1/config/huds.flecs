@@ -54,7 +54,7 @@ root3d : element3d {
 }
 
 root2d : element2d {
-    (eg.ui.MouseHitTesting, cameras.cam_hud.mouse_unproject) : {tag: tags.mouse_hover}
+    (eg.ui.MouseHitTesting, cameras.cam_hud.mouse_unproject) : {tag: tags.mouse_hover_hud}
 }
 
 root2d : element2d {
