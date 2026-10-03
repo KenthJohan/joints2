@@ -74,6 +74,7 @@ void AppDrawNameAtPosition_Draw(ecs_iter_t *it)
 			float s = m3->matrix.c0[1];
 			printf("Drawing name '%s' at position (%f, %f) with rotation (c=%f, s=%f)\n", name, x, y, c, s);
 			egg_draw_text(d->egg, APP_DRAW_Z_TEXT, x, y, c, s, 0.5f, b->color, name);
+			egg_draw_rectangle(d->egg, APP_DRAW_Z_SHAPES, x, y, c, s, 20, 20, 0x0066FF00u);
 		}
 	} else if (m4) {
 		for (int i = 0; i < it->count; ++i, ++m4) {

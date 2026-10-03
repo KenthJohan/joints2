@@ -20,6 +20,7 @@ prefab element2d {
     Rotation2 : {0}
     Scale2 : {x: 1, y: 1}
     Position2 : {x: 0, y: 0}
+    (eg.physics.OverlapChecking, cameras.cam_hud.mouse_unproject) : {tag: tags.mouse_hover_hud}
 }
 
 with  (flecs.core.DependsOn, eg.windows.window1.drawctx_hud) {
@@ -53,9 +54,6 @@ root3d : element3d {
     }
 }
 
-root2d : element2d {
-    (eg.ui.MouseHitTesting, cameras.cam_hud.mouse_unproject) : {tag: tags.mouse_hover_hud}
-}
 
 root2d : element2d {
     // Lays its children out left-to-right, moving down when a row reaches the parent edge
