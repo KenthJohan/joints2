@@ -59,13 +59,33 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 
 void AppDrawNameAtPosition_Draw(ecs_iter_t *it)
 {
-	AppDrawContext            *d = ecs_field_shared(it, AppDrawContext, 0);
-	Position2                 *p = ecs_field_self(it, Position2, 1);
-	AppDrawNameAtPositionRule *b = ecs_field_shared(it, AppDrawNameAtPositionRule, 2);
-	for (int i = 0; i < it->count; ++i, ++p) {
-		char const *name = ecs_get_name(it->world, it->entities[i]);
-		assert(d->egg != NULL);
-		egg_draw_text(d->egg, APP_DRAW_Z_TEXT, p->x, p->y, 1.0f, 0.0f, 0.5f, b->color, name);
+	AppDrawContext            *d  = ecs_field_shared(it, AppDrawContext, 0);
+	WorldTransform3           *m3 = ecs_field_self(it, WorldTransform3, 1);
+	WorldTransform4           *m4 = ecs_field_self(it, WorldTransform4, 2);
+	AppDrawNameAtPositionRule *b  = ecs_field_shared(it, AppDrawNameAtPositionRule, 3);
+	assert(d->egg != NULL);
+	if (m3) {
+		for (int i = 0; i < it->count; ++i, ++m3, ++m4) {
+			char const *name = ecs_get_name(it->world, it->entities[i]);
+
+			float x = m3->matrix.c2[0];
+			float y = m3->matrix.c2[1];
+			float c = m3->matrix.c0[0];
+			float s = m3->matrix.c0[1];
+			printf("Drawing name '%s' at position (%f, %f) with rotation (c=%f, s=%f)\n", name, x, y, c, s);
+			egg_draw_text(d->egg, APP_DRAW_Z_TEXT, x/1000, y/1000, c, s, 0.5f, b->color, name);
+		}
+	} else if (m4) {
+		for (int i = 0; i < it->count; ++i, ++m4) {
+			char const *name = ecs_get_name(it->world, it->entities[i]);
+
+			float x = m4->matrix.c3[0];
+			float y = m4->matrix.c3[1];
+			float c = 1.0f; // Rotation cosine
+			float s = 0.0f; // Rotation sine
+			printf("Drawing name '%s' at position (%f, %f) with rotation (c=%f, s=%f)\n", name, x, y, c, s);
+			egg_draw_text(d->egg, APP_DRAW_Z_TEXT, x, y, c, s, 0.5f, b->color, name);
+		}
 	}
 }
 
@@ -73,7 +93,7 @@ static void AppDrawText_Draw(ecs_iter_t *it)
 {
 	AppDrawContext    *d   = ecs_field_shared(it, AppDrawContext, 0);
 	EgCamerasState    *cam = ecs_field_shared(it, EgCamerasState, 1);
-	Matrix4           *p   = ecs_field_self(it, Matrix4, 2);
+	WorldTransform4   *p   = ecs_field_self(it, WorldTransform4, 2);
 	EgBaseText        *t   = ecs_field_self(it, EgBaseText, 3);
 	EgBaseFont        *f   = ecs_field_self(it, EgBaseFont, 4);
 	EgBaseColor       *col = ecs_field_self(it, EgBaseColor, 5);
@@ -105,7 +125,7 @@ static void AppDrawShapesRectangle_Draw3D(ecs_iter_t *it)
 {
 	AppDrawContext    *d   = ecs_field_shared(it, AppDrawContext, 0);
 	EgShapesRectangle *r   = ecs_field_self(it, EgShapesRectangle, 1);
-	Matrix4           *p   = ecs_field_self(it, Matrix4, 2);
+	WorldTransform4   *p   = ecs_field_self(it, WorldTransform4, 2);
 	EgBaseColor       *col = ecs_field_self(it, EgBaseColor, 3);
 	for (int i = 0; i < it->count; ++i, ++r, ++p) {
 		float    x     = p->matrix.c3[0];
@@ -121,7 +141,7 @@ static void AppDrawShapesRectangle_Draw2D(ecs_iter_t *it)
 {
 	AppDrawContext    *d   = ecs_field_shared(it, AppDrawContext, 0);
 	EgShapesRectangle *r   = ecs_field_self(it, EgShapesRectangle, 1);
-	Matrix3           *p   = ecs_field_self(it, Matrix3, 2);
+	WorldTransform3  *p   = ecs_field_self(it, WorldTransform3, 2);
 	EgBaseColor       *col = ecs_field_self(it, EgBaseColor, 3);
 	for (int i = 0; i < it->count; ++i, ++r, ++p) {
 		float    x     = p->matrix.c2[0];
@@ -131,6 +151,7 @@ static void AppDrawShapesRectangle_Draw2D(ecs_iter_t *it)
 		uint32_t color = col != NULL ? col[i].color : 0x00FFFF00u;
 		egg_draw_rectangle(d->egg, APP_DRAW_Z_SHAPES, x, y, c, s, r->w, r->h, color);
 		egg_draw_rectangle(d->egg, APP_DRAW_Z_SHAPES, x, y, c, s, 10, 10, 0x0000000FF);
+		egg_draw_text(d->egg, APP_DRAW_Z_TEXT, x, y, c, s, 12.0f, 0xFFFFFFFFu, "Debug");
 	}
 }
 
@@ -150,7 +171,8 @@ void AppDrawNameAtPositionRule_Observer(ecs_iter_t *it)
 			.callback    = AppDrawNameAtPosition_Draw,
 			.query.terms = {
 			{.id = ecs_id(AppDrawContext), .src.id = o->draw_e, .inout = EcsIn},
-			{.id = ecs_id(Position2), .src.id = EcsSelf},
+			{.id = ecs_id(WorldTransform3), .src.id = EcsSelf, .inout = EcsIn, .oper = EcsOptional},
+			{.id = ecs_id(WorldTransform4), .src.id = EcsSelf, .inout = EcsIn, .oper = EcsOptional},
 			{.id = ecs_id(AppDrawNameAtPositionRule), .src.id = e},
 			{.id = o->term, .src.id = EcsSelf},
 			}});
@@ -209,7 +231,7 @@ void AppDrawImport(ecs_world_t *world)
 	.query.terms = {
 	{.id = ecs_id(AppDrawContext), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
 	{.id = ecs_id(EgCamerasState), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
-	{.id = ecs_id(Matrix4), .src.id = EcsSelf, .inout = EcsIn},
+	{.id = ecs_id(WorldTransform4), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(EgBaseText), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(EgBaseFont), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(EgBaseColor), .src.id = EcsSelf, .inout = EcsIn, .oper = EcsOptional},
@@ -223,7 +245,7 @@ void AppDrawImport(ecs_world_t *world)
 	.query.terms = {
 	{.id = ecs_id(AppDrawContext), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
 	{.id = ecs_id(EgShapesRectangle), .src.id = EcsSelf, .inout = EcsIn},
-	{.id = ecs_id(Matrix4), .src.id = EcsSelf, .inout = EcsIn},
+	{.id = ecs_id(WorldTransform4), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(EgBaseColor), .src.id = EcsSelf, .inout = EcsIn, .oper = EcsOptional},
 	}});
 
@@ -234,7 +256,7 @@ void AppDrawImport(ecs_world_t *world)
 	.query.terms = {
 	{.id = ecs_id(AppDrawContext), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
 	{.id = ecs_id(EgShapesRectangle), .src.id = EcsSelf, .inout = EcsIn},
-	{.id = ecs_id(Matrix3), .src.id = EcsSelf, .inout = EcsIn},
+	{.id = ecs_id(WorldTransform3), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(EgBaseColor), .src.id = EcsSelf, .inout = EcsIn},
 	}});
 

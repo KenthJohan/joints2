@@ -13,7 +13,9 @@ camera_rotate_dz {
         entity:cameras.cam0, 
         component:Rotate3, 
         byte_offset:8, 
-        factor: 0.01
+        factor: 0.01,
+        w0: 0,
+        w1: 1,
     }
 }
 
@@ -27,7 +29,9 @@ camera_move_dx {
         entity:cameras.cam0, 
         component:Velocity3, 
         byte_offset:0, 
-        factor: 10.01
+        factor: 10.01,
+        w0: 0,
+        w1: 1,
     }
 }
 
@@ -41,7 +45,9 @@ camera_move_dy {
         entity:cameras.cam0, 
         component:Velocity3, 
         byte_offset:4, 
-        factor: 10.01
+        factor: 10.01,
+        w0: 0,
+        w1: 1,
     }
 }
 
@@ -55,7 +61,9 @@ camera_move_dz {
         entity:cameras.cam0, 
         component:Velocity3, 
         byte_offset:8, 
-        factor: 10.01
+        factor: 10.01,
+        w0: 0,
+        w1: 1,
     }
 }
 
@@ -70,7 +78,9 @@ rotate_text1 {
         entity:huds.root3d, 
         component:Rotate3, 
         byte_offset:8, 
-        factor: 0.005
+        factor: 0.005,
+        w0: 0,
+        w1: 1,
     }
 }
 
@@ -86,6 +96,8 @@ rotate_text2 {
         entity:huds.root3d.hud_text_hint, 
         component:Rotate3, 
         byte_offset:8, 
-        factor: 0.005
+        factor: 0.005,
+        w0: 0,
+        w1: 1,
     }
 }
