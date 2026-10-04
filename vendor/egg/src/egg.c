@@ -31,19 +31,16 @@ static const char *kEggVertexShaderSource =
 "uniform mat4 projectionMatrix;\n"
 "uniform samplerBuffer transformBuffer;\n"
 "layout(location = 0) in vec2 v_position;\n"
-"layout(location = 1) in float v_instanceIndex;\n"
+"layout(location = 1) in uint v_instanceIndex;\n"
 "layout(location = 2) in vec2 v_uv;\n"
-"layout(location = 3) in float v_useTexture;\n"
-"layout(location = 4) in vec4 v_color;\n"
+"layout(location = 3) in vec4 v_color;\n"
 "out vec2 f_uv;\n"
-"out vec4 f_color;\n"
-"out float f_useTexture;\n"
+"flat out vec4 f_color;\n"
 "void main(void)\n"
 "{\n"
 "    f_uv = v_uv;\n"
 "    f_color = v_color;\n"
-"    f_useTexture = v_useTexture;\n"
-"    vec4 instanceTransform = texelFetch(transformBuffer, int(v_instanceIndex + 0.5));\n"
+"    vec4 instanceTransform = texelFetch(transformBuffer, int(v_instanceIndex));\n"
 "    float x = instanceTransform.x;\n"
 "    float y = instanceTransform.y;\n"
 "    float c = instanceTransform.z;\n"
@@ -56,18 +53,13 @@ static const char *kEggVertexShaderSource =
 static const char *kEggFragmentShaderSource =
 "#version 330\n"
 "in vec2 f_uv;\n"
-"in vec4 f_color;\n"
-"in float f_useTexture;\n"
+"flat in vec4 f_color;\n"
 "uniform sampler2D atlasTexture;\n"
 "out vec4 FragColor;\n"
 "void main(void)\n"
 "{\n"
-"    if (f_useTexture > 0.5) {\n"
-"        vec4 atlasSample = texture(atlasTexture, f_uv);\n"
-"        FragColor = vec4(f_color.rgb, f_color.a * atlasSample.r);\n"
-"    } else {\n"
-"        FragColor = f_color;\n"
-"    }\n"
+"    float atlasAlpha = texture(atlasTexture, f_uv).r;\n"
+"    FragColor = vec4(f_color.rgb, f_color.a * atlasAlpha);\n"
 "}\n";
 
 static GLuint sCompileShader(GLenum type, const char *source)
@@ -172,10 +164,9 @@ egg_render_t *egg_render_init(void)
 	glEnableVertexAttribArray(3);
 	glEnableVertexAttribArray(4);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(egg_vertex_t), (void *)offsetof(egg_vertex_t, position));
-	glVertexAttribPointer(1, 1, GL_FLOAT, GL_FALSE, sizeof(egg_vertex_t), (void *)offsetof(egg_vertex_t, instanceIndex));
+	glVertexAttribIPointer(1, 1, GL_UNSIGNED_SHORT, sizeof(egg_vertex_t), (void *)offsetof(egg_vertex_t, instanceIndex));
 	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(egg_vertex_t), (void *)offsetof(egg_vertex_t, uv));
-	glVertexAttribPointer(3, 1, GL_FLOAT, GL_FALSE, sizeof(egg_vertex_t), (void *)offsetof(egg_vertex_t, useTexture));
-	glVertexAttribPointer(4, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(egg_vertex_t), (void *)offsetof(egg_vertex_t, rgba));
+	glVertexAttribPointer(3, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(egg_vertex_t), (void *)offsetof(egg_vertex_t, rgba));
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);

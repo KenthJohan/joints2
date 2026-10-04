@@ -9,7 +9,7 @@
 
 typedef struct {
 	egg_drawlist_t *list;
-	float           instanceIndex;
+	uint16_t        instanceIndex;
 	uint8_t         r;
 	uint8_t         g;
 	uint8_t         b;
@@ -165,7 +165,7 @@ static egg_drawlist_t *sGetList(egg_draw_t *d, int32_t z)
 	return &d->lists[z];
 }
 
-static void sAppendVertex(egg_drawlist_t *l, float x, float y, float instanceIndex, float u, float v, float useTexture,
+static void sAppendVertex(egg_drawlist_t *l, float x, float y, uint16_t instanceIndex, float u, float v,
 uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
 	egg_vertex_t *vertices = sGrowBuffer(l->vertices.data, &l->vertices.capacity, l->vertices.count + 1,
@@ -178,14 +178,13 @@ uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 	egg_vertex_t *dst  = &l->vertices.data[l->vertices.count];
 	dst->position[0]   = x;
 	dst->position[1]   = y;
-	dst->instanceIndex = instanceIndex;
 	dst->uv[0]         = u;
 	dst->uv[1]         = v;
-	dst->useTexture    = useTexture;
 	dst->rgba[0]       = r;
 	dst->rgba[1]       = g;
 	dst->rgba[2]       = b;
 	dst->rgba[3]       = a;
+	dst->instanceIndex = instanceIndex;
 	l->vertices.count += 1;
 }
 
@@ -206,23 +205,33 @@ static void sAppendTransform(egg_drawlist_t *l, float x, float y, float c, float
 	l->transforms.count += 1;
 }
 
-static void sAddQuad(egg_drawlist_t *l, float x0, float y0, float x1, float y1, float instanceIndex, float u0, float v0,
-float u1, float v1, float useTexture, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+static void sAddQuad(egg_drawlist_t *l, float x0, float y0, float x1, float y1, uint16_t instanceIndex, float u0, float v0,
+float u1, float v1, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
-	sAppendVertex(l, x0, y0, instanceIndex, u0, v0, useTexture, r, g, b, a);
-	sAppendVertex(l, x1, y0, instanceIndex, u1, v0, useTexture, r, g, b, a);
-	sAppendVertex(l, x1, y1, instanceIndex, u1, v1, useTexture, r, g, b, a);
-	sAppendVertex(l, x0, y0, instanceIndex, u0, v0, useTexture, r, g, b, a);
-	sAppendVertex(l, x1, y1, instanceIndex, u1, v1, useTexture, r, g, b, a);
-	sAppendVertex(l, x0, y1, instanceIndex, u0, v1, useTexture, r, g, b, a);
+	sAppendVertex(l, x0, y0, instanceIndex, u0, v0, r, g, b, a);
+	sAppendVertex(l, x1, y0, instanceIndex, u1, v0, r, g, b, a);
+	sAppendVertex(l, x1, y1, instanceIndex, u1, v1, r, g, b, a);
+	sAppendVertex(l, x0, y0, instanceIndex, u0, v0, r, g, b, a);
+	sAppendVertex(l, x1, y1, instanceIndex, u1, v1, r, g, b, a);
+	sAppendVertex(l, x0, y1, instanceIndex, u0, v1, r, g, b, a);
 }
 
-static void sAddTriangle(egg_drawlist_t *l, float x0, float y0, float x1, float y1, float x2, float y2, float instanceIndex,
-float useTexture, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+static void sAddTriangle(egg_drawlist_t *l, float x0, float y0, float x1, float y1, float x2, float y2, uint16_t instanceIndex,
+uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
-	sAppendVertex(l, x0, y0, instanceIndex, 0.0f, 0.0f, useTexture, r, g, b, a);
-	sAppendVertex(l, x1, y1, instanceIndex, 0.0f, 0.0f, useTexture, r, g, b, a);
-	sAppendVertex(l, x2, y2, instanceIndex, 0.0f, 0.0f, useTexture, r, g, b, a);
+	const float whiteU = 0.5f / EGG_ATLAS_WIDTH;
+	const float whiteV = 0.5f / EGG_ATLAS_HEIGHT;
+	sAppendVertex(l, x0, y0, instanceIndex, whiteU, whiteV, r, g, b, a);
+	sAppendVertex(l, x1, y1, instanceIndex, whiteU, whiteV, r, g, b, a);
+	sAppendVertex(l, x2, y2, instanceIndex, whiteU, whiteV, r, g, b, a);
+}
+
+static void sAddSolidQuad(egg_drawlist_t *l, float x0, float y0, float x1, float y1, uint16_t instanceIndex,
+uint8_t r, uint8_t g, uint8_t b, uint8_t a)
+{
+	const float whiteU = 0.5f / EGG_ATLAS_WIDTH;
+	const float whiteV = 0.5f / EGG_ATLAS_HEIGHT;
+	sAddQuad(l, x0, y0, x1, y1, instanceIndex, whiteU, whiteV, whiteU, whiteV, r, g, b, a);
 }
 
 static void sColorBytes(egg_color_t color, uint8_t *r, uint8_t *g, uint8_t *b, uint8_t *a)
@@ -240,12 +249,12 @@ static void sColorBytes(egg_color_t color, uint8_t *r, uint8_t *g, uint8_t *b, u
 static int sBeginBatch(sBatch_t *batch, egg_draw_t *d, int32_t z, float x, float y, float c, float s, egg_color_t color)
 {
 	batch->list = sGetList(d, z);
-	if (batch->list == NULL) {
+	if (batch->list == NULL || batch->list->transforms.count > UINT16_MAX) {
 		return 0;
 	}
 
 	sAppendTransform(batch->list, x, y, c, s);
-	batch->instanceIndex = (float)(batch->list->transforms.count - 1);
+	batch->instanceIndex = (uint16_t)(batch->list->transforms.count - 1);
 	sColorBytes(color, &batch->r, &batch->g, &batch->b, &batch->a);
 	return 1;
 }
@@ -277,8 +286,8 @@ static void sAddLine(const sBatch_t *batch, float pixelScale, float x1, float y1
 	float p4y = y2 - ny;
 
 	egg_drawlist_t *l = batch->list;
-	sAddTriangle(l, p1x, p1y, p2x, p2y, p3x, p3y, batch->instanceIndex, 0.0f, batch->r, batch->g, batch->b, batch->a);
-	sAddTriangle(l, p2x, p2y, p4x, p4y, p3x, p3y, batch->instanceIndex, 0.0f, batch->r, batch->g, batch->b, batch->a);
+	sAddTriangle(l, p1x, p1y, p2x, p2y, p3x, p3y, batch->instanceIndex, batch->r, batch->g, batch->b, batch->a);
+	sAddTriangle(l, p2x, p2y, p4x, p4y, p3x, p3y, batch->instanceIndex, batch->r, batch->g, batch->b, batch->a);
 }
 
 void egg_draw_text(egg_draw_t *d, int32_t z, float x, float y, float rotationCos, float rotationSin, float fontSize, egg_color_t color, const char *string)
@@ -331,7 +340,7 @@ void egg_draw_text(egg_draw_t *d, int32_t z, float x, float y, float rotationCos
 		q.x1      = startX + scale * dx1;
 		q.y1      = cursorY - scale * dy1;
 
-		sAddQuad(batch.list, q.x0, q.y0, q.x1, q.y1, batch.instanceIndex, q.s0, q.t0, q.s1, q.t1, 1.0f, batch.r,
+		sAddQuad(batch.list, q.x0, q.y0, q.x1, q.y1, batch.instanceIndex, q.s0, q.t0, q.s1, q.t1, batch.r,
 		batch.g, batch.b, batch.a);
 	}
 }
@@ -358,8 +367,8 @@ void egg_draw_point(egg_draw_t *d, int32_t z, float x, float y, float size, egg_
 	}
 
 	float scaledSize = size * d->pixelScale;
-	sAddQuad(batch.list, -scaledSize, -scaledSize, scaledSize, scaledSize, batch.instanceIndex, 0.0f, 0.0f, 1.0f, 1.0f,
-	0.0f, batch.r, batch.g, batch.b, batch.a);
+	sAddSolidQuad(batch.list, -scaledSize, -scaledSize, scaledSize, scaledSize, batch.instanceIndex, batch.r, batch.g,
+	batch.b, batch.a);
 }
 
 void egg_draw_circle(egg_draw_t *d, int32_t z, float x, float y, float radius, egg_color_t color)
@@ -383,7 +392,7 @@ void egg_draw_circle(egg_draw_t *d, int32_t z, float x, float y, float radius, e
 		float x1 = cosf(angle1) * radius;
 		float y1 = sinf(angle1) * radius;
 
-		sAddTriangle(batch.list, 0.0f, 0.0f, x0, y0, x1, y1, batch.instanceIndex, 0.0f, batch.r, batch.g, batch.b,
+		sAddTriangle(batch.list, 0.0f, 0.0f, x0, y0, x1, y1, batch.instanceIndex, batch.r, batch.g, batch.b,
 		batch.a);
 	}
 }
@@ -420,9 +429,9 @@ void egg_draw_circle_outline(egg_draw_t *d, int32_t z, float x, float y, float r
 		float x1Inner = x + cosf(angle1) * innerRadius;
 		float y1Inner = y + sinf(angle1) * innerRadius;
 
-		sAddTriangle(batch.list, x0Outer, y0Outer, x1Outer, y1Outer, x1Inner, y1Inner, batch.instanceIndex, 0.0f,
+		sAddTriangle(batch.list, x0Outer, y0Outer, x1Outer, y1Outer, x1Inner, y1Inner, batch.instanceIndex,
 		batch.r, batch.g, batch.b, batch.a);
-		sAddTriangle(batch.list, x0Outer, y0Outer, x1Inner, y1Inner, x0Inner, y0Inner, batch.instanceIndex, 0.0f,
+		sAddTriangle(batch.list, x0Outer, y0Outer, x1Inner, y1Inner, x0Inner, y0Inner, batch.instanceIndex,
 		batch.r, batch.g, batch.b, batch.a);
 	}
 }
@@ -443,9 +452,9 @@ static void sAddCap(const sBatch_t *batch, float cx, float cy, float startAngle,
 		float ix1 = cx + cosf(angle1) * innerRadius;
 		float iy1 = cy + sinf(angle1) * innerRadius;
 
-		sAddTriangle(batch->list, ox0, oy0, ox1, oy1, ix1, iy1, batch->instanceIndex, 0.0f, batch->r, batch->g, batch->b,
+		sAddTriangle(batch->list, ox0, oy0, ox1, oy1, ix1, iy1, batch->instanceIndex, batch->r, batch->g, batch->b,
 		batch->a);
-		sAddTriangle(batch->list, ox0, oy0, ix1, iy1, ix0, iy0, batch->instanceIndex, 0.0f, batch->r, batch->g, batch->b,
+		sAddTriangle(batch->list, ox0, oy0, ix1, iy1, ix0, iy0, batch->instanceIndex, batch->r, batch->g, batch->b,
 		batch->a);
 	}
 }
@@ -507,8 +516,8 @@ void egg_draw_rectangle(egg_draw_t *d, int32_t z, float x, float y, float rotati
 
 	float halfWidth  = width * 0.5f;
 	float halfHeight = height * 0.5f;
-	sAddQuad(batch.list, -halfWidth, -halfHeight, halfWidth, halfHeight, batch.instanceIndex, 0.0f, 0.0f, 1.0f, 1.0f,
-	0.0f, batch.r, batch.g, batch.b, batch.a);
+	sAddSolidQuad(batch.list, -halfWidth, -halfHeight, halfWidth, halfHeight, batch.instanceIndex, batch.r, batch.g,
+	batch.b, batch.a);
 }
 
 void egg_draw_rectangle_outline(egg_draw_t *d, int32_t z, float x, float y, float rotationCos, float rotationSin, float width, float height, float thickness, egg_color_t color)
@@ -557,6 +566,6 @@ float rot_c, float rot_s, egg_color_t color)
 
 	for (int i = 1; i + 1 < vertex_count; ++i) {
 		sAddTriangle(batch.list, vertices[0].x, vertices[0].y, vertices[i].x, vertices[i].y, vertices[i + 1].x,
-		vertices[i + 1].y, batch.instanceIndex, 0.0f, batch.r, batch.g, batch.b, batch.a);
+		vertices[i + 1].y, batch.instanceIndex, batch.r, batch.g, batch.b, batch.a);
 	}
 }

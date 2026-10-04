@@ -19,11 +19,10 @@ typedef struct {
 } egg_instance_transform_t;
 
 typedef struct {
-        float   position[2];
-        float   instanceIndex;
-        float   uv[2];
-        float   useTexture;
-        uint8_t rgba[4];
+        float    position[2];
+        float    uv[2];
+        uint8_t  rgba[4];
+        uint16_t instanceIndex;
 } egg_vertex_t;
 
 typedef struct {
