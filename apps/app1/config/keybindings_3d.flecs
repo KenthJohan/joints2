@@ -103,7 +103,7 @@ camera_move_dz {
 }
 
 
-
+/*
 change_rectangle1 {
     eg.buttons.Binding : {
         button0:eg.buttons.SCANCODE_K, 
@@ -135,3 +135,4 @@ change_rectangle2 {
         w1: 1.0,
     }
 }
+*/
