@@ -9,7 +9,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_opengl.h>
 
-#include "draw.h"
+typedef EgShapedrawVertex egg_vertex_t;
 
 typedef struct egg_render_t {
 	GLuint     vaoId;
@@ -108,7 +108,7 @@ static void sUploadAtlas(egg_render_t *egg, const unsigned char *bitmap)
 	glGenTextures(1, &egg->atlasTextureId);
 	glBindTexture(GL_TEXTURE_2D, egg->atlasTextureId);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, EGG_ATLAS_WIDTH, EGG_ATLAS_HEIGHT, 0, GL_RED, GL_UNSIGNED_BYTE, bitmap);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, EG_SHAPEDRAW_ATLAS_WIDTH, EG_SHAPEDRAW_ATLAS_HEIGHT, 0, GL_RED, GL_UNSIGNED_BYTE, bitmap);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -151,16 +151,13 @@ egg_render_t *egg_render_init(void)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
-	egg_font_t     font;
-	unsigned char *bitmap = (unsigned char *)malloc(EGG_ATLAS_WIDTH * EGG_ATLAS_HEIGHT);
-	if (bitmap == NULL || !egg_font_bake(&font, bitmap)) {
-		free(bitmap);
+	const unsigned char *bitmap = EgShapedrawFont_GetBitmap();
+	if (bitmap == NULL) {
 		egg_render_destroy(egg);
 		return NULL;
 	}
 
 	sUploadAtlas(egg, bitmap);
-	free(bitmap);
 
 	egg->initialized = 1;
 	return egg;
@@ -188,9 +185,9 @@ void egg_render_destroy(egg_render_t *egg)
 	free(egg);
 }
 
-void egg_flush(egg_render_t *egg, egg_draw_t *draw, const float *projectionMatrix)
+void egg_flush(egg_render_t *egg, const EgShapedrawList *list, const float *projectionMatrix)
 {
-	if (egg == NULL || egg->initialized == 0 || draw == NULL) {
+	if (egg == NULL || egg->initialized == 0 || list == NULL) {
 		return;
 	}
 
@@ -203,20 +200,18 @@ void egg_flush(egg_render_t *egg, egg_draw_t *draw, const float *projectionMatri
 	glBindTexture(GL_TEXTURE_2D, egg->atlasTextureId);
 	glUniform1i(egg->atlasUniform, 0);
 
-	// Lists are drawn in index order so higher z lands on top.
-	for (int32_t li = 0; li < draw->listCount; ++li) {
-		egg_drawlist_t *l = &draw->lists[li];
-		if (l->vertices.count == 0) {
+	// Layers are drawn in index order so higher z lands on top.
+	for (int32_t li = 0; li < list->layerCount; ++li) {
+		const EgShapedrawLayer *l = &list->layers[li];
+		if (l->count == 0) {
 			continue;
 		}
 
 		glBindVertexArray(egg->vaoId);
 		glBindBuffer(GL_ARRAY_BUFFER, egg->vboId);
 
-		glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(l->vertices.count * sizeof(egg_vertex_t)), l->vertices.data, GL_DYNAMIC_DRAW);
-		glDrawArrays(GL_TRIANGLES, 0, l->vertices.count);
-
-		l->vertices.count = 0;
+		glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(l->count * sizeof(egg_vertex_t)), l->data, GL_DYNAMIC_DRAW);
+		glDrawArrays(GL_TRIANGLES, 0, l->count);
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);

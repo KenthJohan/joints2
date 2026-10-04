@@ -2,6 +2,6 @@
 
 #include <box2d/box2d.h>
 
-typedef struct egg_draw_t egg_draw_t;
+#include <EgShapedraw.h>
 
-void b2DebugDraw_init(b2DebugDraw *d, egg_draw_t *egg);
+void b2DebugDraw_init(b2DebugDraw *d, EgShapedrawList *egg);

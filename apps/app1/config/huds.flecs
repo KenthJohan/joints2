@@ -4,16 +4,6 @@ using eg.shapes
 using eg.ui
 using eg.base
 
-prefab element3d {
-    WorldTransform4
-    Transform4
-	RotateOrder1
-	Orientation
-	Scale3 : {x: 1, y: 1, z: 1}
-	Position3 : {x: 0, y: 0, z: 0}
-    Rotate3 : {0,0,0}
-}
-
 prefab element2d {
     WorldTransform3
     Transform3
@@ -25,41 +15,33 @@ prefab element2d {
 }
 
 
-root3d : element3d {
-	Position3 : {x: -1024.0*0.5, y: 1024.0*0.5, z: 0}
-	Scale3 : {x: 1, y: 1, z: 1}
-    Rectangle : {w: 50, h: 50}
-}
-
-root3d : element3d {
-
-    hud_text_title : element3d {
-        Position3 : {100, 100, 0}
-        Text : {value: "JOINTS2 HUD"}
-        Font : {font_size: 28}
-        Color : {color: 0xFF00FFFF}
-    }
-
-    hud_text_hint : element3d {
-        Position3 : {50, 50, 0}
-        Text : {value: "Drag bodies with mouse"}
-        Font : {font_size: 18}
-    }
-
-
-    box1 : element3d {
-        Position3 : {100, 100, 0}
-        Rectangle : {w: 5, h: 5}
-        Font : {font_size: 18}
-        Color : {color: 0xFFFF0000}
-    }
-}
 
 
 root2d : element2d {
 
     (flecs.core.DependsOn, eg.windows.window1.drawctx_hud)
     eg.shapedraw.List
+
+
+    hud_text_title : element2d {
+        Position2 : {100, 100}
+        Text : {value: "JOINTS2 HUD"}
+        Font : {font_size: 28}
+        Color : {color: 0xFF00FFFF}
+    }
+
+    hud_text_hint : element2d {
+        Position2 : {50, 50}
+        Text : {value: "Drag bodies with mouse"}
+        Font : {font_size: 18}
+    }
+
+    box1 : element2d {
+        Position2 : {100, 100}
+        Rectangle : {w: 5, h: 5}
+        Font : {font_size: 18}
+        Color : {color: 0xFFFF0000}
+    }
 
     // Lays its children out left-to-right, moving down when a row reaches the parent edge
     flow_demo : element2d {
@@ -108,8 +90,10 @@ root2d : element2d {
         }
         cell_d : element2d {
             Cell : {row: 1, col: 1}
-            Rectangle : {w: 30, h: 30}
             Color : {color: 0xFF2F2700}
+            Rectangle : {w: 60, h: 30}
+            Text : {value: "Cell D"}
+            Font : {font_size: 18, color: 0xFFFFFFFF}
         }
     }
 }
