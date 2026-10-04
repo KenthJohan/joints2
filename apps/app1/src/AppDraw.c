@@ -34,15 +34,18 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 	ecs_entity_t          e_window = ecs_field_src(it, 1);
 	printf("window_entity: %s\n", ecs_get_name(it->world, e_window));
 	for (int i = 0; i < it->count; ++i, ++def) {
+		ecs_entity_t e = it->entities[i];
 		egg_render_t *render = egg_render_init();
 		egg_draw_t   *draw   = egg_draw_create();
 		if (render == NULL || draw == NULL) {
+			ecs_err("Failed to create render or draw context for entity %s", ecs_get_name(it->world, e));
 			egg_render_destroy(render);
 			egg_draw_destroy(draw);
+			ecs_enable(it->world, e, false);
 			continue;
 		}
 
-		ecs_set(it->world, it->entities[i], AppDrawContext, {render, draw, 1.0f});
+		ecs_set(it->world, e, AppDrawContext, {render, draw, 1.0f});
 
 		// The window system will call this render system using `ecs_run()` every frame
 		// by putting it as a child of the window entity.
@@ -52,8 +55,7 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 		.query.terms = {
 		{.id = ecs_childof(e_window)},
 		{.id = ecs_id(AppDrawContext), .src.id = EcsSelf, .inout = EcsIn},
-		{.id = ecs_id(EgCamerasState), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
-		{.id = ecs_id(EgShapedrawList), .src.id = EcsSelf, .inout = EcsInOut, .oper = EcsOptional},
+		{.id = ecs_id(EgCamerasState), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn}
 		}});
 	}
 	ecs_log_set_level(-1);
