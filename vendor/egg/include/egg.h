@@ -1,5 +1,6 @@
 #pragma once
 #include <stdint.h>
+#include <EgShapedraw.h>
 
 typedef uint32_t            egg_color_t;
 typedef struct egg_render_t egg_render_t;
@@ -48,3 +49,6 @@ void egg_draw_rectangle_outline(egg_draw_t *draw, int32_t z, float x, float y, f
 void egg_draw_bounds(egg_draw_t *draw, int32_t z, float minX, float minY, float maxX, float maxY, egg_color_t color);
 
 void egg_draw_polygon(egg_draw_t *draw, int32_t z, const egg_vec2_t *vertices, int vertex_count, float tx, float ty, float rot_c, float rot_s, egg_color_t color);
+
+// Appends pre-transformed triangles (world space) to the z list; `vertices` is an EgShapedrawVertex array.
+void egg_draw_append_vertices(egg_draw_t *draw, int32_t z, const EgShapedrawVertex *vertices, int32_t count);

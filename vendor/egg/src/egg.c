@@ -11,43 +11,29 @@
 
 #include "draw.h"
 
-#define EGG_TRANSFORM_CAPACITY 1024
-
 typedef struct egg_render_t {
 	GLuint     vaoId;
 	GLuint     vboId;
-	GLuint     transformBufferId;
-	GLuint     transformTextureId;
 	GLuint     atlasTextureId;
 	GLuint     programId;
 	GLint      projectionUniform;
 	GLint      atlasUniform;
-	GLint      transformUniform;
 	int        initialized;
 } egg_render_t;
 
 static const char *kEggVertexShaderSource =
 "#version 330\n"
 "uniform mat4 projectionMatrix;\n"
-"uniform samplerBuffer transformBuffer;\n"
 "layout(location = 0) in vec2 v_position;\n"
-"layout(location = 1) in uint v_instanceIndex;\n"
-"layout(location = 2) in vec2 v_uv;\n"
-"layout(location = 3) in vec4 v_color;\n"
+"layout(location = 1) in vec2 v_uv;\n"
+"layout(location = 2) in vec4 v_color;\n"
 "out vec2 f_uv;\n"
 "flat out vec4 f_color;\n"
 "void main(void)\n"
 "{\n"
 "    f_uv = v_uv;\n"
 "    f_color = v_color;\n"
-"    vec4 instanceTransform = texelFetch(transformBuffer, int(v_instanceIndex));\n"
-"    float x = instanceTransform.x;\n"
-"    float y = instanceTransform.y;\n"
-"    float c = instanceTransform.z;\n"
-"    float s = instanceTransform.w;\n"
-"    vec2 p = vec2(v_position.x, v_position.y);\n"
-"    p = vec2((c * p.x - s * p.y) + x, (s * p.x + c * p.y) + y);\n"
-"    gl_Position = projectionMatrix * vec4(p, 0.0f, 1.0f);\n"
+"    gl_Position = projectionMatrix * vec4(v_position, 0.0, 1.0);\n"
 "}\n";
 
 static const char *kEggFragmentShaderSource =
@@ -148,12 +134,9 @@ egg_render_t *egg_render_init(void)
 
 	egg->projectionUniform = glGetUniformLocation(egg->programId, "projectionMatrix");
 	egg->atlasUniform      = glGetUniformLocation(egg->programId, "atlasTexture");
-	egg->transformUniform  = glGetUniformLocation(egg->programId, "transformBuffer");
 
 	glGenVertexArrays(1, &egg->vaoId);
 	glGenBuffers(1, &egg->vboId);
-	glGenBuffers(1, &egg->transformBufferId);
-	glGenTextures(1, &egg->transformTextureId);
 
 	glBindVertexArray(egg->vaoId);
 	glBindBuffer(GL_ARRAY_BUFFER, egg->vboId);
@@ -161,22 +144,12 @@ egg_render_t *egg_render_init(void)
 	glEnableVertexAttribArray(0);
 	glEnableVertexAttribArray(1);
 	glEnableVertexAttribArray(2);
-	glEnableVertexAttribArray(3);
-	glEnableVertexAttribArray(4);
 	glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, sizeof(egg_vertex_t), (void *)offsetof(egg_vertex_t, position));
-	glVertexAttribIPointer(1, 1, GL_UNSIGNED_SHORT, sizeof(egg_vertex_t), (void *)offsetof(egg_vertex_t, instanceIndex));
-	glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, sizeof(egg_vertex_t), (void *)offsetof(egg_vertex_t, uv));
-	glVertexAttribPointer(3, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(egg_vertex_t), (void *)offsetof(egg_vertex_t, rgba));
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, sizeof(egg_vertex_t), (void *)offsetof(egg_vertex_t, uv));
+	glVertexAttribPointer(2, 4, GL_UNSIGNED_BYTE, GL_TRUE, sizeof(egg_vertex_t), (void *)offsetof(egg_vertex_t, rgba));
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
-
-	glBindBuffer(GL_TEXTURE_BUFFER, egg->transformBufferId);
-	glBufferData(GL_TEXTURE_BUFFER, EGG_TRANSFORM_CAPACITY * sizeof(egg_instance_transform_t), NULL, GL_DYNAMIC_DRAW);
-	glBindTexture(GL_TEXTURE_BUFFER, egg->transformTextureId);
-	glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, egg->transformBufferId);
-	glBindTexture(GL_TEXTURE_BUFFER, 0);
-	glBindBuffer(GL_TEXTURE_BUFFER, 0);
 
 	egg_font_t     font;
 	unsigned char *bitmap = (unsigned char *)malloc(EGG_ATLAS_WIDTH * EGG_ATLAS_HEIGHT);
@@ -204,12 +177,6 @@ void egg_render_destroy(egg_render_t *egg)
 	}
 	if (egg->vboId != 0) {
 		glDeleteBuffers(1, &egg->vboId);
-	}
-	if (egg->transformBufferId != 0) {
-		glDeleteBuffers(1, &egg->transformBufferId);
-	}
-	if (egg->transformTextureId != 0) {
-		glDeleteTextures(1, &egg->transformTextureId);
 	}
 	if (egg->atlasTextureId != 0) {
 		glDeleteTextures(1, &egg->atlasTextureId);
@@ -240,18 +207,8 @@ void egg_flush(egg_render_t *egg, egg_draw_t *draw, const float *projectionMatri
 	for (int32_t li = 0; li < draw->listCount; ++li) {
 		egg_drawlist_t *l = &draw->lists[li];
 		if (l->vertices.count == 0) {
-			l->transforms.count = 0;
 			continue;
 		}
-
-		glActiveTexture(GL_TEXTURE1);
-		glBindBuffer(GL_TEXTURE_BUFFER, egg->transformBufferId);
-		int32_t transformUploadCount = l->transforms.count > 0 ? l->transforms.count : 1;
-		glBufferData(GL_TEXTURE_BUFFER, (GLsizeiptr)(transformUploadCount * sizeof(egg_instance_transform_t)),
-		l->transforms.count > 0 ? l->transforms.data : NULL, GL_DYNAMIC_DRAW);
-		glBindTexture(GL_TEXTURE_BUFFER, egg->transformTextureId);
-		glTexBuffer(GL_TEXTURE_BUFFER, GL_RGBA32F, egg->transformBufferId);
-		glUniform1i(egg->transformUniform, 1);
 
 		glBindVertexArray(egg->vaoId);
 		glBindBuffer(GL_ARRAY_BUFFER, egg->vboId);
@@ -259,15 +216,11 @@ void egg_flush(egg_render_t *egg, egg_draw_t *draw, const float *projectionMatri
 		glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(l->vertices.count * sizeof(egg_vertex_t)), l->vertices.data, GL_DYNAMIC_DRAW);
 		glDrawArrays(GL_TRIANGLES, 0, l->vertices.count);
 
-		l->vertices.count   = 0;
-		l->transforms.count = 0;
+		l->vertices.count = 0;
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
-	glBindBuffer(GL_TEXTURE_BUFFER, 0);
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_BUFFER, 0);
 	glActiveTexture(GL_TEXTURE0);
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glUseProgram(0);

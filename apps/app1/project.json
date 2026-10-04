@@ -19,6 +19,7 @@
 			"EgFs",
 			"EgGlslang",
 			"EgUi",
+			"EgShapedraw",
 			"egmath",
 			"box2d",
 			"egg"
@@ -46,6 +47,7 @@
 			"EgBase",
 			"EgGlslang",
 			"EgUi",
+			"EgShapedraw",
 			"egmath",
 			"ecsx",
 			"box2d",

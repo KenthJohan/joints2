@@ -2,28 +2,18 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#include <EgShapedraw.h>
+
 #include "egg.h"
 #include "stb_truetype.h"
 
 #define EGG_FIRST_CHAR     32
 #define EGG_CHAR_COUNT     96
-#define EGG_ATLAS_WIDTH    512
-#define EGG_ATLAS_HEIGHT   512
+#define EGG_ATLAS_WIDTH    EG_SHAPEDRAW_ATLAS_WIDTH
+#define EGG_ATLAS_HEIGHT   EG_SHAPEDRAW_ATLAS_HEIGHT
 #define EGG_BAKE_FONT_SIZE 32.0f
 
-typedef struct {
-        float x;
-        float y;
-        float c;
-        float s;
-} egg_instance_transform_t;
-
-typedef struct {
-        float    position[2];
-        float    uv[2];
-        uint8_t  rgba[4];
-        uint16_t instanceIndex;
-} egg_vertex_t;
+typedef EgShapedrawVertex egg_vertex_t;
 
 typedef struct {
         egg_vertex_t *data;
@@ -32,14 +22,7 @@ typedef struct {
 } egg_vertex_buffer_t;
 
 typedef struct {
-        egg_instance_transform_t *data;
-        int32_t                   count;
-        int32_t                   capacity;
-} egg_transform_buffer_t;
-
-typedef struct {
-        egg_vertex_buffer_t    vertices;
-        egg_transform_buffer_t transforms;
+        egg_vertex_buffer_t vertices;
 } egg_drawlist_t;
 
 typedef struct {
@@ -47,7 +30,7 @@ typedef struct {
         float           lineHeight;
 } egg_font_t;
 
-// CPU-side draw state: z-ordered lists of vertices/transforms.
+// CPU-side draw state: z-ordered lists of world-space vertices.
 struct egg_draw_t {
         egg_drawlist_t *lists;
         int32_t         listCount;

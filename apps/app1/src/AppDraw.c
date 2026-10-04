@@ -5,6 +5,7 @@
 #include <EgSpatials.h>
 #include <EgShapes.h>
 #include <EgBase.h>
+#include <EgShapedraw.h>
 #include <ecsx.h>
 #include <egg.h>
 #include <math.h>
@@ -17,12 +18,16 @@ static void Test_Render(ecs_iter_t *it)
 {
 	AppDrawContext *draw   = ecs_field_self(it, AppDrawContext, 1);
 	EgCamerasState *camera = ecs_field_shared(it, EgCamerasState, 2);
+	EgShapedrawList *shapes = ecs_field_self(it, EgShapedrawList, 3);
 	for (int i = 0; i < it->count; ++i, ++draw) {
 		// Placeholder for rendering logic. This function will be called every frame to handle rendering tasks.
 		// printf("Test_Render called with %d entities\n", it->count);
 
 		draw->pixelScale = camera->pixelScale * 1.0f; // Keep the egg-scale near the camera-derived size.
 		if (draw->render != NULL && draw->draw != NULL) {
+			if (shapes != NULL) {
+				egg_draw_append_vertices(draw->draw, APP_DRAW_Z_RECTANGLES, shapes[i].data, shapes[i].count);
+			}
 			egg_draw_set_pixel_scale(draw->draw, draw->pixelScale);
 			egg_flush(draw->render, draw->draw, (float *)&camera->vp);
 		}
@@ -45,6 +50,7 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 		}
 
 		ecs_set(it->world, it->entities[i], AppDrawContext, {render, draw, 1.0f});
+		ecs_add(it->world, it->entities[i], EgShapedrawList);
 
 		// The window system will call this render system using `ecs_run()` every frame
 		// by putting it as a child of the window entity.
@@ -55,6 +61,7 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 		{.id = ecs_childof(e_window)},
 		{.id = ecs_id(AppDrawContext), .src.id = EcsSelf, .inout = EcsIn},
 		{.id = ecs_id(EgCamerasState), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
+		{.id = ecs_id(EgShapedrawList), .src.id = EcsSelf, .inout = EcsIn, .oper = EcsOptional},
 		}});
 	}
 	ecs_log_set_level(-1);
@@ -126,35 +133,19 @@ static void AppDrawText_Draw(ecs_iter_t *it)
 	}
 }
 
-static void AppDrawShapesRectangle_Draw3D(ecs_iter_t *it)
-{
-	AppDrawContext    *d   = ecs_field_shared(it, AppDrawContext, 0);
-	EgShapesRectangle *r   = ecs_field_self(it, EgShapesRectangle, 1);
-	WorldTransform4   *p   = ecs_field_self(it, WorldTransform4, 2);
-	EgBaseColor       *col = ecs_field_self(it, EgBaseColor, 3);
-	for (int i = 0; i < it->count; ++i, ++r, ++p) {
-		float    x     = p->matrix.c3[0];
-		float    y     = p->matrix.c3[1];
-		float    c     = p->matrix.c0[0];
-		float    s     = p->matrix.c0[1];
-		uint32_t color = col != NULL ? col[i].color : 0x00FFFF00u;
-		egg_draw_rectangle(d->draw, APP_DRAW_Z_SHAPES, x, y, c, s, r->w, r->h, color);
-	}
-}
-
 static void AppDrawShapesRectangle_Draw2D(ecs_iter_t *it)
 {
 	AppDrawContext    *d   = ecs_field_shared(it, AppDrawContext, 0);
 	EgShapesRectangle *r   = ecs_field_self(it, EgShapesRectangle, 1);
 	WorldTransform3  *p   = ecs_field_self(it, WorldTransform3, 2);
 	EgBaseColor       *col = ecs_field_self(it, EgBaseColor, 3);
-	for (int i = 0; i < it->count; ++i, ++r, ++p) {
+	(void)r;
+	(void)col;
+	for (int i = 0; i < it->count; ++i, ++p) {
 		float    x     = p->matrix.c2[0];
 		float    y     = p->matrix.c2[1];
 		float    c     = p->matrix.c0[0];
 		float    s     = p->matrix.c0[1];
-		uint32_t color = col != NULL ? col[i].color : 0x00FFFF00u;
-		egg_draw_rectangle(d->draw, APP_DRAW_Z_SHAPES, x, y, c, s, r->w, r->h, color);
 		egg_draw_rectangle(d->draw, APP_DRAW_Z_SHAPES, x, y, c, s, 10, 10, 0x0000000FF);
 		egg_draw_text(d->draw, APP_DRAW_Z_TEXT, x, y, c, s, 12.0f, 0xFFFFFFFFu, "Debug");
 	}
@@ -192,6 +183,7 @@ void AppDrawImport(ecs_world_t *world)
 	ECS_IMPORT(world, EgWindows);
 	ECS_IMPORT(world, EgSpatials);
 	ECS_IMPORT(world, EgBase);
+	ECS_IMPORT(world, EgShapedraw);
 
 	ECS_COMPONENT_DEFINE(world, AppDrawContext);
 	ECS_COMPONENT_DEFINE(world, AppDrawContextCreate);
@@ -242,17 +234,6 @@ void AppDrawImport(ecs_world_t *world)
 	{.id = ecs_id(EgBaseFont), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(EgBaseColor), .src.id = EcsSelf, .inout = EcsIn, .oper = EcsOptional},
 	{.id = ecs_id(EgShapesRectangle), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
-	}});
-
-	ecs_system(world,
-	{.entity     = ecs_entity(world, {.name = "AppDrawShapesRectangle_Draw3D"}),
-	.phase       = EcsPostUpdate,
-	.callback    = AppDrawShapesRectangle_Draw3D,
-	.query.terms = {
-	{.id = ecs_id(AppDrawContext), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
-	{.id = ecs_id(EgShapesRectangle), .src.id = EcsSelf, .inout = EcsIn},
-	{.id = ecs_id(WorldTransform4), .src.id = EcsSelf, .inout = EcsIn},
-	{.id = ecs_id(EgBaseColor), .src.id = EcsSelf, .inout = EcsIn, .oper = EcsOptional},
 	}});
 
 	ecs_system(world,

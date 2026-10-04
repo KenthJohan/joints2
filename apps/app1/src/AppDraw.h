@@ -9,9 +9,10 @@ typedef struct {
 } AppDrawContext;
 
 enum {
-	APP_DRAW_Z_SHAPES = 0,
-	APP_DRAW_Z_DEBUG  = 1,
-	APP_DRAW_Z_TEXT   = 2,
+	APP_DRAW_Z_RECTANGLES = 0,
+	APP_DRAW_Z_SHAPES     = 1,
+	APP_DRAW_Z_DEBUG      = 2,
+	APP_DRAW_Z_TEXT       = 3,
 };
 
 typedef struct {

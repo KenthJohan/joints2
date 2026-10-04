@@ -18,7 +18,8 @@
 #define EGG_BAKE_CONFIG_H
 
 /* Headers of public dependencies */
-/* No dependencies */
+#include <EgShapedraw.h>
+#include <flecs.h>
 
 /* Convenience macro for exporting symbols */
 #ifndef egg_STATIC

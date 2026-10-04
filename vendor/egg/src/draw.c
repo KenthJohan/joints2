@@ -8,8 +8,15 @@
 #define EGG_PI 3.14159265358979323846f
 
 typedef struct {
+	float x;
+	float y;
+	float c;
+	float s;
+} sXform_t;
+
+typedef struct {
 	egg_drawlist_t *list;
-	uint16_t        instanceIndex;
+	sXform_t        xf;
 	uint8_t         r;
 	uint8_t         g;
 	uint8_t         b;
@@ -135,7 +142,6 @@ void egg_draw_destroy(egg_draw_t *d)
 
 	for (int32_t i = 0; i < d->listCount; ++i) {
 		free(d->lists[i].vertices.data);
-		free(d->lists[i].transforms.data);
 	}
 	free(d->lists);
 	free(d);
@@ -165,7 +171,7 @@ static egg_drawlist_t *sGetList(egg_draw_t *d, int32_t z)
 	return &d->lists[z];
 }
 
-static void sAppendVertex(egg_drawlist_t *l, float x, float y, uint16_t instanceIndex, float u, float v,
+static void sAppendVertex(egg_drawlist_t *l, float x, float y, sXform_t xf, float u, float v,
 uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
 	egg_vertex_t *vertices = sGrowBuffer(l->vertices.data, &l->vertices.capacity, l->vertices.count + 1,
@@ -174,64 +180,46 @@ uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 		return;
 	}
 
-	l->vertices.data   = vertices;
-	egg_vertex_t *dst  = &l->vertices.data[l->vertices.count];
-	dst->position[0]   = x;
-	dst->position[1]   = y;
-	dst->uv[0]         = u;
-	dst->uv[1]         = v;
-	dst->rgba[0]       = r;
-	dst->rgba[1]       = g;
-	dst->rgba[2]       = b;
-	dst->rgba[3]       = a;
-	dst->instanceIndex = instanceIndex;
+	l->vertices.data  = vertices;
+	egg_vertex_t *dst = &l->vertices.data[l->vertices.count];
+	dst->position[0]  = xf.c * x - xf.s * y + xf.x;
+	dst->position[1]  = xf.s * x + xf.c * y + xf.y;
+	dst->uv[0]        = u;
+	dst->uv[1]        = v;
+	dst->rgba[0]      = r;
+	dst->rgba[1]      = g;
+	dst->rgba[2]      = b;
+	dst->rgba[3]      = a;
 	l->vertices.count += 1;
 }
 
-static void sAppendTransform(egg_drawlist_t *l, float x, float y, float c, float s)
-{
-	egg_instance_transform_t *transforms = sGrowBuffer(l->transforms.data, &l->transforms.capacity,
-	l->transforms.count + 1, sizeof(egg_instance_transform_t));
-	if (transforms == NULL) {
-		return;
-	}
-
-	l->transforms.data = transforms;
-	egg_instance_transform_t *dst = &l->transforms.data[l->transforms.count];
-	dst->x = x;
-	dst->y = y;
-	dst->c = c;
-	dst->s = s;
-	l->transforms.count += 1;
-}
-
-static void sAddQuad(egg_drawlist_t *l, float x0, float y0, float x1, float y1, uint16_t instanceIndex, float u0, float v0,
+static void sAddQuad(egg_drawlist_t *l, float x0, float y0, float x1, float y1, sXform_t xf, float u0, float v0,
 float u1, float v1, uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
-	sAppendVertex(l, x0, y0, instanceIndex, u0, v0, r, g, b, a);
-	sAppendVertex(l, x1, y0, instanceIndex, u1, v0, r, g, b, a);
-	sAppendVertex(l, x1, y1, instanceIndex, u1, v1, r, g, b, a);
-	sAppendVertex(l, x0, y0, instanceIndex, u0, v0, r, g, b, a);
-	sAppendVertex(l, x1, y1, instanceIndex, u1, v1, r, g, b, a);
-	sAppendVertex(l, x0, y1, instanceIndex, u0, v1, r, g, b, a);
+	sAppendVertex(l, x0, y0, xf, u0, v0, r, g, b, a);
+	sAppendVertex(l, x1, y0, xf, u1, v0, r, g, b, a);
+	sAppendVertex(l, x1, y1, xf, u1, v1, r, g, b, a);
+	sAppendVertex(l, x0, y0, xf, u0, v0, r, g, b, a);
+	sAppendVertex(l, x1, y1, xf, u1, v1, r, g, b, a);
+	sAppendVertex(l, x0, y1, xf, u0, v1, r, g, b, a);
 }
 
-static void sAddTriangle(egg_drawlist_t *l, float x0, float y0, float x1, float y1, float x2, float y2, uint16_t instanceIndex,
+static void sAddTriangle(egg_drawlist_t *l, float x0, float y0, float x1, float y1, float x2, float y2, sXform_t xf,
 uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
 	const float whiteU = 0.5f / EGG_ATLAS_WIDTH;
 	const float whiteV = 0.5f / EGG_ATLAS_HEIGHT;
-	sAppendVertex(l, x0, y0, instanceIndex, whiteU, whiteV, r, g, b, a);
-	sAppendVertex(l, x1, y1, instanceIndex, whiteU, whiteV, r, g, b, a);
-	sAppendVertex(l, x2, y2, instanceIndex, whiteU, whiteV, r, g, b, a);
+	sAppendVertex(l, x0, y0, xf, whiteU, whiteV, r, g, b, a);
+	sAppendVertex(l, x1, y1, xf, whiteU, whiteV, r, g, b, a);
+	sAppendVertex(l, x2, y2, xf, whiteU, whiteV, r, g, b, a);
 }
 
-static void sAddSolidQuad(egg_drawlist_t *l, float x0, float y0, float x1, float y1, uint16_t instanceIndex,
+static void sAddSolidQuad(egg_drawlist_t *l, float x0, float y0, float x1, float y1, sXform_t xf,
 uint8_t r, uint8_t g, uint8_t b, uint8_t a)
 {
 	const float whiteU = 0.5f / EGG_ATLAS_WIDTH;
 	const float whiteV = 0.5f / EGG_ATLAS_HEIGHT;
-	sAddQuad(l, x0, y0, x1, y1, instanceIndex, whiteU, whiteV, whiteU, whiteV, r, g, b, a);
+	sAddQuad(l, x0, y0, x1, y1, xf, whiteU, whiteV, whiteU, whiteV, r, g, b, a);
 }
 
 static void sColorBytes(egg_color_t color, uint8_t *r, uint8_t *g, uint8_t *b, uint8_t *a)
@@ -245,16 +233,15 @@ static void sColorBytes(egg_color_t color, uint8_t *r, uint8_t *g, uint8_t *b, u
 	}
 }
 
-// Fetches the z list, pushes an instance transform and decodes the color.
+// Fetches the z list, stores the transform applied to appended vertices and decodes the color.
 static int sBeginBatch(sBatch_t *batch, egg_draw_t *d, int32_t z, float x, float y, float c, float s, egg_color_t color)
 {
 	batch->list = sGetList(d, z);
-	if (batch->list == NULL || batch->list->transforms.count > UINT16_MAX) {
+	if (batch->list == NULL) {
 		return 0;
 	}
 
-	sAppendTransform(batch->list, x, y, c, s);
-	batch->instanceIndex = (uint16_t)(batch->list->transforms.count - 1);
+	batch->xf = (sXform_t){x, y, c, s};
 	sColorBytes(color, &batch->r, &batch->g, &batch->b, &batch->a);
 	return 1;
 }
@@ -286,8 +273,8 @@ static void sAddLine(const sBatch_t *batch, float pixelScale, float x1, float y1
 	float p4y = y2 - ny;
 
 	egg_drawlist_t *l = batch->list;
-	sAddTriangle(l, p1x, p1y, p2x, p2y, p3x, p3y, batch->instanceIndex, batch->r, batch->g, batch->b, batch->a);
-	sAddTriangle(l, p2x, p2y, p4x, p4y, p3x, p3y, batch->instanceIndex, batch->r, batch->g, batch->b, batch->a);
+	sAddTriangle(l, p1x, p1y, p2x, p2y, p3x, p3y, batch->xf, batch->r, batch->g, batch->b, batch->a);
+	sAddTriangle(l, p2x, p2y, p4x, p4y, p3x, p3y, batch->xf, batch->r, batch->g, batch->b, batch->a);
 }
 
 void egg_draw_text(egg_draw_t *d, int32_t z, float x, float y, float rotationCos, float rotationSin, float fontSize, egg_color_t color, const char *string)
@@ -340,7 +327,7 @@ void egg_draw_text(egg_draw_t *d, int32_t z, float x, float y, float rotationCos
 		q.x1      = startX + scale * dx1;
 		q.y1      = cursorY - scale * dy1;
 
-		sAddQuad(batch.list, q.x0, q.y0, q.x1, q.y1, batch.instanceIndex, q.s0, q.t0, q.s1, q.t1, batch.r,
+		sAddQuad(batch.list, q.x0, q.y0, q.x1, q.y1, batch.xf, q.s0, q.t0, q.s1, q.t1, batch.r,
 		batch.g, batch.b, batch.a);
 	}
 }
@@ -367,7 +354,7 @@ void egg_draw_point(egg_draw_t *d, int32_t z, float x, float y, float size, egg_
 	}
 
 	float scaledSize = size * d->pixelScale;
-	sAddSolidQuad(batch.list, -scaledSize, -scaledSize, scaledSize, scaledSize, batch.instanceIndex, batch.r, batch.g,
+	sAddSolidQuad(batch.list, -scaledSize, -scaledSize, scaledSize, scaledSize, batch.xf, batch.r, batch.g,
 	batch.b, batch.a);
 }
 
@@ -392,7 +379,7 @@ void egg_draw_circle(egg_draw_t *d, int32_t z, float x, float y, float radius, e
 		float x1 = cosf(angle1) * radius;
 		float y1 = sinf(angle1) * radius;
 
-		sAddTriangle(batch.list, 0.0f, 0.0f, x0, y0, x1, y1, batch.instanceIndex, batch.r, batch.g, batch.b,
+		sAddTriangle(batch.list, 0.0f, 0.0f, x0, y0, x1, y1, batch.xf, batch.r, batch.g, batch.b,
 		batch.a);
 	}
 }
@@ -429,9 +416,9 @@ void egg_draw_circle_outline(egg_draw_t *d, int32_t z, float x, float y, float r
 		float x1Inner = x + cosf(angle1) * innerRadius;
 		float y1Inner = y + sinf(angle1) * innerRadius;
 
-		sAddTriangle(batch.list, x0Outer, y0Outer, x1Outer, y1Outer, x1Inner, y1Inner, batch.instanceIndex,
+		sAddTriangle(batch.list, x0Outer, y0Outer, x1Outer, y1Outer, x1Inner, y1Inner, batch.xf,
 		batch.r, batch.g, batch.b, batch.a);
-		sAddTriangle(batch.list, x0Outer, y0Outer, x1Inner, y1Inner, x0Inner, y0Inner, batch.instanceIndex,
+		sAddTriangle(batch.list, x0Outer, y0Outer, x1Inner, y1Inner, x0Inner, y0Inner, batch.xf,
 		batch.r, batch.g, batch.b, batch.a);
 	}
 }
@@ -452,9 +439,9 @@ static void sAddCap(const sBatch_t *batch, float cx, float cy, float startAngle,
 		float ix1 = cx + cosf(angle1) * innerRadius;
 		float iy1 = cy + sinf(angle1) * innerRadius;
 
-		sAddTriangle(batch->list, ox0, oy0, ox1, oy1, ix1, iy1, batch->instanceIndex, batch->r, batch->g, batch->b,
+		sAddTriangle(batch->list, ox0, oy0, ox1, oy1, ix1, iy1, batch->xf, batch->r, batch->g, batch->b,
 		batch->a);
-		sAddTriangle(batch->list, ox0, oy0, ix1, iy1, ix0, iy0, batch->instanceIndex, batch->r, batch->g, batch->b,
+		sAddTriangle(batch->list, ox0, oy0, ix1, iy1, ix0, iy0, batch->xf, batch->r, batch->g, batch->b,
 		batch->a);
 	}
 }
@@ -516,7 +503,7 @@ void egg_draw_rectangle(egg_draw_t *d, int32_t z, float x, float y, float rotati
 
 	float halfWidth  = width * 0.5f;
 	float halfHeight = height * 0.5f;
-	sAddSolidQuad(batch.list, -halfWidth, -halfHeight, halfWidth, halfHeight, batch.instanceIndex, batch.r, batch.g,
+	sAddSolidQuad(batch.list, -halfWidth, -halfHeight, halfWidth, halfHeight, batch.xf, batch.r, batch.g,
 	batch.b, batch.a);
 }
 
@@ -566,6 +553,27 @@ float rot_c, float rot_s, egg_color_t color)
 
 	for (int i = 1; i + 1 < vertex_count; ++i) {
 		sAddTriangle(batch.list, vertices[0].x, vertices[0].y, vertices[i].x, vertices[i].y, vertices[i + 1].x,
-		vertices[i + 1].y, batch.instanceIndex, batch.r, batch.g, batch.b, batch.a);
+		vertices[i + 1].y, batch.xf, batch.r, batch.g, batch.b, batch.a);
 	}
+}
+
+void egg_draw_append_vertices(egg_draw_t *d, int32_t z, const EgShapedrawVertex *vertices, int32_t count)
+{
+	if (vertices == NULL || count <= 0) {
+		return;
+	}
+
+	egg_drawlist_t *l = sGetList(d, z);
+	if (l == NULL) {
+		return;
+	}
+
+	egg_vertex_t *data = sGrowBuffer(l->vertices.data, &l->vertices.capacity, l->vertices.count + count, sizeof(egg_vertex_t));
+	if (data == NULL) {
+		return;
+	}
+
+	l->vertices.data = data;
+	memcpy(l->vertices.data + l->vertices.count, vertices, (size_t)count * sizeof(egg_vertex_t));
+	l->vertices.count += count;
 }
