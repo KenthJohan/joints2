@@ -40,5 +40,4 @@ eg {
 
 @color #99FFCC
 huds {
-    (flecs.core.DependsOn, eg.windows.window1.drawctx_hud)
 }

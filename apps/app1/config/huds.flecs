@@ -21,9 +21,10 @@ prefab element2d {
     Scale2 : {x: 1, y: 1}
     Position2 : {x: 0, y: 0}
     (eg.physics.OverlapChecking, cameras.cam_hud.mouse_unproject) : {tag: tags.mouse_hover_hud}
+    (flecs.core.DependsOn, eg.windows.window1.drawctx_hud)
 }
 
-with  (flecs.core.DependsOn, eg.windows.window1.drawctx_hud) {
+
 root3d : element3d {
 	Position3 : {x: -1024.0*0.5, y: 1024.0*0.5, z: 0}
 	Scale3 : {x: 1, y: 1, z: 1}
@@ -56,6 +57,10 @@ root3d : element3d {
 
 
 root2d : element2d {
+
+    (flecs.core.DependsOn, eg.windows.window1.drawctx_hud)
+    eg.shapedraw.List
+
     // Lays its children out left-to-right, moving down when a row reaches the parent edge
     flow_demo : element2d {
         Position2 : {300, 300}
@@ -83,7 +88,7 @@ root2d : element2d {
 
     // Cells are placed by Cell {row, col}; rows/columns size to their largest child
     table_demo : element2d {
-        Position2 : {300, 500}
+        Position2 : {300, 400}
         Table : {row_gap: 5, col_gap: 5}
 
         cell_a : element2d {
@@ -109,4 +114,3 @@ root2d : element2d {
     }
 }
 
-}

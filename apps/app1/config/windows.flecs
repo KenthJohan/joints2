@@ -11,14 +11,15 @@ window1 {
     Rectangle : {1024, 1024}
     OpenGLContextCreate : {0}
 
-    drawctx_1 {
-        app.draw.ContextCreate : {0}
-        (flecs.core.DependsOn, cameras.cam0)
-    }
 
     drawctx_hud {
         app.draw.ContextCreate : {0}
         (flecs.core.DependsOn, cameras.cam_hud)
+    }
+    
+    drawctx_1 {
+        app.draw.ContextCreate : {0}
+        (flecs.core.DependsOn, cameras.cam0)
     }
 
     mouse {
