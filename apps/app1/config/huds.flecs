@@ -3,6 +3,7 @@ using eg.spatials
 using eg.shapes
 using eg.ui
 using eg.base
+using eg.shapedraw
 
 prefab element2d {
     WorldTransform3
@@ -47,24 +48,25 @@ root2d : element2d {
     flow_demo : element2d {
         Position2 : {300, 300}
         Rectangle : {w: 200, h: 100}
+        Border : {thickness: 2, color: 0xFFFFFFFF}
         Flow : {direction: Right, wrap: Down}
         //Color : {color: 0xFFFFFFFF}
 
         child_a : element2d {
             Rectangle : {w: 40, h: 40}
-            Color : {color: 0xFF44FF00}
+            Solid : {color: 0xFF44FF00}
         }
         child_b : element2d {
             Rectangle : {w: 60, h: 30}
-            Color : {color: 0xFF6058FF}
+            Solid : {color: 0xFF6058FF}
         }
         child_c : element2d {
             Rectangle : {w: 60, h: 30}
-            Color : {color: 0xFF337733}
+            Solid : {color: 0xFF337733}
         }
         child_d : element2d {
             Rectangle : {w: 60, h: 30}
-            Color : {color: 0xFF2F2700}
+            Solid : {color: 0xFF2F2700}
         }
     }
 
@@ -72,25 +74,27 @@ root2d : element2d {
     table_demo : element2d {
         Position2 : {300, 400}
         Table : {row_gap: 5, col_gap: 5}
+        Rectangle : {w: 200, h: 100}
+        Border : {thickness: 2, color: 0xFFFFFFFF}
 
         cell_a : element2d {
             Cell : {row: 0, col: 0}
             Rectangle : {w: 40, h: 40}
-            Color : {color: 0xFF44FF00}
+            Solid : {color: 0xFF44FF00}
         }
         cell_b : element2d {
             Cell : {row: 0, col: 1}
             Rectangle : {w: 80, h: 20}
-            Color : {color: 0xFF6058FF}
+            Solid : {color: 0xFF6058FF}
         }
         cell_c : element2d {
             Cell : {row: 1, col: 0}
             Rectangle : {w: 60, h: 30}
-            Color : {color: 0xFF007733}
+            Solid : {color: 0xFF007733}
         }
         cell_d : element2d {
             Cell : {row: 1, col: 1}
-            Color : {color: 0xFF2F2700}
+            Solid : {color: 0xFF2F2700}
             Rectangle : {w: 60, h: 30}
             Text : {value: "Cell D"}
             Font : {font_size: 18, color: 0xFFFFFFFF}

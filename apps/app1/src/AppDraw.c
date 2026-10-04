@@ -70,9 +70,9 @@ void AppDrawNameAtPosition_Draw(ecs_iter_t *it)
 	for (int i = 0; i < it->count; ++i, ++x) {
 		char const *name = ecs_get_name(it->world, it->entities[i]);
 
-		printf("Drawing name '%s' at position (%f, %f) with rotation (c=%f, s=%f)\n", name, x->matrix.c2[0], x->matrix.c2[1], x->matrix.c0[0], x->matrix.c0[1]);
-		EgShapedrawList_AddText(d->list, APP_DRAW_Z_TEXT, &(x->matrix), 0.5f, b->color, name);
-		// EgShapedrawList_AddRectangleOutline(d->list, APP_DRAW_Z_SHAPES, &(x->matrix), 20, 20, 2.0f, 0x0066FF00u);
+		//printf("Drawing name '%s' at position (%f, %f) with rotation (c=%f, s=%f)\n", name, x->matrix.c2[0], x->matrix.c2[1], x->matrix.c0[0], x->matrix.c0[1]);
+		EgShapedrawList_AddText(d->list, APP_DRAW_Z_TEXT, &(x->matrix), 50.5f, b->color, name);
+		EgShapedrawList_AddRectangle(d->list, APP_DRAW_Z_SHAPES, &(x->matrix), 20, 20, 0xFFFFFFFFu);
 
 		/*
 		if (strcmp(name, "cell_d") == 0) {
