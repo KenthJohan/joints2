@@ -44,37 +44,13 @@ root2d : element2d {
         Color : {color: 0xFFFF0000}
     }
 
-    // Lays its children out left-to-right, moving down when a row reaches the parent edge
-    flow_demo : element2d {
-        Position2 : {300, 300}
-        Rectangle : {w: 200, h: 100}
-        Border : {thickness: 2, color: 0xFFFFFFFF}
-        Flow : {direction: Right, wrap: Down}
-        //Color : {color: 0xFFFFFFFF}
 
-        child_a : element2d {
-            Rectangle : {w: 40, h: 40}
-            Solid : {color: 0xFF44FF00}
-        }
-        child_b : element2d {
-            Rectangle : {w: 60, h: 30}
-            Solid : {color: 0xFF6058FF}
-        }
-        child_c : element2d {
-            Rectangle : {w: 60, h: 30}
-            Solid : {color: 0xFF337733}
-        }
-        child_d : element2d {
-            Rectangle : {w: 60, h: 30}
-            Solid : {color: 0xFF2F2700}
-        }
-    }
 
     // Cells are placed by Cell {row, col}; rows/columns size to their largest child
     table_demo : element2d {
         Position2 : {300, 400}
         Table : {row_gap: 5, col_gap: 5}
-        Rectangle : {w: 200, h: 100}
+        Rectangle : {w: 200, h: 300}
         Border : {thickness: 2, color: 0xFFFFFFFF}
 
         cell_a : element2d {
@@ -98,6 +74,31 @@ root2d : element2d {
             Rectangle : {w: 60, h: 30}
             Text : {value: "Cell D"}
             Font : {font_size: 18, color: 0xFFFFFFFF}
+        }
+        cell_x : element2d {
+            Cell : {row: 2, col: 1}
+            Border : {thickness: 2, color: 0xFFFFFFFF}
+            Rectangle : {w: 100, h: 100}
+            Flow : {direction: Right, wrap: Down}
+            // Lays its children out left-to-right, moving down when a row reaches the parent edge
+
+            child_a : element2d {
+                Rectangle : {w: 40, h: 40}
+                Solid : {color: 0xFF44FF00}
+            }
+            child_b : element2d {
+                Rectangle : {w: 60, h: 30}
+                Solid : {color: 0xFF6058FF}
+            }
+            child_c : element2d {
+                Rectangle : {w: 60, h: 30}
+                Solid : {color: 0xFF337733}
+            }
+            child_d : element2d {
+                Rectangle : {w: 60, h: 30}
+                Solid : {color: 0xFF2F2700}
+            }
+            
         }
     }
 }
