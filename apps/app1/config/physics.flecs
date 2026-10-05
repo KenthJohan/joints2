@@ -19,7 +19,9 @@ debug_draw {
     (flecs.core.DependsOn, eg.windows.window1.drawctx_1)
 }
 
-
+b2world {
+    dragbody {}
+}
 
 
 template Button1 {
@@ -27,6 +29,9 @@ template Button1 {
     Button : {key: eg.buttons.MOUSE_LEFT}
     if $this[Button].held {
         Border : {thickness: 6, color: 0xFFFF0000}
+        d1 {
+            (JointDef, b2world.dragbody) : {linear_hertz: 7.5, linear_damping: 1.0}
+        }
     } else if $this[Button].hovered {
         //if eg.buttons.State[eg.buttons.State].mouse[0] {}
         Border : {thickness: 10, color: 0xFF000000}
@@ -34,6 +39,8 @@ template Button1 {
         Border : {thickness: 0, color: 0xFFFF00FF}
     }
 }
+
+
 
 
 b2world {
@@ -58,17 +65,7 @@ b2world {
         Position2 : {0, 4}
         Rectangle : {w:1, h:1}
         Solid : {color: 0xFF44FF00}
-
         Button1
-    }
-
-    box2 {
-        WorldTransform3
-        BodyDef : {type : $BODY_DYNAMIC}
-        ShapesDef : {density:1}
-        Position2 : {0.1, 9.0}
-        Rectangle : {w:1, h:1}
-        Solid : {color: 0xFF44FF00}
     }
 
 
@@ -81,18 +78,32 @@ b2world {
         // eg.b2.DragBody : {target: keybindings.mouse_hit_focus}
     }
 
+
+
+    box2 {
+        WorldTransform3
+        BodyDef : {type : $BODY_DYNAMIC}
+        ShapesDef : {density:1}
+        Position2 : {0.1, 9.0}
+        Rectangle : {w:1, h:1}
+        Solid : {color: 0xFF44FF00}
+        Button1
+    }
+
+
 }
 
 
 
 
 
-
+/*
 joint_apply_rule {
     // Reactively add or remove joint to physically drag the body when its being dragged by the mouse
     JointDef : {linear_hertz: 7.5, linear_damping: 1.0}
     JointApplyRule : {body_a: b2world.dragbody, body_b_filter: tags.mouse_drag}
 }
+*/
 
 /*
 b2world.box3 {
