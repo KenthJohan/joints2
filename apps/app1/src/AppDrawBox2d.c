@@ -29,7 +29,7 @@ static void b2WorldId_Draw(ecs_iter_t *it)
 	b2WorldId           *w = ecs_field(it, b2WorldId, 0);
 	AppDrawBox2dContext *d = ecs_field(it, AppDrawBox2dContext, 1);
 	for (int i = 0; i < it->count; ++i, ++w) {
-		b2World_Draw(w[0], &d->debugDraw);
+		//b2World_Draw(w[0], &d->debugDraw);
 	}
 }
 

@@ -2,6 +2,8 @@ module physics
 using eg.physics
 using eg.shapes
 using eg.spatials
+using eg.ui
+using eg.shapedraw
 
 // zero mass, zero velocity, may be manually moved
 const BODY_STATIC: i32 = 0
@@ -20,23 +22,33 @@ debug_draw {
 
 
 
-b2world {
-    eg.physics.WorldDef : {gravity_x: 0, gravity_y: -10}
-    (flecs.core.DependsOn, debug_draw)
-
-    // Uses Position2 component in `cameras.cam0.mouse_unproject`
-    // This will add the `tags.mouse_hover` to any body that overlaps with the mouse position
+template Button1 {
     (OverlapChecking, cameras.cam0.mouse_unproject) : {tag: tags.mouse_hover}
+    Button : {key: eg.buttons.MOUSE_LEFT}
+    if $this[Button].held {
+        Border : {thickness: 6, color: 0xFFFF0000}
+    } else if $this[Button].hovered {
+        //if eg.buttons.State[eg.buttons.State].mouse[0] {}
+        Border : {thickness: 10, color: 0xFF000000}
+    } else {
+        Border : {thickness: 0, color: 0xFFFF00FF}
+    }
 }
 
 
 b2world {
+    (OverlapChecking, cameras.cam0.mouse_unproject) : {tag: tags.mouse_hover}
+    eg.physics.WorldDef : {gravity_x: 0, gravity_y: -10}
+    (flecs.core.DependsOn, debug_draw)
+    eg.shapedraw.List
+
     ground {
         WorldTransform3
         BodyDef : {type : $BODY_STATIC}
         ShapesDef : {density:0, friction:0}
         Position2 : {0, -5}
         Rectangle : {w:50, h:10}
+        Solid : {color: 0xFF44FF00}
     }
     
     box1 {
@@ -45,8 +57,10 @@ b2world {
         ShapesDef : {density:1, friction:0.3}
         Position2 : {0, 4}
         Rectangle : {w:1, h:1}
-    }
+        Solid : {color: 0xFF44FF00}
 
+        Button1
+    }
 
     box2 {
         WorldTransform3
@@ -54,6 +68,7 @@ b2world {
         ShapesDef : {density:1}
         Position2 : {0.1, 9.0}
         Rectangle : {w:1, h:1}
+        Solid : {color: 0xFF44FF00}
     }
 
 
