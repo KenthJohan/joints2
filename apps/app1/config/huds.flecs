@@ -5,96 +5,105 @@ using eg.ui
 using eg.base
 using eg.shapedraw
 
-prefab element2d {
+template Element {
     WorldTransform3
     Transform3
     Rotation2 : {0}
     Scale2 : {x: 1, y: 1}
     Position2 : {x: 0, y: 0}
-    (eg.physics.OverlapChecking, cameras.cam_hud.mouse_unproject) : {tag: tags.mouse_hover_hud}
+    (eg.physics.OverlapChecking, cameras.cam_hud.mouse_unproject) : {0}
     (flecs.core.DependsOn, eg.windows.window1.drawctx_hud)
 }
 
+template Button1 {
+    Element
+    Button : {}
+    Solid : {color: 0xFF44FF00}
+    if $this[Button].hovered {
+        if eg.buttons.State[eg.buttons.MOUSE_LEFT] & eg.buttons.BUTTON_PRESSED {
+            Border : {thickness: 2, color: 0xFFFFFFFF}
+        }
+    } else {
+        Border : {thickness: 4, color: 0xFFFF00FF}
+    }
+}
 
 
-
-root2d : element2d {
+root2d {
 
     (flecs.core.DependsOn, eg.windows.window1.drawctx_hud)
     eg.shapedraw.List
 
 
-    hud_text_title : element2d {
+    Element hud_text_title() {
         Position2 : {100, 100}
         Text : {value: "JOINTS2 HUD"}
         Font : {font_size: 28}
         Color : {color: 0xFF00FFFF}
     }
 
-    hud_text_hint : element2d {
+    Element hud_text_hint() {
         Position2 : {50, 50}
         Text : {value: "Drag bodies with mouse"}
         Font : {font_size: 18}
     }
 
-    box1 : element2d {
-        Position2 : {100, 100}
-        Rectangle : {w: 5, h: 5}
-        Font : {font_size: 18}
-        Color : {color: 0xFFFF0000}
+    Button1 b1 {
+        Position2 : {200, 200}
+        Rectangle : {w: 100, h: 100}
     }
 
 
 
     // Cells are placed by Cell {row, col}; rows/columns size to their largest child
-    table_demo : element2d {
+    Element table_demo {
         Position2 : {300, 400}
         Table : {row_gap: 5, col_gap: 5}
         Rectangle : {w: 200, h: 300}
-        Border : {thickness: 2, color: 0xFFFFFFFF}
+        
 
-        cell_a : element2d {
+        Button1 cell_a {
             Cell : {row: 0, col: 0}
             Rectangle : {w: 40, h: 40}
             Solid : {color: 0xFF44FF00}
         }
-        cell_b : element2d {
+        Element cell_b {
             Cell : {row: 0, col: 1}
             Rectangle : {w: 80, h: 20}
             Solid : {color: 0xFF6058FF}
         }
-        cell_c : element2d {
+        Element cell_c {
             Cell : {row: 1, col: 0}
             Rectangle : {w: 60, h: 30}
             Solid : {color: 0xFF007733}
         }
-        cell_d : element2d {
+        Element cell_d  {
             Cell : {row: 1, col: 1}
             Solid : {color: 0xFF2F2700}
             Rectangle : {w: 60, h: 30}
             Text : {value: "Cell D"}
             Font : {font_size: 18, color: 0xFFFFFFFF}
         }
-        cell_x : element2d {
+        Element cell_x  {
             Cell : {row: 2, col: 1}
             Border : {thickness: 2, color: 0xFFFFFFFF}
             Rectangle : {w: 100, h: 100}
             Flow : {direction: Right, wrap: Down}
             // Lays its children out left-to-right, moving down when a row reaches the parent edge
 
-            child_a : element2d {
+            Element child_a  {
                 Rectangle : {w: 40, h: 40}
                 Solid : {color: 0xFF44FF00}
             }
-            child_b : element2d {
+            Element child_b  {
                 Rectangle : {w: 60, h: 30}
                 Solid : {color: 0xFF6058FF}
             }
-            child_c : element2d {
+            Element child_c  {
                 Rectangle : {w: 60, h: 30}
                 Solid : {color: 0xFF337733}
             }
-            child_d : element2d {
+            Element child_d  {
                 Rectangle : {w: 60, h: 30}
                 Solid : {color: 0xFF2F2700}
             }
