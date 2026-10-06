@@ -18,6 +18,17 @@
 #include "AppDrawBox2d.h"
 #include "AppDraw.h"
 
+void run_file(ecs_world_t *world, const char *file)
+{
+	ecs_log_set_level(0);
+	int r = ecs_script_run_file(world, file);
+	ecs_log_set_level(-1);
+	if (r != 0) {
+		printf("Failed to run script file: %s\n", file);
+		exit(EXIT_FAILURE);
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	ecs_os_set_api_defaults();
@@ -39,37 +50,14 @@ int main(int argc, char *argv[])
 	ECS_IMPORT(world, AppDraw);
 	ECS_IMPORT(world, AppDrawBox2d);
 
-	ecs_log_set_level(0);
-	ecs_script_run_file(world, "config/EgButtons.flecs");
-	ecs_log_set_level(-1);
-
-	ecs_log_set_level(0);
-	ecs_script_run_file(world, "config/tags.flecs");
-	ecs_log_set_level(-1);
-
-	ecs_log_set_level(0);
-	ecs_script_run_file(world, "config/windows.flecs");
-	ecs_log_set_level(-1);
-
-	ecs_log_set_level(0);
-	ecs_script_run_file(world, "config/cameras.flecs");
-	ecs_log_set_level(-1);
-
-	ecs_log_set_level(0);
-	//ecs_script_run_file(world, "config/huds.flecs");
-	ecs_log_set_level(-1);
-
-	ecs_log_set_level(0);
-	ecs_script_run_file(world, "config/physics.flecs");
-	ecs_log_set_level(-1);
-
-	ecs_log_set_level(0);
-	ecs_script_run_file(world, "config/keybindings_3d.flecs");
-	ecs_log_set_level(-1);
-
-	ecs_log_set_level(0);
-	ecs_script_run_file(world, "config/keybindings_common.flecs");
-	ecs_log_set_level(-1);
+	run_file(world, "config/EgButtons.flecs");
+	run_file(world, "config/tags.flecs");
+	run_file(world, "config/windows.flecs");
+	run_file(world, "config/cameras.flecs");
+	run_file(world, "config/huds.flecs");
+	run_file(world, "config/physics.flecs");
+	run_file(world, "config/keybindings_3d.flecs");
+	run_file(world, "config/keybindings_common.flecs");
 
 	// print offset of Velocity3 members:
 	printf("Velocity3.x offset: %zu\n", offsetof(Velocity3, x));

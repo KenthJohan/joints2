@@ -4,6 +4,7 @@ using eg.shapes
 using eg.spatials
 using eg.ui
 using eg.shapedraw
+using eg.base
 
 // zero mass, zero velocity, may be manually moved
 const BODY_STATIC: i32 = 0
@@ -28,15 +29,24 @@ template Button1 {
     (OverlapChecking, cameras.cam0.mouse_unproject) : {tag: tags.mouse_hover}
     Button : {key: eg.buttons.MOUSE_LEFT}
     if $this[Button].held {
-        Border : {thickness: 6, color: 0xFFFF0000}
+        Border : {thickness: 0.1, color: 0xFFFF0000}
         d1 {
             (JointDef, b2world.dragbody) : {linear_hertz: 7.5, linear_damping: 1.0}
         }
+        Text : {value: ""}
+        Font : {font_size: 1}
+        Color : {color: 0xFF00FFFF}
     } else if $this[Button].hovered {
         //if eg.buttons.State[eg.buttons.State].mouse[0] {}
-        Border : {thickness: 10, color: 0xFF000000}
+        Border : {thickness: 0.1, color: 0xFF000000}
+        Text : {value: "{this.name}"}
+        Font : {font_size: 1}
+        Color : {color: 0xFF00FFFF}
     } else {
         Border : {thickness: 0, color: 0xFFFF00FF}
+        Text : {value: ""}
+        Font : {font_size: 1}
+        Color : {color: 0xFF00FFFF}
     }
 }
 
@@ -44,7 +54,7 @@ template Button1 {
 
 
 b2world {
-    (OverlapChecking, cameras.cam0.mouse_unproject) : {tag: tags.mouse_hover}
+    // (OverlapChecking, cameras.cam0.mouse_unproject) : {tag: tags.mouse_hover}
     eg.physics.WorldDef : {gravity_x: 0, gravity_y: -10}
     (flecs.core.DependsOn, debug_draw)
     eg.shapedraw.List
@@ -66,6 +76,8 @@ b2world {
         Rectangle : {w:1, h:1}
         Solid : {color: 0xFF44FF00}
         Button1
+
+
     }
 
 
