@@ -29,23 +29,23 @@ template Button1 {
     (OverlapChecking, cameras.cam0.mouse_unproject) : {tag: tags.mouse_hover}
     Button : {key: eg.buttons.MOUSE_LEFT}
     if $this[Button].held {
-        Border : {thickness: 0.1, color: 0xFFFF0000}
+        Border : {thickness: 0.05, color: 0xFFFF0000}
         d1 {
             (JointDef, b2world.dragbody) : {linear_hertz: 7.5, linear_damping: 1.0}
         }
         Text : {value: ""}
-        Font : {font_size: 1}
+        Font : {font_size: 0.5}
         Color : {color: 0xFF00FFFF}
     } else if $this[Button].hovered {
         //if eg.buttons.State[eg.buttons.State].mouse[0] {}
-        Border : {thickness: 0.1, color: 0xFF000000}
-        Text : {value: "{this.name}"}
-        Font : {font_size: 1}
+        Border : {thickness: 0.05, color: 0xFF000000}
+        Text : {value: "{$this.name()}"}
+        Font : {font_size: 0.5}
         Color : {color: 0xFF00FFFF}
     } else {
         Border : {thickness: 0, color: 0xFFFF00FF}
         Text : {value: ""}
-        Font : {font_size: 1}
+        Font : {font_size: 0.5}
         Color : {color: 0xFF00FFFF}
     }
 }
