@@ -60,43 +60,36 @@ b2world {
     eg.shapedraw.List
 
     ground {
-        WorldTransform3
+        WorldTransform3 : trs(0, -5, 0, 1, 1)
         BodyDef : {type : $BODY_STATIC}
         ShapesDef : {density:0, friction:0}
-        Position2 : {0, -5}
         Rectangle : {w:50, h:10}
-        Solid : {color: 0xFF44FF00}
+        Solid : {color: 0xFF333333}
     }
     
     box1 {
-        WorldTransform3
+        WorldTransform3 : trs(0, 4, 0, 1, 1)
         BodyDef : {type : $BODY_DYNAMIC}
         ShapesDef : {density:1, friction:0.3}
-        Position2 : {0, 4}
         Rectangle : {w:1, h:1}
         Solid : {color: 0xFF44FF00}
         Button1
-
-
     }
 
 
     // Follows the mouse position:
     dragbody {
-        WorldTransform3
+        WorldTransform3 : trs(0, 0, 0, 1, 1)
         BodyDef : {type : $BODY_KINEMATIC}
-        Position2 : {0, -10}
         (eg.physics.TargetTransform, cameras.cam0.mouse_unproject)
-        // eg.b2.DragBody : {target: keybindings.mouse_hit_focus}
     }
 
 
 
     box2 {
-        WorldTransform3
+        WorldTransform3 : trs(0, 9, 0, 1, 1)
         BodyDef : {type : $BODY_DYNAMIC}
         ShapesDef : {density:1}
-        Position2 : {0.1, 9.0}
         Rectangle : {w:1, h:1}
         Solid : {color: 0xFF44FF00}
         Button1
