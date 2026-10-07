@@ -15,10 +15,6 @@ const BODY_KINEMATIC: i32 = 1
 // positive mass, velocity determined by forces, moved by solver
 const BODY_DYNAMIC: i32 = 2
 
-debug_draw {
-    app.draw.box2d.ContextCreate : {}
-    (flecs.core.DependsOn, eg.windows.window1.drawctx_1)
-}
 
 b2world {
     dragbody {}
@@ -54,9 +50,8 @@ template Button1 {
 
 
 b2world {
-    // (OverlapChecking, cameras.cam0.mouse_unproject) : {tag: tags.mouse_hover}
     eg.physics.WorldDef : {gravity_x: 0, gravity_y: -10}
-    (flecs.core.DependsOn, debug_draw)
+    (flecs.core.DependsOn, eg.windows.window1.drawctx_1)
     eg.shapedraw.List
 
     ground {
@@ -97,27 +92,3 @@ b2world {
 
 
 }
-
-
-
-
-
-/*
-joint_apply_rule {
-    // Reactively add or remove joint to physically drag the body when its being dragged by the mouse
-    JointDef : {linear_hertz: 7.5, linear_damping: 1.0}
-    JointApplyRule : {body_a: b2world.dragbody, body_b_filter: tags.mouse_drag}
-}
-*/
-
-/*
-b2world.box3 {
-    BodyDef : {type : $BODY_DYNAMIC}
-    Position2 : {10, 9.0}
-    ShapesDef : {density:1}
-    Rectangle : {w:1, h:1}
-    // Uses the mouse Position2 in world space, and set it as the target transform for this body.
-    (eg.physics.TargetTransform, cameras.cam0.mouse_unproject)
-}
-
-*/
