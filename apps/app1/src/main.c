@@ -55,7 +55,7 @@ int main(int argc, char *argv[])
 	run_file(world, "config/windows.flecs");
 	run_file(world, "config/cameras.flecs");
 	run_file(world, "config/huds.flecs");
-	run_file(world, "config/physics.flecs");
+	//run_file(world, "config/physics.flecs");
 	run_file(world, "config/keybindings_3d.flecs");
 	run_file(world, "config/keybindings_common.flecs");
 

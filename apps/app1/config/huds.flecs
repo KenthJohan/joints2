@@ -50,66 +50,54 @@ root2d {
     (flecs.core.DependsOn, eg.windows.window1.drawctx_hud)
     eg.shapedraw.List
 
-    ResizableRect panel {
-        Position2 : {500, 200}
+    panel {
+        Element
+        Position2 : {300, 200}
         Rectangle : {w: 150, h: 100}
+        ResizableRect
+        child1 {
+            Element
+            Anchor : {parent: TopRight, pivot: TopRight, x: -10, y: -10}
+            ResizableRect
+            Rectangle : {w: 40, h: 40}
+            Solid : {color: 0xFF44FF00}
+        }
     }
-
-
-    Element hud_text_title() {
-        Position2 : {100, 100}
-        Text : {value: "JOINTS2 HUD"}
-        Font : {font_size: 28}
-    }
-
-    Element hud_text_hint() {
-        Position2 : {50, 50}
-        Text : {value: "Drag bodies with mouse"}
-        Font : {font_size: 18}
-    }
-
-    Button1 b1 {
-        Position2 : {200, 200}
-        Rectangle : {w: 100, h: 100}
-    }
-
 
 
     // Cells are placed by Cell {row, col}; rows/columns size to their largest child
     Element table_demo {
-        Position2 : {300, 400}
+        Position2 : {100, 100}
         Table : {row_gap: 5, col_gap: 5}
+        TableGrid : {thickness: 1, color: 0xFF888888, outer: true}
         Rectangle : {w: 200, h: 300}
         ResizableRect
         
 
         Button1 cell_a {
             Cell : {row: 0, col: 0}
-            Rectangle : {w: 40, h: 40}
             Solid : {color: 0xFF44FF00}
             ResizableRect
         }
         Element cell_b {
             Cell : {row: 0, col: 1}
-            Rectangle : {w: 80, h: 20}
             Solid : {color: 0xFF6058FF}
+            ResizableRect
         }
         Element cell_c {
             Cell : {row: 1, col: 0}
-            Rectangle : {w: 60, h: 30}
             Solid : {color: 0xFF007733}
+            ResizableRect
         }
         Element cell_d  {
             Cell : {row: 1, col: 1}
             Solid : {color: 0xFF2F2700}
-            Rectangle : {w: 60, h: 30}
             Text : {value: "Cell D"}
             Font : {font_size: 18, color: 0xFFFFFFFF}
         }
         Element cell_x  {
             Cell : {row: 2, col: 1}
             Border : {thickness: 2, color: 0xFFFFFFFF}
-            Rectangle : {w: 100, h: 100}
             Flow : {direction: Right, wrap: Down}
             ResizableRect
             // Lays its children out left-to-right, moving down when a row reaches the parent edge
@@ -133,5 +121,6 @@ root2d {
             
         }
     }
+    
 }
 
