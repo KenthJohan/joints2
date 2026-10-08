@@ -69,6 +69,7 @@ root2d {
         Rectangle : {w: 200, h: 100}
         Border : {thickness: 2, color: 0xFFFFFFFF}
         Flow : {direction: Right, wrap: Down}
+        ResizableRect
 
         Element child_a {
             Rectangle : {w: 40, h: 40}
