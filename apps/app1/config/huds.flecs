@@ -30,17 +30,36 @@ template Button1 {
 }
 
 
+template ResizableRect {
+    Resizable : {key: eg.buttons.MOUSE_LEFT, grab: 6, min_w: 20, min_h: 20}
+    Font : {font_size: 28}
+    if $this[Resizable].dragging {
+        Text : {value: "dragging"}
+        Border : {thickness: 4, color: 0xFFFF0000}
+    } else if $this[Resizable].edge {
+        Text : {value: "edge"}
+        Border : {thickness: 8, color: 0xFF000000}
+    } else {
+        Text : {value: "1"}
+        Border : {thickness: 2, color: 0xFF888888}
+    }
+}
+
 root2d {
 
     (flecs.core.DependsOn, eg.windows.window1.drawctx_hud)
     eg.shapedraw.List
+
+    ResizableRect panel {
+        Position2 : {500, 200}
+        Rectangle : {w: 150, h: 100}
+    }
 
 
     Element hud_text_title() {
         Position2 : {100, 100}
         Text : {value: "JOINTS2 HUD"}
         Font : {font_size: 28}
-        Color : {color: 0xFF00FFFF}
     }
 
     Element hud_text_hint() {
@@ -61,12 +80,14 @@ root2d {
         Position2 : {300, 400}
         Table : {row_gap: 5, col_gap: 5}
         Rectangle : {w: 200, h: 300}
+        ResizableRect
         
 
         Button1 cell_a {
             Cell : {row: 0, col: 0}
             Rectangle : {w: 40, h: 40}
             Solid : {color: 0xFF44FF00}
+            ResizableRect
         }
         Element cell_b {
             Cell : {row: 0, col: 1}
@@ -90,6 +111,7 @@ root2d {
             Border : {thickness: 2, color: 0xFFFFFFFF}
             Rectangle : {w: 100, h: 100}
             Flow : {direction: Right, wrap: Down}
+            ResizableRect
             // Lays its children out left-to-right, moving down when a row reaches the parent edge
 
             Element child_a  {
