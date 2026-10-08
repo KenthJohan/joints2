@@ -64,63 +64,28 @@ root2d {
         }
     }
 
-
-    // Cells are placed by Cell {row, col}; rows/columns size to their largest child
-    Element table_demo {
+    Element flow_demo {
         Position2 : {100, 100}
-        Table : {row_gap: 5, col_gap: 5}
-        TableGrid : {thickness: 1, color: 0xFF888888, outer: true}
-        Rectangle : {w: 200, h: 300}
-        ResizableRect
-        
+        Rectangle : {w: 200, h: 100}
+        Border : {thickness: 2, color: 0xFFFFFFFF}
+        Flow : {direction: Right, wrap: Down}
 
-        Button1 cell_a {
-            Cell : {row: 0, col: 0}
+        Element child_a {
+            Rectangle : {w: 40, h: 40}
             Solid : {color: 0xFF44FF00}
-            ResizableRect
         }
-        Element cell_b {
-            Cell : {row: 0, col: 1}
+        Element child_b {
+            Rectangle : {w: 60, h: 30}
             Solid : {color: 0xFF6058FF}
-            ResizableRect
         }
-        Element cell_c {
-            Cell : {row: 1, col: 0}
-            Solid : {color: 0xFF007733}
-            ResizableRect
+        Element child_c {
+            Rectangle : {w: 60, h: 30}
+            Solid : {color: 0xFF337733}
         }
-        Element cell_d  {
-            Cell : {row: 1, col: 1}
+        Element child_d {
+            Rectangle : {w: 60, h: 30}
             Solid : {color: 0xFF2F2700}
-            Text : {value: "Cell D"}
-            Font : {font_size: 18, color: 0xFFFFFFFF}
-        }
-        Element cell_x  {
-            Cell : {row: 2, col: 1}
-            Border : {thickness: 2, color: 0xFFFFFFFF}
-            Flow : {direction: Right, wrap: Down}
-            ResizableRect
-            // Lays its children out left-to-right, moving down when a row reaches the parent edge
-
-            Element child_a  {
-                Rectangle : {w: 40, h: 40}
-                Solid : {color: 0xFF44FF00}
-            }
-            Element child_b  {
-                Rectangle : {w: 60, h: 30}
-                Solid : {color: 0xFF6058FF}
-            }
-            Element child_c  {
-                Rectangle : {w: 60, h: 30}
-                Solid : {color: 0xFF337733}
-            }
-            Element child_d  {
-                Rectangle : {w: 60, h: 30}
-                Solid : {color: 0xFF2F2700}
-            }
-            
         }
     }
-    
 }
 
