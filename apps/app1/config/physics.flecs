@@ -16,18 +16,21 @@ const BODY_KINEMATIC: i32 = 1
 const BODY_DYNAMIC: i32 = 2
 
 
+// Forward declaration of the mouse drag body used for dragging other bodies with the mouse.
 b2world {
-    dragbody {}
+    mouse_dragbody {}
 }
 
 
-template Button1 {
+template DragButton1 {
     (OverlapChecking, cameras.cam0.mouse_unproject) : {tag: tags.mouse_hover}
     Button : {key: eg.buttons.MOUSE_LEFT}
     if $this[Button].held {
         Border : {thickness: 0.05, color: 0xFFFF0000}
         d1 {
-            (JointDef, b2world.dragbody) : {linear_hertz: 7.5, linear_damping: 1.0}
+            // Attaches this body to the mouse drag body using a joint.
+            // This allows the body to follow the mouse while maintaining physics interactions.
+            (JointDef, b2world.mouse_dragbody) : {linear_hertz: 7.5, linear_damping: 1.0}
         }
         Text : {value: ""}
         Font : {font_size: 0.5}
@@ -50,8 +53,13 @@ template Button1 {
 
 
 b2world {
+    // Defines the physics world and its properties
     eg.physics.WorldDef : {gravity_x: 0, gravity_y: -10}
+
+    // Renders shapes from eg.shapedraw.List
     (flecs.core.DependsOn, eg.windows.window1.drawctx_1)
+
+    // Collects all shapes for rendering
     eg.shapedraw.List
 
     ground {
@@ -68,15 +76,7 @@ b2world {
         ShapesDef : {density:1, friction:0.3}
         Rectangle : {w:1, h:1}
         Solid : {color: 0xFF44FF00}
-        Button1
-    }
-
-
-    // Follows the mouse position:
-    dragbody {
-        WorldTransform3 : trs(0, 0, 0, 1, 1)
-        BodyDef : {type : $BODY_KINEMATIC}
-        (eg.physics.TargetTransform, cameras.cam0.mouse_unproject)
+        DragButton1
     }
 
 
@@ -87,7 +87,17 @@ b2world {
         ShapesDef : {density:1}
         Rectangle : {w:1, h:1}
         Solid : {color: 0xFF44FF00}
-        Button1
+        DragButton1
+    }
+
+
+    // This body does not collide with other bodies.
+    // It is controlled directly by the mouse position.
+    // It is typically used to drag other bodies around by applying a joint between this body and the target body.
+    mouse_dragbody {
+        WorldTransform3 : trs(0, 0, 0, 1, 1)
+        BodyDef : {type : $BODY_KINEMATIC}
+        (eg.physics.TargetTransform, cameras.cam0.mouse_unproject)
     }
 
 
