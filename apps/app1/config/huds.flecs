@@ -22,6 +22,7 @@ template Element {
 template Button1 {
     Element
     Button : {key: eg.buttons.MOUSE_LEFT}
+    eg.intersects.RectangleBorder : {margin: 0}
     Solid : {color: 0xFF44FF00}
     if $this[Button].held {
         Border : {thickness: 6, color: 0xFFFF0000}
