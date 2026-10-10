@@ -13,3 +13,4 @@ AlignConsecutiveAssignments: Consecutive
 AlignConsecutiveDeclarations: Consecutive
 InsertNewlineAtEOF: true
 KeepEmptyLinesAtEOF: false
+BreakBeforeTernaryOperators: false

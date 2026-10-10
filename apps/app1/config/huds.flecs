@@ -4,6 +4,8 @@ using eg.shapes
 using eg.ui
 using eg.ui.buttons
 using eg.ui.flows
+using eg.ui.bounds
+using eg.ui.freeforms
 using eg.base
 using eg.shapedraw
 
@@ -49,7 +51,7 @@ template ResizableRect {
 }
 
 root2d {
-    Container
+    Layout : {dummy: 0}
 
     (flecs.core.DependsOn, eg.windows.window1.drawctx_hud)
     eg.shapedraw.List
@@ -58,7 +60,7 @@ root2d {
         Element
         Position2 : {300, 200}
         Rectangle : {w: 150, h: 100}
-        Container
+        Layout : {dummy: 0}
         ResizableRect
         child1 {
             Element
