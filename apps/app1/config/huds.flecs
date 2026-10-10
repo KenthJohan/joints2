@@ -2,6 +2,7 @@ module huds
 using eg.spatials
 using eg.shapes
 using eg.ui
+using eg.ui.buttons
 using eg.base
 using eg.shapedraw
 
@@ -31,7 +32,8 @@ template Button1 {
 
 
 template ResizableRect {
-    Resizable : {key: eg.buttons.MOUSE_LEFT, grab: 6, min_w: 20, min_h: 20}
+    Resizable : {key: eg.buttons.MOUSE_LEFT, min_w: 20, min_h: 20}
+    eg.intersects.RectangleBorder : {margin: 6}
     Font : {font_size: 28}
     if $this[Resizable].dragging {
         Text : {value: "dragging"}
@@ -46,6 +48,7 @@ template ResizableRect {
 }
 
 root2d {
+    Container
 
     (flecs.core.DependsOn, eg.windows.window1.drawctx_hud)
     eg.shapedraw.List
@@ -54,6 +57,7 @@ root2d {
         Element
         Position2 : {300, 200}
         Rectangle : {w: 150, h: 100}
+        Container
         ResizableRect
         child1 {
             Element
@@ -74,18 +78,22 @@ root2d {
         Element child_a {
             Rectangle : {w: 40, h: 40}
             Solid : {color: 0xFF44FF00}
+            ResizableRect
         }
         Element child_b {
             Rectangle : {w: 60, h: 30}
             Solid : {color: 0xFF6058FF}
+            ResizableRect
         }
         Element child_c {
             Rectangle : {w: 60, h: 30}
             Solid : {color: 0xFF337733}
+            ResizableRect
         }
         Element child_d {
             Rectangle : {w: 60, h: 30}
             Solid : {color: 0xFF2F2700}
+            ResizableRect
         }
     }
 }
