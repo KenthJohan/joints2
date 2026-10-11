@@ -36,13 +36,14 @@ template Button1 {
 
 
 template ResizableRect {
-    Resizable : {key: eg.buttons.MOUSE_LEFT, min_w: 20, min_h: 20, margin: 6}
+    eg.ui.buttons.Border : {key: eg.buttons.MOUSE_LEFT, margin: 6}
+    Resizable : {min_w: 20, min_h: 20}
     eg.intersects.RectangleBorder
     Font : {font_size: 28}
-    if $this[Resizable].dragging {
+    if $this[eg.ui.buttons.Border].held {
         Text : {value: "dragging"}
         Border : {thickness: 4, color: 0xFFFF0000}
-    } else if $this[Resizable].edge {
+    } else if $this[eg.ui.buttons.Border].hovered {
         Text : {value: "edge"}
         Border : {thickness: 8, color: 0xFF000000}
     } else {
