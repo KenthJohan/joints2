@@ -3,6 +3,7 @@ using eg.physics
 using eg.shapes
 using eg.spatials
 using eg.ui
+using eg.ui.buttons
 using eg.shapedraw
 using eg.base
 
@@ -25,6 +26,7 @@ b2world {
 template DragButton1 {
     (OverlapChecking, cameras.cam0.mouse_unproject) : {tag: tags.mouse_hover}
     Button : {key: eg.buttons.MOUSE_LEFT}
+    eg.intersects.RectangleBorder
     if $this[Button].held {
         Border : {thickness: 0.05, color: 0xFFFF0000}
         d1 {

@@ -40,10 +40,10 @@ template ResizableRect {
     Resizable : {min_w: 20, min_h: 20}
     eg.intersects.RectangleBorder
     Font : {font_size: 28}
-    if $this[eg.ui.buttons.Border].held {
+    if $this[eg.ui.buttons.Border].grab {
         Text : {value: "dragging"}
         Border : {thickness: 4, color: 0xFFFF0000}
-    } else if $this[eg.ui.buttons.Border].hovered {
+    } else if $this[eg.ui.buttons.Border].hover {
         Text : {value: "edge"}
         Border : {thickness: 8, color: 0xFF000000}
     } else {
