@@ -19,11 +19,16 @@ template Element {
     (flecs.core.DependsOn, eg.windows.window1.drawctx_hud)
 }
 
+template Interactable {
+    (eg.ui.Mouse, cameras.cam_hud.mouse_unproject)
+    eg.intersects.RectangleBorder
+    eg.ui.script.events.Target
+}
+
 template Button1 {
     Element
-    (eg.ui.Mouse, cameras.cam_hud.mouse_unproject)
+    Interactable
     Button : {key: eg.buttons.MOUSE_LEFT}
-    eg.intersects.RectangleBorder
     Solid : {color: 0xFF44FF00}
     if $this[Button].held {
         Border : {thickness: 6, color: 0xFFFF0000}
@@ -38,10 +43,9 @@ template Button1 {
 
 template ResizableRect {
     Element
-    (eg.ui.Mouse, cameras.cam_hud.mouse_unproject)
+    Interactable
     eg.ui.buttons.Border : {key: eg.buttons.MOUSE_LEFT, margin: 6}
     Resizable : {min_w: 20, min_h: 20}
-    eg.intersects.RectangleBorder
     Font : {font_size: 28}
     if $this[eg.ui.buttons.Border].grab {
         Text : {value: "dragging"}
@@ -57,9 +61,7 @@ template ResizableRect {
 
 template Checkbox {
     Element
-    (eg.ui.Mouse, cameras.cam_hud.mouse_unproject)
-    eg.ui.script.events.Target
-    eg.intersects.RectangleBorder
+    Interactable
     Rectangle : {w: 24, h: 24}
     mut checked = false
     mut hover = false
