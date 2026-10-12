@@ -24,7 +24,7 @@ b2world {
 
 
 template DragButton1 {
-    (OverlapChecking, cameras.cam0.mouse_unproject) : {tag: tags.mouse_hover}
+    (eg.ui.Mouse, cameras.cam0.mouse_unproject)
     Button : {key: eg.buttons.MOUSE_LEFT}
     eg.intersects.RectangleBorder
     if $this[Button].held {

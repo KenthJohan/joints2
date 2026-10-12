@@ -16,12 +16,12 @@ template Element {
     Rotation2 : {0}
     Scale2 : {x: 1, y: 1}
     Position2 : {x: 0, y: 0}
-    (eg.physics.OverlapChecking, cameras.cam_hud.mouse_unproject) : {0}
     (flecs.core.DependsOn, eg.windows.window1.drawctx_hud)
 }
 
 template Button1 {
     Element
+    (eg.ui.Mouse, cameras.cam_hud.mouse_unproject)
     Button : {key: eg.buttons.MOUSE_LEFT}
     eg.intersects.RectangleBorder
     Solid : {color: 0xFF44FF00}
@@ -37,6 +37,8 @@ template Button1 {
 
 
 template ResizableRect {
+    Element
+    (eg.ui.Mouse, cameras.cam_hud.mouse_unproject)
     eg.ui.buttons.Border : {key: eg.buttons.MOUSE_LEFT, margin: 6}
     Resizable : {min_w: 20, min_h: 20}
     eg.intersects.RectangleBorder
@@ -55,6 +57,7 @@ template ResizableRect {
 
 template Checkbox {
     Element
+    (eg.ui.Mouse, cameras.cam_hud.mouse_unproject)
     eg.ui.script.events.Target
     eg.intersects.RectangleBorder
     Rectangle : {w: 24, h: 24}
@@ -144,4 +147,3 @@ root2d {
 
     }
 }
-
