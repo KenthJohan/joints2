@@ -8,6 +8,7 @@ using eg.ui.bounds
 using eg.ui.freeforms
 using eg.base
 using eg.shapedraw
+using flecs.script
 
 template Element {
     WorldTransform3
@@ -52,6 +53,41 @@ template ResizableRect {
     }
 }
 
+template Checkbox {
+    Element
+    eg.ui.script.events.Target
+    eg.intersects.RectangleBorder
+    Rectangle : {w: 24, h: 24}
+    mut checked = false
+    mut hover = false
+    if hover {
+        Solid : {color: 0xFF4B413C}
+    } else {
+        Solid : {color: 0xFF292320}
+    }
+    if checked {
+        mark {
+            Element
+            Rectangle : {w: 14, h: 14}
+            Solid : {color: 0xFF7AA862}
+        }
+    }
+    async {
+        while true {
+            await on.click(this)
+            checked = !checked
+        }
+    }
+    async {
+        while true {
+            await on.enter(this)
+            hover = true
+            await on.leave(this)
+            hover = false
+        }
+    }
+}
+
 root2d {
     Layout : {dummy: 0}
 
@@ -71,6 +107,10 @@ root2d {
             Rectangle : {w: 40, h: 40}
             Solid : {color: 0xFF44FF00}
         }
+    }
+
+    Checkbox checkbox1 {
+        Position2 : {x: 500, y: 100}
     }
 
     Element flow_demo {
@@ -100,6 +140,8 @@ root2d {
             Solid : {color: 0xFF2F2700}
             ResizableRect
         }
+
+
     }
 }
 
