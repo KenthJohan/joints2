@@ -4,6 +4,8 @@ using eg.shapes
 using eg.spatials
 using eg.ui
 using eg.ui.buttons
+using eg.ui.bounds
+using eg.ui.flows
 using eg.shapedraw
 using eg.base
 
@@ -23,10 +25,17 @@ b2world {
 }
 
 
-template DragButton1 {
+
+template Interactable {
     (eg.ui.Mouse, cameras.cam0.mouse_unproject)
-    Button : {key: eg.buttons.MOUSE_LEFT}
     eg.intersects.RectangleBorder
+    eg.ui.script.events.Target
+}
+
+
+template DragButton1 {
+    Interactable
+    Button : {key: eg.buttons.MOUSE_RIGHT}
     if $this[Button].held {
         Border : {thickness: 0.05, color: 0xFFFF0000}
         d1 {
@@ -36,22 +45,67 @@ template DragButton1 {
         }
         Text : {value: ""}
         Font : {font_size: 0.5}
-        Color : {color: 0xFF00FFFF}
     } else if $this[Button].hovered {
         //if eg.buttons.State[eg.buttons.State].mouse[0] {}
         Border : {thickness: 0.05, color: 0xFF000000}
         Text : {value: "{$this.name()}"}
         Font : {font_size: 0.5}
-        Color : {color: 0xFF00FFFF}
     } else {
         Border : {thickness: 0, color: 0xFFFF00FF}
         Text : {value: ""}
         Font : {font_size: 0.5}
-        Color : {color: 0xFF00FFFF}
     }
 }
 
+template Element {
+    WorldTransform3
+    Transform3
+    Rotation2 : {0}
+    Scale2 : {x: 1, y: 1}
+    Position2 : {x: 0, y: 0}
+}
 
+template ResizableRect {
+    Element
+    Interactable
+    eg.ui.buttons.Border : {key: eg.buttons.MOUSE_LEFT, margin: 0.2}
+    Resizable : {min_w: 0.51, min_h: 0.51}
+    Font : {font_size: 0.28}
+    if $this[eg.ui.buttons.Border].grab {
+        Text : {value: "dragging"}
+        Border : {thickness: 0.04, color: 0xFFFF0000}
+    } else if $this[eg.ui.buttons.Border].hover {
+        Text : {value: "edge"}
+        Border : {thickness: 0.08, color: 0xFF000000}
+    } else {
+        Text : {value: "1"}
+        Border : {thickness: 0.02, color: 0xFF888888}
+    }
+}
+
+template Flow1 {
+    Flow : {direction: Right, wrap: Down}
+    Element child_a {
+        Rectangle : {w: 0.14, h: 0.14}
+        Solid : {color: 0xFF44FF00}
+        ResizableRect
+    }
+    Element child_b {
+        Rectangle : {w: 0.36, h: 0.33}
+        Solid : {color: 0xFF6058FF}
+        ResizableRect
+    }
+    Element child_c {
+        Rectangle : {w: 0.56, h: 0.53}
+        Solid : {color: 0xFF337733}
+        ResizableRect
+    }
+    Element child_d {
+        Rectangle : {w: 1.06, h: 1.03}
+        Solid : {color: 0xFF2F2700}
+        ResizableRect
+    }
+}
 
 
 b2world {
@@ -87,9 +141,10 @@ b2world {
         WorldTransform3 : trs(0, 9, 0, 1, 1)
         BodyDef : {type : $BODY_DYNAMIC}
         ShapesDef : {density:1}
-        Rectangle : {w:1, h:1}
-        Solid : {color: 0xFF44FF00}
+        Rectangle : {w:2, h:2}
+        Solid : {color: 0x44441100}
         DragButton1
+        Flow1
     }
 
 

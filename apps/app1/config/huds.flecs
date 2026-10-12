@@ -16,7 +16,6 @@ template Element {
     Rotation2 : {0}
     Scale2 : {x: 1, y: 1}
     Position2 : {x: 0, y: 0}
-    (flecs.core.DependsOn, eg.windows.window1.drawctx_hud)
 }
 
 template Interactable {
@@ -145,7 +144,5 @@ root2d {
             Solid : {color: 0xFF2F2700}
             ResizableRect
         }
-
-
     }
 }
