@@ -61,51 +61,6 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 	ecs_log_set_level(-1);
 }
 
-void AppDrawNameAtPosition_Draw(ecs_iter_t *it)
-{
-	AppDrawContext            *d = ecs_field_shared(it, AppDrawContext, 0);
-	WorldTransform3           *x = ecs_field_self(it, WorldTransform3, 1);
-	AppDrawNameAtPositionRule *b = ecs_field_shared(it, AppDrawNameAtPositionRule, 2);
-
-	for (int i = 0; i < it->count; ++i, ++x) {
-		char const *name = ecs_get_name(it->world, it->entities[i]);
-
-		//printf("Drawing name '%s' at position (%f, %f) with rotation (c=%f, s=%f)\n", name, x->matrix.c2[0], x->matrix.c2[1], x->matrix.c0[0], x->matrix.c0[1]);
-		EgShapedrawList_AddText(d->list, APP_DRAW_Z_TEXT, &(x->matrix), 10.5f / d->list->pixelScale, b->color, name);
-		EgShapedrawList_AddRectangleOutline(d->list, APP_DRAW_Z_SHAPES, &(x->matrix), 20, 20, 1.0f, 0xFFFFFFFFu);
-
-		/*
-		if (strcmp(name, "cell_d") == 0) {
-		    printf("Found cell_d at position (%f, %f) with rotation (c=%f, s=%f)\n", x, y, c, s);
-		}
-		*/
-	}
-}
-
-static void AppDrawNameAtPositionRule_Observer(ecs_iter_t *it)
-{
-	AppDrawNameAtPositionRule *o = ecs_field_self(it, AppDrawNameAtPositionRule, 0);
-
-	for (int i = 0; i < it->count; i++) {
-		ecs_entity_t e    = it->entities[i];
-		char const  *name = ecs_get_name(it->world, e);
-		char         buffer[256];
-		snprintf(buffer, sizeof(buffer), "sys_%s_%s", name, ecs_get_name(it->world, o->term));
-		if (it->event == EcsOnSet) {
-			ecs_system(it->world,
-			{.entity     = ecs_entity(it->world, {.name = buffer}),
-			.phase       = EcsPostUpdate,
-			.callback    = AppDrawNameAtPosition_Draw,
-			.query.terms = {
-			{.id = ecs_id(AppDrawContext), .src.id = o->draw_e, .inout = EcsIn},
-			{.id = ecs_id(WorldTransform3), .src.id = EcsSelf, .inout = EcsIn},
-			{.id = ecs_id(AppDrawNameAtPositionRule), .src.id = e},
-			{.id = o->term, .src.id = EcsSelf},
-			}});
-		}
-	}
-}
-
 static void AppDrawContext_Collect(ecs_iter_t *it)
 {
 	AppDrawContext  *d0 = ecs_field_shared(it, AppDrawContext, 0);
@@ -128,7 +83,6 @@ void AppDrawImport(ecs_world_t *world)
 
 	ECS_COMPONENT_DEFINE(world, AppDrawContext);
 	ECS_COMPONENT_DEFINE(world, AppDrawContextCreate);
-	ECS_COMPONENT_DEFINE(world, AppDrawNameAtPositionRule);
 
 	ecs_struct(world,
 	{.entity = ecs_id(AppDrawContextCreate),
@@ -171,9 +125,4 @@ void AppDrawImport(ecs_world_t *world)
 	{.id = ecs_id(AppDrawContext), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
 	{.id = ecs_id(EgShapedrawList), .src.id = EcsSelf, .inout = EcsIn},
 	}});
-
-	ecs_observer(world,
-	{.query   = {.terms = {{.id = ecs_id(AppDrawNameAtPositionRule)}}},
-	.events   = {EcsOnSet},
-	.callback = AppDrawNameAtPositionRule_Observer});
 }
