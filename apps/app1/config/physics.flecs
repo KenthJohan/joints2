@@ -26,6 +26,7 @@ b2world {
 
 
 
+// Border thickness and Buttons.Border margin are in screen pixels, independent of camera distance.
 template Interactable {
     (eg.ui.Mouse, cameras.cam0.mouse_unproject)
     eg.intersects.RectangleBorder
@@ -36,24 +37,22 @@ template Interactable {
 template DragButton1 {
     Interactable
     Button : {key: eg.buttons.MOUSE_RIGHT}
+    Font : {font_size: 30}
     if $this[Button].held {
-        Border : {thickness: 0.05, color: 0xFFFF0000}
+        Border : {thickness: 2, color: 0xFFFF0000}
         d1 {
             // Attaches this body to the mouse drag body using a joint.
             // This allows the body to follow the mouse while maintaining physics interactions.
             (JointDef, b2world.mouse_dragbody) : {linear_hertz: 7.5, linear_damping: 1.0}
         }
         Text : {value: ""}
-        Font : {font_size: 0.5}
     } else if $this[Button].hovered {
         //if eg.buttons.State[eg.buttons.State].mouse[0] {}
-        Border : {thickness: 0.05, color: 0xFF000000}
+        Border : {thickness: 2, color: 0xFFFFFFFF}
         Text : {value: "{$this.name()}"}
-        Font : {font_size: 0.5}
     } else {
-        Border : {thickness: 0, color: 0xFFFF00FF}
+        Border : {thickness: 2, color: 0xFF000000}
         Text : {value: ""}
-        Font : {font_size: 0.5}
     }
 }
 
@@ -68,18 +67,18 @@ template Element {
 template ResizableRect {
     Element
     Interactable
-    eg.ui.buttons.Border : {key: eg.buttons.MOUSE_LEFT, margin: 0.2}
+    eg.ui.buttons.Border : {key: eg.buttons.MOUSE_LEFT, margin: 6}
     Resizable : {min_w: 0.51, min_h: 0.51}
-    Font : {font_size: 0.28}
+    Font : {font_size: 10}
     if $this[eg.ui.buttons.Border].grab {
         Text : {value: "dragging"}
-        Border : {thickness: 0.04, color: 0xFFFF0000}
+        Border : {thickness: 2, color: 0xFFFF0000}
     } else if $this[eg.ui.buttons.Border].hover {
         Text : {value: "edge"}
-        Border : {thickness: 0.08, color: 0xFF000000}
+        Border : {thickness: 4, color: 0xFF000000}
     } else {
         Text : {value: "1"}
-        Border : {thickness: 0.02, color: 0xFF888888}
+        Border : {thickness: 1, color: 0xFF888888}
     }
 }
 
@@ -132,20 +131,22 @@ b2world {
         ShapesDef : {density:1, friction:0.3}
         Rectangle : {w:1, h:1}
         Solid : {color: 0xFF44FF00}
-        DragButton1
+        Border : {thickness: 0.1, color: 0xFF000000}
     }
 
 
 
+    
     box2 {
         WorldTransform3 : trs(0, 9, 0, 1, 1)
         BodyDef : {type : $BODY_DYNAMIC}
         ShapesDef : {density:1}
         Rectangle : {w:2, h:2}
-        Solid : {color: 0x44441100}
+        Solid : {color: 0xFF441144}
         DragButton1
         Flow1
     }
+    
 
 
     // This body does not collide with other bodies.

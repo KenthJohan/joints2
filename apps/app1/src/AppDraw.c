@@ -71,7 +71,7 @@ void AppDrawNameAtPosition_Draw(ecs_iter_t *it)
 		char const *name = ecs_get_name(it->world, it->entities[i]);
 
 		//printf("Drawing name '%s' at position (%f, %f) with rotation (c=%f, s=%f)\n", name, x->matrix.c2[0], x->matrix.c2[1], x->matrix.c0[0], x->matrix.c0[1]);
-		EgShapedrawList_AddText(d->list, APP_DRAW_Z_TEXT, &(x->matrix), 10.5f, b->color, name);
+		EgShapedrawList_AddText(d->list, APP_DRAW_Z_TEXT, &(x->matrix), 10.5f / d->list->pixelScale, b->color, name);
 		EgShapedrawList_AddRectangleOutline(d->list, APP_DRAW_Z_SHAPES, &(x->matrix), 20, 20, 1.0f, 0xFFFFFFFFu);
 
 		/*
@@ -112,6 +112,8 @@ static void AppDrawContext_Collect(ecs_iter_t *it)
 	EgShapedrawList *l  = ecs_field_self(it, EgShapedrawList, 1);
 	for (int i = 0; i < it->count; ++i, ++l) {
 		EgShapedrawList_Append(d0->list, l);
+		// Per-entity lists tessellate pixel-sized thickness during collection, so they need the camera scale (applied next frame).
+		EgShapedrawList_SetPixelScale(l, d0->pixelScale);
 	}
 }
 

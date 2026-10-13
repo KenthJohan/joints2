@@ -107,7 +107,7 @@ void DrawStringFcn(b2Pos p, const char *s, b2HexColor color, void *context)
 			.c1 = {0.0f, 1.0f, 0.0f},
 			.c2 = {(float)p.x, (float)p.y, 1.0f},
 		};
-		EgShapedrawList_AddText(egg, APP_DRAW_Z_TEXT, &transform, 0.5f, color, s);
+		EgShapedrawList_AddText(egg, APP_DRAW_Z_TEXT, &transform, 0.5f / egg->pixelScale, color, s);
 	}
 }
 
