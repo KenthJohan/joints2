@@ -37,7 +37,7 @@ template Interactable {
 template DragButton1 {
     Interactable
     Button : {key: eg.buttons.MOUSE_RIGHT}
-    Font : {font_size: 30}
+    Font : {font_size: 30, color: 0xFFFFFFFF}
     if $this[Button].held {
         Border : {thickness: 2, color: 0xFFFF0000}
         d1 {
