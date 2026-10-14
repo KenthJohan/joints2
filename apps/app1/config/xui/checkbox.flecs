@@ -1,0 +1,41 @@
+module xui
+
+using flecs.script
+using eg.shapes
+using eg.ui
+using eg.shapedraw
+
+
+template Checkbox {
+    Element
+    Interactable
+    Rectangle : {w: 24, h: 24}
+    mut checked = false
+    mut hover = false
+    if hover {
+        Solid : {color: 0xFF4B413C}
+    } else {
+        Solid : {color: 0xFF292320}
+    }
+    if checked {
+        mark {
+            Element
+            Rectangle : {w: 14, h: 14}
+            Solid : {color: 0xFF7AA862}
+        }
+    }
+    async {
+        while true {
+            await on.click(this)
+            checked = !checked
+        }
+    }
+    async {
+        while true {
+            await on.enter(this)
+            hover = true
+            await on.leave(this)
+            hover = false
+        }
+    }
+}

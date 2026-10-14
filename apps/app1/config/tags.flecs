@@ -14,6 +14,14 @@ cameras {
 keybindings {
 }
 
+@color #99FFCC
+huds {
+}
+
+
+@color #99FFCC
+xui {
+}
 
 
 eg {
@@ -27,6 +35,3 @@ eg {
 }
 
 
-@color #99FFCC
-huds {
-}

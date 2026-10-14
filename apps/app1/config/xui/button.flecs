@@ -1,0 +1,18 @@
+module xui
+
+using eg.shapedraw
+
+template Button1 {
+    Element
+    Interactable
+    eg.ui.buttons.Button : {key: eg.buttons.MOUSE_LEFT}
+    Solid : {color: 0xFF44FF00}
+    if $this[eg.ui.buttons.Button].held {
+        Border : {thickness: 6, color: 0xFFFF0000}
+    } else if $this[eg.ui.buttons.Button].hovered {
+        //if eg.buttons.State[eg.buttons.State].mouse[0] {}
+        Border : {thickness: 10, color: 0xFF000000}
+    } else {
+        Border : {thickness: 0, color: 0xFFFF00FF}
+    }
+}

@@ -68,7 +68,7 @@ template ResizableRect {
     Element
     Interactable
     eg.ui.buttons.Border : {key: eg.buttons.MOUSE_LEFT, margin: 6}
-    Resizable : {min_w: 0.51, min_h: 0.51}
+    Resizable : {min_w: 0.1, min_h: 0.1}
     Font : {font_size: 10}
     if $this[eg.ui.buttons.Border].grab {
         Text : {value: "dragging"}

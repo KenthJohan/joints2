@@ -1,0 +1,20 @@
+module xui
+
+using eg.spatials
+using eg.shapes
+
+template Element {
+    WorldTransform3
+    Transform3
+    Rotation2 : {0}
+    Scale2 : {x: 1, y: 1}
+    Position2 : {x: 0, y: 0}
+}
+
+
+template Interactable {
+    (eg.ui.Mouse, cameras.cam_hud.mouse_unproject)
+    eg.intersects.RectangleBorder
+    eg.ui.script.events.Target
+}
+
