@@ -67,13 +67,13 @@ template Element {
 template ResizableRect {
     Element
     Interactable
-    eg.ui.buttons.Border : {key: eg.buttons.MOUSE_LEFT, margin: 6}
+    eg.ui.buttons.BorderButton : {key: eg.buttons.MOUSE_LEFT, margin: 6}
     Resizable : {min_w: 0.1, min_h: 0.1}
     Font : {font_size: 10}
-    if $this[eg.ui.buttons.Border].grab {
+    if $this[eg.ui.buttons.BorderButton].grab {
         Text : {value: "dragging"}
         Border : {thickness: 2, color: 0xFFFF0000}
-    } else if $this[eg.ui.buttons.Border].hover {
+    } else if $this[eg.ui.buttons.BorderButton].hover {
         Text : {value: "edge"}
         Border : {thickness: 4, color: 0xFF000000}
     } else {

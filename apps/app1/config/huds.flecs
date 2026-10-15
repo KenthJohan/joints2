@@ -9,6 +9,7 @@ using eg.ui.bounds
 using eg.ui.freeforms
 using eg.base
 using eg.shapedraw
+using eg.buttons
 using xui
 
 
@@ -18,13 +19,13 @@ using xui
 template ResizableRect {
     Element
     Interactable
-    eg.ui.buttons.Border : {key: eg.buttons.MOUSE_LEFT, margin: 6}
+    BorderButton : {key: MOUSE_LEFT, margin: 6}
     Resizable : {min_w: 20, min_h: 20}
     Font : {font_size: 28}
-    if $this[eg.ui.buttons.Border].grab {
+    if $this[BorderButton].grab {
         Text : {value: "dragging"}
         Border : {thickness: 4, color: 0xFFFF0000}
-    } else if $this[eg.ui.buttons.Border].hover {
+    } else if $this[BorderButton].hover {
         Text : {value: "edge"}
         Border : {thickness: 8, color: 0xFF000000}
     } else {
