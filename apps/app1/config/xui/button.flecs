@@ -1,6 +1,10 @@
 module xui
 
+using flecs.script
+using eg.shapes
+using eg.ui
 using eg.shapedraw
+
 
 template Button1 {
     Element
@@ -14,5 +18,40 @@ template Button1 {
         Border : {thickness: 10, color: 0xFF000000}
     } else {
         Border : {thickness: 0, color: 0xFFFF00FF}
+    }
+}
+
+
+template Button2 {
+    Element
+    Interactable
+    Solid : {color: 0xFF44FF00}
+    mut checked = false
+    mut hover = false
+    if hover {
+        Solid : {color: 0xFF4B413C}
+    } else {
+        Solid : {color: 0xFF292320}
+    }
+    if checked {
+        mark {
+            Element
+            Rectangle : {w: 14, h: 14}
+            Solid : {color: 0xFF7AA862}
+        }
+    }
+    async {
+        while true {
+            await on.click(this)
+            checked = !checked
+        }
+    }
+    async {
+        while true {
+            await on.enter(this)
+            hover = true
+            await on.leave(this)
+            hover = false
+        }
     }
 }
