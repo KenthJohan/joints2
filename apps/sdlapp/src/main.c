@@ -173,17 +173,13 @@ int main(int argc, char *argv[])
 	eg_drawlist_init(&draw_demo.drawlist);
 
 	while (1) {
-		if (ecs_should_quit(world)) {
+		bool quit = ecs_progress(world, 1.0f / 60.0f);
+		if (!quit) {
 			break;
 		}
 		if (ecs_has(world, e_window, EgWindowsCloseRequest)) {
 			printf("Window should close\n");
 		}
-		if (ecs_has(world, ecs_id(EgWindows), EgWindowsQuit)) {
-			printf("Quit requested\n");
-			break;
-		}
-		ecs_progress(world, 1.0f / 60.0f);
 		draw_demo_render(world, e_window, e_gpu_device, e_pipeline, e_depth, e_vertex_buffer, e_index_buffer, e_widget_buffer, e_white_texture, e_sampler, &draw_demo);
 	}
 

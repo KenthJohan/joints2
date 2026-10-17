@@ -81,15 +81,14 @@ int main(int argc, char *argv[])
 #endif
 
 	while (1) {
+		bool quit = ecs_progress(world, 1.0f / 60.0f);
+		if (!quit) {
+			break;
+		}
 		if (ecs_has(world, e_window, EgWindowsCloseRequest)) {
 			printf("Window should close\n");
 			break;
 		}
-		if (ecs_has(world, ecs_id(EgWindows), EgWindowsQuit)) {
-			printf("Quit requested\n");
-			break;
-		}
-		ecs_progress(world, 1.0f / 60.0f);
 	}
 	ecs_fini(world);
 
