@@ -3,8 +3,8 @@ using eg.spatials
 using eg.shapes
 using eg.buttons
 
-const ROTATE_SPEED = 0.005
-const TRANSLATE_SPEED = 1.0
+const ROTATE_SPEED = 0.010
+const TRANSLATE_SPEED = 0.1
 
 camera_rotate_dx {
     eg.buttons.Binding : {
