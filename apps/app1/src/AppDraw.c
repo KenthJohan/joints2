@@ -46,7 +46,7 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 			continue;
 		}
 
-		ecs_set(it->world, e, AppDrawContext, {render, list, 1.0f});
+		ecs_set(it->stage, e, AppDrawContext, {render, list, 1.0f});
 
 		// The window system will call this render system using `ecs_run()` every frame
 		// by putting it as a child of the window entity.
