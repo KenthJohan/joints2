@@ -16,6 +16,10 @@ template ResizeBase {
     prop min_w: f32 = 20
     prop min_h: f32 = 20
     prop thickness: f32 = 6
+    prop font_size: f32 = 28
+    prop border_thickness: f32 = 2
+    // Camera whose mouse unprojection drives hit testing; this is what differs between HUD and world.
+    prop mouse_cam: entity = cameras.cam_hud.mouse_unproject
 
     mut active: i32 = 0
     mut req_edges: i32 = 0
@@ -30,8 +34,11 @@ template ResizeBase {
 
 // Shared by the four strips: highlights the strip while hovered or dragged.
 template ResizeEdge : parent ResizeBase {
+    prop mouse_cam: entity = cameras.cam_hud.mouse_unproject
     Element
-    Interactable
+    (eg.ui.Mouse, mouse_cam)
+    eg.ui.local.mouse.Position
+    eg.ui.script.events.Target
     mut hover = false
     mut grab = false
     if grab {
@@ -129,10 +136,12 @@ template ResizeBottom : ResizeEdge {
 
 template ResizableRect : ResizeBase {
     Element
-    Interactable
-    Font : {font_size: 28}
+    (eg.ui.Mouse, mouse_cam)
+    eg.ui.local.mouse.Position
+    eg.ui.script.events.Target
+    Font : {font_size: font_size}
     Text : {value: "1"}
-    Border : {thickness: 2, color: 0xFF888888}
+    Border : {thickness: border_thickness, color: 0xFF888888}
     // Drags on a strip propagate here in this rectangle's local space: the edge goes where the pointer is.
     // 
     async {
@@ -150,16 +159,16 @@ template ResizableRect : ResizeBase {
             req_edges = active
         }
     }
-    left { ResizeLeft
+    left { ResizeLeft : {mouse_cam: mouse_cam}
         Rectangle : {w: thickness, h: $this[Rectangle].h}
     }
-    right { ResizeRight
+    right { ResizeRight : {mouse_cam: mouse_cam}
         Rectangle : {w: thickness, h: $this[Rectangle].h}
     }
-    top { ResizeTop
+    top { ResizeTop : {mouse_cam: mouse_cam}
         Rectangle : {w: $this[Rectangle].w, h: thickness}
     }
-    bottom { ResizeBottom
+    bottom { ResizeBottom : {mouse_cam: mouse_cam}
         Rectangle : {w: $this[Rectangle].w, h: thickness}
     }
 }

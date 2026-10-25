@@ -6,12 +6,46 @@ using eg.ui
 using eg.shapedraw
 
 
-template Button2 {
+// Interaction base: tracks hover and whether `button` (flecs: 0=left, 1=middle, 2=right) is held.
+// mouse_cam selects the camera whose mouse unprojection drives hit testing.
+template Button {
+    prop mouse_cam: entity = cameras.cam_hud.mouse_unproject
+    prop button: i32 = 0
+    (eg.ui.Mouse, mouse_cam)
+    eg.ui.local.mouse.Position
+    eg.ui.script.events.Target
+    mut hover = false
+    mut held = false
+    async {
+        while true {
+            await on.enter(this)
+            hover = true
+            await on.leave(this)
+            hover = false
+        }
+    }
+    async {
+        while true {
+            const e = await on.press(this)
+            if e.button == button {
+                held = true
+            }
+        }
+    }
+    async {
+        while true {
+            const e = await on.release(this)
+            if e.button == button {
+                held = false
+            }
+        }
+    }
+}
+
+template Button2 : Button {
     Element
-    Interactable
     Solid : {color: 0xFF44FF00}
     mut checked = false
-    mut hover = false
     if hover {
         Solid : {color: 0xFF4B413C}
     } else {
@@ -28,14 +62,6 @@ template Button2 {
         while true {
             await on.click(this)
             checked = !checked
-        }
-    }
-    async {
-        while true {
-            await on.enter(this)
-            hover = true
-            await on.leave(this)
-            hover = false
         }
     }
 }

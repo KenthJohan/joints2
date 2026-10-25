@@ -1,5 +1,6 @@
 module physics
 using flecs.script
+using xui
 using eg.physics
 using eg.shapes
 using eg.spatials
@@ -27,18 +28,7 @@ b2world {
 
 
 
-// Border thickness and Buttons.Border margin are in screen pixels, independent of camera distance.
-template Interactable {
-    (eg.ui.Mouse, cameras.cam0.mouse_unproject)
-    eg.ui.local.mouse.Position
-    eg.ui.script.events.Target
-}
-
-
-template DragButton1 {
-    Interactable
-    mut held = false
-    mut hover = false
+template DragButton1 : Button {
     Font : {font_size: 30, color: 0xFFFFFFFF}
     if held {
         Border : {thickness: 2, color: 0xFFFF0000}
@@ -55,31 +45,6 @@ template DragButton1 {
         Border : {thickness: 2, color: 0xFF000000}
         Text : {value: ""}
     }
-    async {
-        while true {
-            await on.enter(this)
-            hover = true
-            await on.leave(this)
-            hover = false
-        }
-    }
-    // Right mouse button (flecs button 2)
-    async {
-        while true {
-            const e = await on.press(this)
-            if e.button == 2 {
-                held = true
-            }
-        }
-    }
-    async {
-        while true {
-            const e = await on.release(this)
-            if e.button == 2 {
-                held = false
-            }
-        }
-    }
 }
 
 template Element {
@@ -90,178 +55,27 @@ template Element {
     Position2 : {x: 0, y: 0}
 }
 
-template ResizeBase {
-    prop min_w: f32 = 0.1
-    prop min_h: f32 = 0.1
-    prop thickness: f32 = 0.06
-
-    mut active: i32 = 0
-    mut req_edges: i32 = 0
-    mut req_left: f32 = 0
-    mut req_right: f32 = 0
-    mut req_bottom: f32 = 0
-    mut req_top: f32 = 0
-
-    Resizable : {min_w: min_w, min_h: min_h}
-    EdgeRequest : {edges: req_edges, left: req_left, right: req_right, bottom: req_bottom, top: req_top}
-}
-
-// Shared by the four strips: highlights the strip while hovered or dragged.
-template ResizeEdge : parent ResizeBase {
-    Element
-    Interactable
-    mut hover = false
-    mut grab = false
-    if grab {
-        Solid : {color: 0xCCFF4040}
-    } else if hover {
-        Solid : {color: 0x88FFFFFF}
-    } else {
-        Solid : {color: 0x00000000}
-    }
-    async {
-        while true {
-            await on.enter(this)
-            hover = true
-            await on.leave(this)
-            hover = false
-        }
-    }
-}
-
-template ResizeRight : ResizeEdge {
-    Anchor : {parent: Right, pivot: Middle}
-    async {
-        while true {
-            await on.press(this)
-            grab = true
-            active = 2
-        }
-    }
-    async {
-        while true {
-            await on.release(this)
-            grab = false
-            active = 0
-            req_edges = 0
-        }
-    }
-}
-
-template ResizeLeft : ResizeEdge {
-    Anchor : {parent: Left, pivot: Middle}
-    async {
-        while true {
-            await on.press(this)
-            grab = true
-            active = 1
-        }
-    }
-    async {
-        while true {
-            await on.release(this)
-            grab = false
-            active = 0
-            req_edges = 0
-        }
-    }
-}
-
-template ResizeTop : ResizeEdge {
-    Anchor : {parent: Top, pivot: Middle}
-    async {
-        while true {
-            await on.press(this)
-            grab = true
-            active = 8
-        }
-    }
-    async {
-        while true {
-            await on.release(this)
-            grab = false
-            active = 0
-            req_edges = 0
-        }
-    }
-}
-
-template ResizeBottom : ResizeEdge {
-    Anchor : {parent: Bottom, pivot: Middle}
-    async {
-        while true {
-            await on.press(this)
-            grab = true
-            active = 4
-        }
-    }
-    async {
-        while true {
-            await on.release(this)
-            grab = false
-            active = 0
-            req_edges = 0
-        }
-    }
-}
-
-template ResizableRect : ResizeBase {
-    Element
-    Interactable
-    Font : {font_size: 10}
-    Text : {value: "1"}
-    Border : {thickness: 1, color: 0xFF888888}
-    // Drags on a strip propagate here in this rectangle's local space: the edge goes where the pointer is.
-    async {
-        while true {
-            const e = await on.drag(this)
-            if active == 1 {
-                req_left = e.local_x
-            } else if active == 2 {
-                req_right = e.local_x
-            } else if active == 4 {
-                req_bottom = e.local_y
-            } else if active == 8 {
-                req_top = e.local_y
-            }
-            req_edges = active
-        }
-    }
-    left { ResizeLeft
-        Rectangle : {w: thickness, h: $this[Rectangle].h}
-    }
-    right { ResizeRight
-        Rectangle : {w: thickness, h: $this[Rectangle].h}
-    }
-    top { ResizeTop
-        Rectangle : {w: $this[Rectangle].w, h: thickness}
-    }
-    bottom { ResizeBottom
-        Rectangle : {w: $this[Rectangle].w, h: thickness}
-    }
-}
-
 template Flow1 {
     Flow : {direction: Right, wrap: Down}
     Element child_a {
         Rectangle : {w: 0.14, h: 0.14}
         Solid : {color: 0xFF44FF00}
-        ResizableRect
+        ResizableRect : {min_w: 0.1, min_h: 0.1, thickness: 0.06, font_size: 10, border_thickness: 1, mouse_cam: cameras.cam0.mouse_unproject}
     }
     Element child_b {
         Rectangle : {w: 0.36, h: 0.33}
         Solid : {color: 0xFF6058FF}
-        ResizableRect
+        ResizableRect : {min_w: 0.1, min_h: 0.1, thickness: 0.06, font_size: 10, border_thickness: 1, mouse_cam: cameras.cam0.mouse_unproject}
     }
     Element child_c {
         Rectangle : {w: 0.56, h: 0.53}
         Solid : {color: 0xFF337733}
-        ResizableRect
+        ResizableRect : {min_w: 0.1, min_h: 0.1, thickness: 0.06, font_size: 10, border_thickness: 1, mouse_cam: cameras.cam0.mouse_unproject}
     }
     Element child_d {
         Rectangle : {w: 1.06, h: 1.03}
         Solid : {color: 0xFF2F2700}
-        ResizableRect
+        ResizableRect : {min_w: 0.1, min_h: 0.1, thickness: 0.06, font_size: 10, border_thickness: 1, mouse_cam: cameras.cam0.mouse_unproject}
     }
 }
 
@@ -302,7 +116,7 @@ b2world {
         ShapesDef : {density:1}
         Rectangle : {w:2, h:2}
         Solid : {color: 0xFF441144}
-        DragButton1
+        DragButton1 : {button: 2, mouse_cam: cameras.cam0.mouse_unproject}
         Flow1
     }
     
