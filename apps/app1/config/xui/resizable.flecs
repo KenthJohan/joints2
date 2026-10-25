@@ -1,0 +1,165 @@
+module xui
+
+using flecs.script
+using eg.shapes
+using eg.ui
+using eg.ui.bounds
+using eg.ui.freeforms
+using eg.shapedraw
+using eg.base
+
+// Makes a rectangle resizable by dragging four thin strips along its border.
+// Dragging a strip writes an EdgeRequest holding the absolute local position the edge should move to.
+// The rectangle (Resizable) decides how much of the request is honored.
+
+template ResizeBase {
+    prop min_w: f32 = 20
+    prop min_h: f32 = 20
+    prop thickness: f32 = 6
+
+    mut active: i32 = 0
+    mut req_edges: i32 = 0
+    mut req_left: f32 = 0
+    mut req_right: f32 = 0
+    mut req_bottom: f32 = 0
+    mut req_top: f32 = 0
+
+    Resizable : {min_w: min_w, min_h: min_h}
+    EdgeRequest : {edges: req_edges, left: req_left, right: req_right, bottom: req_bottom, top: req_top}
+}
+
+// Shared by the four strips: highlights the strip while hovered or dragged.
+template ResizeEdge : parent ResizeBase {
+    Element
+    Interactable
+    mut hover = false
+    mut grab = false
+    if grab {
+        Solid : {color: 0xCCFF4040}
+    } else if hover {
+        Solid : {color: 0x88FFFFFF}
+    } else {
+        Solid : {color: 0x00000000}
+    }
+    async {
+        while true {
+            await on.enter(this)
+            hover = true
+            await on.leave(this)
+            hover = false
+        }
+    }
+}
+
+template ResizeRight : ResizeEdge {
+    Anchor : {parent: Right, pivot: Middle}
+    async {
+        while true {
+            await on.press(this)
+            grab = true
+            active = 2
+        }
+    }
+    async {
+        while true {
+            await on.release(this)
+            grab = false
+            active = 0
+            req_edges = 0
+        }
+    }
+}
+
+template ResizeLeft : ResizeEdge {
+    Anchor : {parent: Left, pivot: Middle}
+    async {
+        while true {
+            await on.press(this)
+            grab = true
+            active = 1
+        }
+    }
+    async {
+        while true {
+            await on.release(this)
+            grab = false
+            active = 0
+            req_edges = 0
+        }
+    }
+}
+
+template ResizeTop : ResizeEdge {
+    Anchor : {parent: Top, pivot: Middle}
+    async {
+        while true {
+            await on.press(this)
+            grab = true
+            active = 8
+        }
+    }
+    async {
+        while true {
+            await on.release(this)
+            grab = false
+            active = 0
+            req_edges = 0
+        }
+    }
+}
+
+template ResizeBottom : ResizeEdge {
+    Anchor : {parent: Bottom, pivot: Middle}
+    async {
+        while true {
+            await on.press(this)
+            grab = true
+            active = 4
+        }
+    }
+    async {
+        while true {
+            await on.release(this)
+            grab = false
+            active = 0
+            req_edges = 0
+        }
+    }
+}
+
+template ResizableRect : ResizeBase {
+    Element
+    Interactable
+    Font : {font_size: 28}
+    Text : {value: "1"}
+    Border : {thickness: 2, color: 0xFF888888}
+    // Drags on a strip propagate here in this rectangle's local space: the edge goes where the pointer is.
+    // 
+    async {
+        while true {
+            const e = await on.drag(this)
+            if active == 1 {
+                req_left = e.local_x
+            } else if active == 2 {
+                req_right = e.local_x
+            } else if active == 4 {
+                req_bottom = e.local_y
+            } else if active == 8 {
+                req_top = e.local_y
+            }
+            req_edges = active
+        }
+    }
+    left { ResizeLeft
+        Rectangle : {w: thickness, h: $this[Rectangle].h}
+    }
+    right { ResizeRight
+        Rectangle : {w: thickness, h: $this[Rectangle].h}
+    }
+    top { ResizeTop
+        Rectangle : {w: $this[Rectangle].w, h: thickness}
+    }
+    bottom { ResizeBottom
+        Rectangle : {w: $this[Rectangle].w, h: thickness}
+    }
+}

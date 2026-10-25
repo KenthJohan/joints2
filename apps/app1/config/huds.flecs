@@ -16,24 +16,6 @@ using xui
 
 
 
-template ResizableRect {
-    Element
-    Interactable
-    BorderButton : {key: MOUSE_LEFT, margin: 6}
-    Resizable : {min_w: 20, min_h: 20}
-    Font : {font_size: 28}
-    if $this[BorderButton].grab {
-        Text : {value: "dragging"}
-        Border : {thickness: 4, color: 0xFFFF0000}
-    } else if $this[BorderButton].hover {
-        Text : {value: "edge"}
-        Border : {thickness: 8, color: 0xFF000000}
-    } else {
-        Text : {value: "1"}
-        Border : {thickness: 2, color: 0xFF888888}
-    }
-}
-
 
 root2d {
     Layout : {dummy: 0}
@@ -55,8 +37,8 @@ root2d {
         child1 {
             Element
             Anchor : {parent: TopRight, pivot: TopRight, x: -10, y: -10}
-            ResizableRect
             Rectangle : {w: 40, h: 40}
+            ResizableRect
             Solid : {color: 0xFF44FF00}
         }
     }
