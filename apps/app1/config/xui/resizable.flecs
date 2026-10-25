@@ -12,35 +12,36 @@ using eg.base
 // Dragging a strip writes an EdgeRequest holding the absolute local position the edge should move to.
 // The rectangle (Resizable) decides how much of the request is honored.
 
-template ResizeBase {
-    prop min_w: f32 = 20
-    prop min_h: f32 = 20
-    prop thickness: f32 = 6
-    prop font_size: f32 = 28
-    prop border_thickness: f32 = 2
-    // Camera whose mouse unprojection drives hit testing; this is what differs between HUD and world.
-    prop mouse_cam: entity = cameras.cam_hud.mouse_unproject
-
+// State shared between the rectangle and its strips: which edge is dragged and the pending request.
+template ResizeState {
     mut active: i32 = 0
     mut req_edges: i32 = 0
     mut req_left: f32 = 0
     mut req_right: f32 = 0
     mut req_bottom: f32 = 0
     mut req_top: f32 = 0
-
-    Resizable : {min_w: min_w, min_h: min_h}
-    EdgeRequest : {edges: req_edges, left: req_left, right: req_right, bottom: req_bottom, top: req_top}
 }
 
 // Shared by the four strips: highlights the strip while hovered or dragged.
-template ResizeEdge : parent ResizeBase {
+template ResizeEdge : parent ResizeState {
     prop mouse_cam: entity = cameras.cam_hud.mouse_unproject
+    // EG_UI_EDGE_* mask: 1 left, 2 right, 4 bottom, 8 top
+    prop edge: i32 = 2
     Element
     (eg.ui.Mouse, mouse_cam)
     eg.ui.local.mouse.Position
     eg.ui.script.events.Target
     mut hover = false
     mut grab = false
+    if edge == 1 {
+        Anchor : {parent: Left, pivot: Middle}
+    } else if edge == 2 {
+        Anchor : {parent: Right, pivot: Middle}
+    } else if edge == 4 {
+        Anchor : {parent: Bottom, pivot: Middle}
+    } else {
+        Anchor : {parent: Top, pivot: Middle}
+    }
     if grab {
         Solid : {color: 0xCCFF4040}
     } else if hover {
@@ -56,15 +57,11 @@ template ResizeEdge : parent ResizeBase {
             hover = false
         }
     }
-}
-
-template ResizeRight : ResizeEdge {
-    Anchor : {parent: Right, pivot: Middle}
     async {
         while true {
             await on.press(this)
             grab = true
-            active = 2
+            active = edge
         }
     }
     async {
@@ -77,64 +74,17 @@ template ResizeRight : ResizeEdge {
     }
 }
 
-template ResizeLeft : ResizeEdge {
-    Anchor : {parent: Left, pivot: Middle}
-    async {
-        while true {
-            await on.press(this)
-            grab = true
-            active = 1
-        }
-    }
-    async {
-        while true {
-            await on.release(this)
-            grab = false
-            active = 0
-            req_edges = 0
-        }
-    }
-}
+template ResizableRect : ResizeState {
+    prop min_w: f32 = 20
+    prop min_h: f32 = 20
+    prop thickness: f32 = 6
+    prop font_size: f32 = 28
+    prop border_thickness: f32 = 2
+    // Camera whose mouse unprojection drives hit testing; this is what differs between HUD and world.
+    prop mouse_cam: entity = cameras.cam_hud.mouse_unproject
 
-template ResizeTop : ResizeEdge {
-    Anchor : {parent: Top, pivot: Middle}
-    async {
-        while true {
-            await on.press(this)
-            grab = true
-            active = 8
-        }
-    }
-    async {
-        while true {
-            await on.release(this)
-            grab = false
-            active = 0
-            req_edges = 0
-        }
-    }
-}
-
-template ResizeBottom : ResizeEdge {
-    Anchor : {parent: Bottom, pivot: Middle}
-    async {
-        while true {
-            await on.press(this)
-            grab = true
-            active = 4
-        }
-    }
-    async {
-        while true {
-            await on.release(this)
-            grab = false
-            active = 0
-            req_edges = 0
-        }
-    }
-}
-
-template ResizableRect : ResizeBase {
+    Resizable : {min_w: min_w, min_h: min_h}
+    EdgeRequest : {edges: req_edges, left: req_left, right: req_right, bottom: req_bottom, top: req_top}
     Element
     (eg.ui.Mouse, mouse_cam)
     eg.ui.local.mouse.Position
@@ -159,16 +109,16 @@ template ResizableRect : ResizeBase {
             req_edges = active
         }
     }
-    left { ResizeLeft : {mouse_cam: mouse_cam}
+    left { ResizeEdge : {edge: 1, mouse_cam: mouse_cam}
         Rectangle : {w: thickness, h: $this[Rectangle].h}
     }
-    right { ResizeRight : {mouse_cam: mouse_cam}
+    right { ResizeEdge : {edge: 2, mouse_cam: mouse_cam}
         Rectangle : {w: thickness, h: $this[Rectangle].h}
     }
-    top { ResizeTop : {mouse_cam: mouse_cam}
+    top { ResizeEdge : {edge: 8, mouse_cam: mouse_cam}
         Rectangle : {w: $this[Rectangle].w, h: thickness}
     }
-    bottom { ResizeBottom : {mouse_cam: mouse_cam}
+    bottom { ResizeEdge : {edge: 4, mouse_cam: mouse_cam}
         Rectangle : {w: $this[Rectangle].w, h: thickness}
     }
 }
