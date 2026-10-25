@@ -115,7 +115,7 @@ b2world {
         BodyDef : {type : $BODY_DYNAMIC}
         ShapesDef : {density:1}
         Rectangle : {w:2, h:2}
-        Solid : {color: 0xFF441144}
+        //Solid : {color: 0xFF441144}
         DragButton1 : {button: 2, mouse_cam: cameras.cam0.mouse_unproject}
         Flow1
     }
