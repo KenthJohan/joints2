@@ -6,12 +6,10 @@ using eg.ui
 using eg.shapedraw
 
 
-template Checkbox {
+template Checkbox : Button {
     Element
-    Interactable
     Rectangle : {w: 24, h: 24}
     mut checked = false
-    mut hover = false
     if hover {
         Solid : {color: 0xFF4B413C}
     } else {
@@ -28,14 +26,6 @@ template Checkbox {
         while true {
             await on.click(this)
             checked = !checked
-        }
-    }
-    async {
-        while true {
-            await on.enter(this)
-            hover = true
-            await on.leave(this)
-            hover = false
         }
     }
 }

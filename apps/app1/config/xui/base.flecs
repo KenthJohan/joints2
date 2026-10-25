@@ -10,11 +10,3 @@ template Element {
     Scale2 : {x: 1, y: 1}
     Position2 : {x: 0, y: 0}
 }
-
-
-template Interactable {
-    (eg.ui.Mouse, cameras.cam_hud.mouse_unproject)
-    eg.ui.local.mouse.Position
-    eg.ui.script.events.Target
-}
-

@@ -57,8 +57,8 @@ int main(int argc, char *argv[])
 
 	run_file(world, "config/xui/base.flecs");
 	run_file(world, "config/xui/resizable.flecs");
-	run_file(world, "config/xui/checkbox.flecs");
 	run_file(world, "config/xui/button.flecs");
+	run_file(world, "config/xui/checkbox.flecs");
 
 	run_file(world, "config/huds.flecs");
 	run_file(world, "config/physics.flecs");
