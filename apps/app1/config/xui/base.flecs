@@ -14,7 +14,7 @@ template Element {
 
 template Interactable {
     (eg.ui.Mouse, cameras.cam_hud.mouse_unproject)
-    eg.intersects.RectangleBorder
+    eg.ui.local.mouse.Position
     eg.ui.script.events.Target
 }
 
