@@ -1,2 +1,4 @@
-.bake/
-.bake_cmd
+*.bake/
+*.bake_cmd
+*.o
+**/bin/
