@@ -98,6 +98,7 @@ b2world {
         Solid : {color: 0xFF333333}
     }
     
+    /*
     box1 {
         WorldTransform3 : trs(0, 4, 0, 1, 1)
         BodyDef : {type : $BODY_DYNAMIC}
@@ -106,12 +107,13 @@ b2world {
         Solid : {color: 0xFF44FF00}
         Border : {thickness: 0.1, color: 0xFF000000}
     }
+    */
 
 
 
     
     box2 {
-        WorldTransform3 : trs(0, 9, 0, 1, 1)
+        WorldTransform3 : trs(-2, 9, 0, 1, 1)
         BodyDef : {type : $BODY_DYNAMIC}
         ShapesDef : {density:1}
         Rectangle : {w:2, h:2}
