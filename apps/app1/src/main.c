@@ -29,6 +29,18 @@ void run_file(ecs_world_t *world, const char *file)
 	}
 }
 
+void run_managed_file(ecs_world_t *world, const char *file)
+{
+	// Managed scripts reevaluate template props when their input components change.
+	ecs_log_set_level(0);
+	ecs_entity_t script = ecs_script(world, {.filename = file});
+	ecs_log_set_level(-1);
+	if (!script) {
+		printf("Failed to run managed script file: %s\n", file);
+		exit(EXIT_FAILURE);
+	}
+}
+
 int main(int argc, char *argv[])
 {
 	ecs_os_set_api_defaults();
@@ -59,9 +71,10 @@ int main(int argc, char *argv[])
 	run_file(world, "config/xui/resizable.flecs");
 	run_file(world, "config/xui/button.flecs");
 	run_file(world, "config/xui/checkbox.flecs");
+	run_file(world, "config/xui/flow1.flecs");
 
-	run_file(world, "config/huds.flecs");
-	run_file(world, "config/physics.flecs");
+	run_managed_file(world, "config/huds.flecs");
+	run_managed_file(world, "config/physics.flecs");
 	run_file(world, "config/keybindings_3d.flecs");
 	run_file(world, "config/keybindings_common.flecs");
 

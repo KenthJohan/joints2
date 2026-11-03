@@ -52,28 +52,7 @@ root2d {
         Position2 : {200, 100}
         Rectangle : {w: 200, h: 100}
         Border : {thickness: 2, color: 0xFFFFFFFF}
-        Flow : {direction: Right, wrap: Down}
         ResizableRect
-
-        Element child_a {
-            Rectangle : {w: 40, h: 40}
-            Solid : {color: 0xFF44FF00}
-            ResizableRect
-        }
-        Element child_b {
-            Rectangle : {w: 60, h: 30}
-            Solid : {color: 0xFF6058FF}
-            ResizableRect
-        }
-        Element child_c {
-            Rectangle : {w: 60, h: 30}
-            Solid : {color: 0xFF337733}
-            ResizableRect
-        }
-        Element child_d {
-            Rectangle : {w: 60, h: 30}
-            Solid : {color: 0xFF2F2700}
-            ResizableRect
-        }
+        Flow1 : {mouse_cam: cameras.cam_hud.mouse_unproject}
     }
 }
