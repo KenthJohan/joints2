@@ -63,3 +63,23 @@ bake run apps/example
 	- Old/new C symbol names, such as `AppDrawPrintPositionalBinding` and `AppDrawNameAtPositionRule`.
 	- Old/new script symbol names, such as `app.draw.PrintPositionalBinding` and `app.draw.NameAtPositionRule`.
 - After edits, run `bake rebuild -r` from the repository root to validate compile-time changes.
+
+## Debugging With The Flecs REST API
+
+- Apps that set `EcsRest` on the world (for example `ecs_set(world, EcsRest, {.port = 0})`) expose a REST server on `http://localhost:27750` while running. Use it to inspect and modify live ECS state instead of guessing from code or scripts.
+- Run the app in the background, check it responds with `curl -s localhost:27750/`, and stop it when done.
+- Entity paths use `/` as the separator, not `.` (`parent.child` becomes `parent/child`).
+- Read an entity and its component values: `curl -s localhost:27750/entity/<path>`
+- Query entities by component (fully qualified names, `%24this` is `$this`): `curl -s 'localhost:27750/query?expr=<module>.<Component>(%24this)'`
+- Set a component value to test a hypothesis, then restore it:
+
+```sh
+curl -s -X PUT -G localhost:27750/component/<path> \
+  --data-urlencode 'component=<module>.<Component>' \
+  --data-urlencode 'value={"field":1}'
+```
+
+- Other endpoints: `GET /component/<path>?component=<name>`, `GET /world`, `GET /components`. `GET /` lists examples.
+- Typical use: compare a source value with the values derived from it, to find where a chain of updates stops.
+- Script templates only react to component changes when the script is loaded as managed (`ecs_script(world, {.filename = ...})`), and C code that writes a component field directly must call `ecs_modified_id` for them to see the change.
+
