@@ -56,6 +56,9 @@ template Element {
 }
 
 b2world {
+    // Mouse of the camera used by all GUI elements below this root
+    (eg.ui.Mouse, cameras.cam0.mouse_unproject)
+
     // Defines the physics world and its properties
     eg.physics.WorldDef : {gravity_x: 0, gravity_y: -10}
 
@@ -93,13 +96,13 @@ b2world {
         ShapesDef : {density:1}
         Rectangle : {w:2, h:2}
         //Solid : {color: 0xFF441144}
-        DragButton1 : {button: 2, mouse_cam: cameras.cam0.mouse_unproject}
-        /*
-        Flow1 : {mouse_cam: cameras.cam0.mouse_unproject, scale: 0.01}
+        DragButton1 : {button: 2}
+        
+        Flow1 : {scale: 0.01}
         child_c {
-            Flow1 : {mouse_cam: cameras.cam0.mouse_unproject, scale: 0.01}
+            Flow1 : {scale: 0.01}
         }
-        */
+        
     }
     
     

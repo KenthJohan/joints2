@@ -18,6 +18,7 @@ using xui
 
 root2d {
     Layout : {dummy: 0}
+    (eg.ui.Mouse, cameras.cam_hud.mouse_unproject)
 
     (flecs.core.DependsOn, eg.windows.window1.drawctx_hud)
     eg.shapedraw.List
@@ -53,6 +54,6 @@ root2d {
         Rectangle : {w: 200, h: 100}
         Border : {thickness: 2, color: 0xFFFFFFFF}
         ResizableRect
-        //Flow1 : {camera: cameras.cam_hud.mouse_unproject}
+        Flow1 : {}
     }
 }

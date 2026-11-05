@@ -24,12 +24,10 @@ template ResizeState {
 
 // Shared by the four strips: highlights the strip while hovered or dragged.
 template ResizeEdge : parent ResizeState {
-    prop camera: entity
     prop thickness: f32 = 1
     // EG_UI_EDGE_* mask: 1 left, 2 right, 4 bottom, 8 top
     prop edge: i32 = 2
     Element
-    (eg.ui.Mouse, camera)
     eg.ui.local.mouse.Position
     eg.ui.script.events.Target
     mut hover = false
@@ -81,13 +79,9 @@ template ResizableRect : ResizeState {
     prop thickness: f32 = 1
     prop font_size: f32 = 28
 
-    // Camera whose mouse unprojection drives hit testing;
-    prop camera: entity = cameras.cam_hud.mouse_unproject
-
     Resizable : {min_w: min_w, min_h: min_h}
     EdgeRequest : {edges: req_edges, left: req_left, right: req_right, bottom: req_bottom, top: req_top}
     Element
-    (eg.ui.Mouse, camera)
     eg.ui.local.mouse.Position
     eg.ui.script.events.Target
     Font : {font_size: font_size}
@@ -109,16 +103,16 @@ template ResizableRect : ResizeState {
             req_edges = active
         }
     }
-    left { ResizeEdge : {edge: 1, camera: camera, thickness: thickness}
+    left { ResizeEdge : {edge: 1, thickness: thickness}
         Rectangle : {w: thickness, h: $this[Rectangle].h}
     }
-    right { ResizeEdge : {edge: 2, camera: camera, thickness: thickness}
+    right { ResizeEdge : {edge: 2, thickness: thickness}
         Rectangle : {w: thickness, h: $this[Rectangle].h}
     }
-    top { ResizeEdge : {edge: 8, camera: camera, thickness: thickness}
+    top { ResizeEdge : {edge: 8, thickness: thickness}
         Rectangle : {w: $this[Rectangle].w, h: thickness}
     }
-    bottom { ResizeEdge : {edge: 4, camera: camera, thickness: thickness}
+    bottom { ResizeEdge : {edge: 4, thickness: thickness}
         Rectangle : {w: $this[Rectangle].w, h: thickness}
     }
 }
