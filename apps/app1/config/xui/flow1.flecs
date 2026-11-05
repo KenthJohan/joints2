@@ -7,29 +7,31 @@ using eg.ui.flows
 using eg.shapedraw
 
 template Flow1 {
-    prop mouse_cam: entity
-    prop thickness: f32 = 1
-    const pixel_scale = $mouse_cam[eg.cameras.Unproject].pixelScale
+    prop camera: entity = cameras.cam_hud.mouse_unproject
+    prop thickness: f32 = 4
+    prop scale: f32 = 1
+
+    const pixel_scale = $camera[eg.cameras.Unproject].pixelScale
 
     Flow : {direction: Right, wrap: Down}
     Element child_a {
-        Rectangle : {w: 50 * pixel_scale, h: 50 * pixel_scale}
+        Rectangle : {w: 50 * scale, h: 50 * scale}
         Solid : {color: 0xFF44FF00}
-        ResizableRect : {min_w: 0.1 * pixel_scale, min_h: 0.1 * pixel_scale, thickness: thickness * pixel_scale, font_size: 10, border_thickness: 1, mouse_cam: mouse_cam}
+        ResizableRect : {min_w: 10 * scale, min_h: 10 * scale, thickness: thickness * pixel_scale, font_size: 10, camera: camera}
     }
     Element child_b {
-        Rectangle : {w: 50 * pixel_scale, h: 50 * pixel_scale}
+        Rectangle : {w: 50 * scale, h: 50 * scale}
         Solid : {color: 0xFF6058FF}
-        ResizableRect : {min_w: 0.1 * pixel_scale, min_h: 0.1 * pixel_scale, thickness: thickness * pixel_scale, font_size: 10, border_thickness: 1, mouse_cam: mouse_cam}
+        ResizableRect : {min_w: 10 * scale, min_h: 10 * scale, thickness: thickness * pixel_scale, font_size: 10, camera: camera}
     }
     Element child_c {
-        Rectangle : {w: 56 * pixel_scale, h: 53 * pixel_scale}
+        Rectangle : {w: 56 * scale, h: 53 * scale}
         Solid : {color: 0xFF337733}
-        ResizableRect : {min_w: 0.1 * pixel_scale, min_h: 0.1 * pixel_scale, thickness: thickness * pixel_scale, font_size: 10, border_thickness: 1, mouse_cam: mouse_cam}
+        ResizableRect : {min_w: 10 * scale, min_h: 10 * scale, thickness: thickness * pixel_scale, font_size: 10, camera: camera}
     }
     Element child_d {
-        Rectangle : {w: 106 * pixel_scale, h: 103 * pixel_scale}
+        Rectangle : {w: 106 * scale, h: 103 * scale}
         Solid : {color: 0xFF2F2700}
-        ResizableRect : {min_w: 0.1 * pixel_scale, min_h: 0.1 * pixel_scale, thickness: thickness * pixel_scale, font_size: 10, border_thickness: 1, mouse_cam: mouse_cam}
+        ResizableRect : {min_w: 10 * scale, min_h: 10 * scale, thickness: thickness * pixel_scale, font_size: 10, camera: camera}
     }
 }

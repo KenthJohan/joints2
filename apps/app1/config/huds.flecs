@@ -53,6 +53,6 @@ root2d {
         Rectangle : {w: 200, h: 100}
         Border : {thickness: 2, color: 0xFFFFFFFF}
         ResizableRect
-        Flow1 : {mouse_cam: cameras.cam_hud.mouse_unproject}
+        //Flow1 : {camera: cameras.cam_hud.mouse_unproject}
     }
 }

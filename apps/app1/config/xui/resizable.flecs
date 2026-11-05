@@ -24,12 +24,12 @@ template ResizeState {
 
 // Shared by the four strips: highlights the strip while hovered or dragged.
 template ResizeEdge : parent ResizeState {
-    prop mouse_cam: entity = cameras.cam_hud.mouse_unproject
+    prop camera: entity
     prop thickness: f32 = 1
     // EG_UI_EDGE_* mask: 1 left, 2 right, 4 bottom, 8 top
     prop edge: i32 = 2
     Element
-    (eg.ui.Mouse, mouse_cam)
+    (eg.ui.Mouse, camera)
     eg.ui.local.mouse.Position
     eg.ui.script.events.Target
     mut hover = false
@@ -80,21 +80,20 @@ template ResizableRect : ResizeState {
     prop min_h: f32 = 20
     prop thickness: f32 = 1
     prop font_size: f32 = 28
-    prop border_thickness: f32 = 2
-    // Camera whose mouse unprojection drives hit testing; this is what differs between HUD and world.
-    prop mouse_cam: entity = cameras.cam_hud.mouse_unproject
+
+    // Camera whose mouse unprojection drives hit testing;
+    prop camera: entity = cameras.cam_hud.mouse_unproject
 
     Resizable : {min_w: min_w, min_h: min_h}
     EdgeRequest : {edges: req_edges, left: req_left, right: req_right, bottom: req_bottom, top: req_top}
     Element
-    (eg.ui.Mouse, mouse_cam)
+    (eg.ui.Mouse, camera)
     eg.ui.local.mouse.Position
     eg.ui.script.events.Target
     Font : {font_size: font_size}
     Text : {value: "1"}
-    Border : {thickness: border_thickness, color: 0xFF888888}
+
     // Drags on a strip propagate here in this rectangle's local space: the edge goes where the pointer is.
-    // 
     async {
         while true {
             const e = await on.drag(this)
@@ -110,16 +109,16 @@ template ResizableRect : ResizeState {
             req_edges = active
         }
     }
-    left { ResizeEdge : {edge: 1, mouse_cam: mouse_cam, thickness: thickness}
+    left { ResizeEdge : {edge: 1, camera: camera, thickness: thickness}
         Rectangle : {w: thickness, h: $this[Rectangle].h}
     }
-    right { ResizeEdge : {edge: 2, mouse_cam: mouse_cam, thickness: thickness}
+    right { ResizeEdge : {edge: 2, camera: camera, thickness: thickness}
         Rectangle : {w: thickness, h: $this[Rectangle].h}
     }
-    top { ResizeEdge : {edge: 8, mouse_cam: mouse_cam, thickness: thickness}
+    top { ResizeEdge : {edge: 8, camera: camera, thickness: thickness}
         Rectangle : {w: $this[Rectangle].w, h: thickness}
     }
-    bottom { ResizeEdge : {edge: 4, mouse_cam: mouse_cam, thickness: thickness}
+    bottom { ResizeEdge : {edge: 4, camera: camera, thickness: thickness}
         Rectangle : {w: $this[Rectangle].w, h: thickness}
     }
 }
