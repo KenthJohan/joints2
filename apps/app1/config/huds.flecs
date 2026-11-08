@@ -23,6 +23,12 @@ root2d {
     (flecs.core.DependsOn, eg.windows.window1.drawctx_hud)
     eg.shapedraw.List
 
+    Element fps_counter {
+        Position2 : {x: 20, y: 20}
+        Font : {font_size: 24, color: 0xFFFFFFFF}
+        Text : {value: "FPS: --  Min: --  Max: --"}
+    }
+
     /*/
     Button2 button2 {
         Position2 : {200, 100}

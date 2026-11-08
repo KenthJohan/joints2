@@ -14,8 +14,8 @@
 #include <EgPhysics.h>
 #include <EgPhysicsBox2d.h>
 #include <EgUi.h>
+#include <EgBase.h>
 
-#include "AppDrawBox2d.h"
 #include "AppDraw.h"
 
 void run_file(ecs_world_t *world, const char *file)
@@ -60,7 +60,6 @@ int main(int argc, char *argv[])
 	ECS_IMPORT(world, EgPhysicsBox2d);
 	ECS_IMPORT(world, EgUi);
 	ECS_IMPORT(world, AppDraw);
-	ECS_IMPORT(world, AppDrawBox2d);
 
 	run_file(world, "config/EgButtons.flecs");
 	run_file(world, "config/tags.flecs");
@@ -89,15 +88,53 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
+	ecs_entity_t fps_label = ecs_lookup(world, "huds.root2d.fps_counter");
+	if (!fps_label) {
+		fprintf(stderr, "Failed to find FPS label\n");
+		ecs_fini(world);
+		return EXIT_FAILURE;
+	}
+
 #if 1
 	ecs_set(world, EcsWorld, EcsRest, {.port = 0});
 	printf("Flecs Explorer: %s\n", "https://www.flecs.dev/explorer/?page=rest&host=localhost");
 #endif
 
+	ecs_time_t fps_timer = {0};
+	ecs_time_measure(&fps_timer);
+	double fps_elapsed = 0.0;
+	double fps_reset_elapsed = 0.0;
+	double fps_min = 0.0;
+	double fps_max = 0.0;
+	unsigned int fps_frames = 0;
+
 	while (1) {
 		bool quit = ecs_progress(world, 1.0f / 60.0f);
 		if (!quit) {
 			break;
+		}
+		fps_elapsed += ecs_time_measure(&fps_timer);
+		fps_frames++;
+		if (fps_elapsed >= 0.5) {
+			double fps = fps_frames / fps_elapsed;
+			fps_reset_elapsed += fps_elapsed;
+			if (fps_min == 0.0 || fps_reset_elapsed >= 10.0) {
+				fps_min = fps;
+				fps_max = fps;
+				fps_reset_elapsed = 0.0;
+			} else {
+				if (fps < fps_min) {
+					fps_min = fps;
+				}
+				if (fps > fps_max) {
+					fps_max = fps;
+				}
+			}
+			char text[128];
+			snprintf(text, sizeof(text), "FPS: %.1f  Min: %.1f  Max: %.1f", fps, fps_min, fps_max);
+			ecs_set(world, fps_label, EgBaseText, {.value = text});
+			fps_elapsed = 0.0;
+			fps_frames = 0;
 		}
 		if (ecs_has(world, e_window, EgWindowsCloseRequest)) {
 			printf("Window should close\n");
