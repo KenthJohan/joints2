@@ -12,7 +12,6 @@
 
 ECS_COMPONENT_DECLARE(AppDrawContext);
 ECS_COMPONENT_DECLARE(AppDrawContextCreate);
-ECS_COMPONENT_DECLARE(AppDrawNameAtPositionRule);
 
 static void Test_Render(ecs_iter_t *it)
 {
@@ -96,14 +95,6 @@ void AppDrawImport(ecs_world_t *world)
 	{.name = "render", .type = ecs_id(ecs_uptr_t)},
 	{.name = "list", .type = ecs_id(ecs_uptr_t)},
 	{.name = "pixelScale", .type = ecs_id(ecs_f32_t)},
-	}});
-
-	ecs_struct(world,
-	{.entity = ecs_id(AppDrawNameAtPositionRule),
-	.members = {
-	{.name = "term", .type = ecs_id(ecs_id_t)},
-	{.name = "draw_e", .type = ecs_id(ecs_id_t)},
-	{.name = "color", .type = ecs_id(ecs_u32_t)},
 	}});
 
 	ecs_system(world,
