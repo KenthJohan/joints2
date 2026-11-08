@@ -49,13 +49,18 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 
 		// The window system will call this render system using `ecs_run()` every frame
 		// by putting it as a child of the window entity.
-		ecs_system(it->world,
-		{.entity     = ecs_entity(it->world, {.parent = e_window}),
+		char name[256];
+		snprintf(name, sizeof(name), "Test_Render_%s", ecs_get_name(it->world, e));
+		ecs_entity_t sys = ecs_entity(it->world, {.name = name, .parent = e_window});
+		ecs_system_init(it->world,
+		&(ecs_system_desc_t){
+		.entity      = sys,
 		.callback    = Test_Render,
 		.query.terms = {
 		{.id = ecs_childof(e_window)},
 		{.id = ecs_id(AppDrawContext), .src.id = EcsSelf, .inout = EcsIn},
-		{.id = ecs_id(EgCamerasState), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn}}});
+		{.id = ecs_id(EgCamerasState), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
+		}});
 	}
 	ecs_log_set_level(-1);
 }
