@@ -50,7 +50,7 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 		// The window system will call this render system using `ecs_run()` every frame
 		// by putting it as a child of the window entity.
 		char name[256];
-		snprintf(name, sizeof(name), "Test_Render_%s", ecs_get_name(it->world, e));
+		snprintf(name, sizeof(name), "System_%s", ecs_get_name(it->world, e));
 		ecs_entity_t sys = ecs_entity(it->world, {.name = name, .parent = e_window});
 		ecs_system_init(it->world,
 		&(ecs_system_desc_t){
