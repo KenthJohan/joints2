@@ -1,5 +1,4 @@
 #include "AppDraw.h"
-#include <assert.h>
 #include <EgWindows.h>
 #include <EgCameras.h>
 #include <EgSpatials.h>
@@ -8,7 +7,6 @@
 #include <EgShapedraw.h>
 #include <ecsx.h>
 #include <egg.h>
-#include <math.h>
 
 ECS_COMPONENT_DECLARE(AppDrawContext);
 ECS_COMPONENT_DECLARE(AppDrawContextCreate);
@@ -20,7 +18,7 @@ static void Test_Render(ecs_iter_t *it)
 	for (int i = 0; i < it->count; ++i, ++d) {
 		ecs_assert(d->render != NULL, ECS_INTERNAL_ERROR, NULL);
 		ecs_assert(d->list != NULL, ECS_INTERNAL_ERROR, NULL);
-		d->pixelScale = c0->pixelScale * 1.0f; // Keep the egg-scale near the camera-derived size.
+		d->pixelScale = c0->pixel_scale * 1.0f; // Keep the egg-scale near the camera-derived size.
 		EgShapedrawList_SetPixelScale(d->list, d->pixelScale);
 		egg_flush(d->render, d->list, (float *)&c0->vp);
 		EgShapedrawList_Clear(d->list);
@@ -30,9 +28,11 @@ static void Test_Render(ecs_iter_t *it)
 static void AppDrawContext_Create(ecs_iter_t *it)
 {
 	ecs_log_set_level(0);
-	AppDrawContextCreate *def      = ecs_field(it, AppDrawContextCreate, 0); // self
+	AppDrawContextCreate *def      = ecs_field_self(it, AppDrawContextCreate, 0);
 	ecs_entity_t          e_window = ecs_field_src(it, 1);
-	printf("window_entity: %s\n", ecs_get_name(it->world, e_window));
+
+	ecs_log(-1, "AppDrawContext_Create: '%s'", ecs_get_name(it->world, e_window));
+
 	for (int i = 0; i < it->count; ++i, ++def) {
 		ecs_entity_t     e      = it->entities[i];
 		egg_render_t    *render = egg_render_init();
@@ -52,6 +52,7 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 		char name[256];
 		snprintf(name, sizeof(name), "System_%s", ecs_get_name(it->world, e));
 		ecs_entity_t sys = ecs_entity(it->world, {.name = name, .parent = e_window});
+		ecs_log(-1, "create system: '%s'", ecs_get_name(it->world, sys));
 		ecs_system_init(it->world,
 		&(ecs_system_desc_t){
 		.entity      = sys,
