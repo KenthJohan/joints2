@@ -33,7 +33,7 @@
 #include <EgFs.h>
 #include <EgGlslang.h>
 #include <EgUi.h>
-#include <EgShapedraw.h>
+#include <EgDraws.h>
 #include <egmath.h>
 #include <box2d.h>
 #include <egg.h>

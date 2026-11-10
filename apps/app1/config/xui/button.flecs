@@ -3,7 +3,7 @@ module xui
 using flecs.script
 using eg.shapes
 using eg.ui
-using eg.shapedraw
+using eg.draws
 
 
 // Interaction base: tracks hover and whether `button` (flecs: 0=left, 1=middle, 2=right) is held.

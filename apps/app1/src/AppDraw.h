@@ -4,7 +4,7 @@
 
 typedef struct {
 	egg_render_t *render;
-	EgShapedrawList *list;
+	EgDraws_List *list;
 	float         pixelScale;
 } AppDrawContext;
 

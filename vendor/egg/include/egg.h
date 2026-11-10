@@ -1,5 +1,5 @@
 #pragma once
-#include <EgShapedraw.h>
+#include <EgDraws.h>
 
 typedef struct egg_render_t egg_render_t;
 
@@ -9,4 +9,4 @@ egg_render_t *egg_render_init(void);
 void egg_render_destroy(egg_render_t *render);
 
 // Draws every layer of `list` in ascending z order. Does not modify the list.
-void egg_flush(egg_render_t *render, const EgShapedrawList *list, const float *projectionMatrix);
+void egg_flush(egg_render_t *render, const EgDraws_List *list, const float *projectionMatrix);

@@ -3,7 +3,7 @@ module xui
 using flecs.script
 using eg.shapes
 using eg.ui
-using eg.shapedraw
+using eg.draws
 
 
 template Checkbox : Button {

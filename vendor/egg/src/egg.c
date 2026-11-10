@@ -9,7 +9,7 @@
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_opengl.h>
 
-typedef EgShapedrawVertex egg_vertex_t;
+typedef EgDraws_Vertex egg_vertex_t;
 
 typedef struct egg_render_t {
 	GLuint     vaoId;
@@ -108,7 +108,7 @@ static void sUploadAtlas(egg_render_t *egg, const unsigned char *bitmap)
 	glGenTextures(1, &egg->atlasTextureId);
 	glBindTexture(GL_TEXTURE_2D, egg->atlasTextureId);
 	glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, EG_SHAPEDRAW_ATLAS_WIDTH, EG_SHAPEDRAW_ATLAS_HEIGHT, 0, GL_RED, GL_UNSIGNED_BYTE, bitmap);
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RED, EG_DRAWS_ATLAS_WIDTH, EG_DRAWS_ATLAS_HEIGHT, 0, GL_RED, GL_UNSIGNED_BYTE, bitmap);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
 	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
@@ -151,7 +151,7 @@ egg_render_t *egg_render_init(void)
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindVertexArray(0);
 
-	const unsigned char *bitmap = EgShapedrawFont_GetBitmap();
+	const unsigned char *bitmap = EgDraws_Font_GetBitmap();
 	if (bitmap == NULL) {
 		egg_render_destroy(egg);
 		return NULL;
@@ -185,7 +185,7 @@ void egg_render_destroy(egg_render_t *egg)
 	free(egg);
 }
 
-void egg_flush(egg_render_t *egg, const EgShapedrawList *list, const float *projectionMatrix)
+void egg_flush(egg_render_t *egg, const EgDraws_List *list, const float *projectionMatrix)
 {
 	if (egg == NULL || egg->initialized == 0 || list == NULL) {
 		return;
@@ -202,7 +202,7 @@ void egg_flush(egg_render_t *egg, const EgShapedrawList *list, const float *proj
 
 	// Layers are drawn in index order so higher z lands on top.
 	for (int32_t li = 0; li < list->layerCount; ++li) {
-		const EgShapedrawLayer *l = &list->layers[li];
+		const EgDraws_Layer *l = &list->layers[li];
 		if (l->count == 0) {
 			continue;
 		}

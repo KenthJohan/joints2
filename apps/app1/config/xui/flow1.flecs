@@ -4,7 +4,7 @@ using flecs.script
 using eg.cameras
 using eg.shapes
 using eg.ui.flows
-using eg.shapedraw
+using eg.draws
 
 template Flow1 {
     prop camera: entity = cameras.cam_hud.mouse_unproject

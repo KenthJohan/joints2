@@ -8,7 +8,7 @@ using eg.ui
 using eg.ui.bounds
 using eg.ui.flows
 using eg.ui.freeforms
-using eg.shapedraw
+using eg.draws
 using eg.base
 
 // zero mass, zero velocity, may be manually moved
@@ -62,11 +62,11 @@ b2world {
     // Defines the physics world and its properties
     eg.physics.WorldDef : {gravity_x: 0, gravity_y: -10}
 
-    // Renders shapes from eg.shapedraw.List
+    // Renders shapes from eg.draws.List
     (flecs.core.DependsOn, eg.windows.window1.drawctx_1)
 
     // Collects all shapes for rendering
-    eg.shapedraw.List
+    eg.draws.List
 
     ground {
         WorldTransform3 : trs(0, -5, 0, 1, 1)

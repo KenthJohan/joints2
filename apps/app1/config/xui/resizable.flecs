@@ -5,7 +5,7 @@ using eg.shapes
 using eg.ui
 using eg.ui.bounds
 using eg.ui.freeforms
-using eg.shapedraw
+using eg.draws
 using eg.base
 
 // Makes a rectangle resizable by dragging four thin strips along its border.

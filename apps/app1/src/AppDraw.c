@@ -4,7 +4,7 @@
 #include <EgSpatials.h>
 #include <EgShapes.h>
 #include <EgBase.h>
-#include <EgShapedraw.h>
+#include <EgDraws.h>
 #include <ecsx.h>
 #include <egg.h>
 
@@ -19,9 +19,9 @@ static void Test_Render(ecs_iter_t *it)
 		ecs_assert(d->render != NULL, ECS_INTERNAL_ERROR, NULL);
 		ecs_assert(d->list != NULL, ECS_INTERNAL_ERROR, NULL);
 		d->pixelScale = c0->pixel_scale * 1.0f; // Keep the egg-scale near the camera-derived size.
-		EgShapedrawList_SetPixelScale(d->list, d->pixelScale);
+		EgDraws_List_SetPixelScale(d->list, d->pixelScale);
 		egg_flush(d->render, d->list, (float *)&c0->vp);
-		EgShapedrawList_Clear(d->list);
+		EgDraws_List_Clear(d->list);
 	}
 }
 
@@ -36,11 +36,11 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 	for (int i = 0; i < it->count; ++i, ++def) {
 		ecs_entity_t     e      = it->entities[i];
 		egg_render_t    *render = egg_render_init();
-		EgShapedrawList *list   = EgShapedrawList_Create();
+		EgDraws_List *list   = EgDraws_List_Create();
 		if (render == NULL || list == NULL) {
 			ecs_err("Failed to create render or draw context for entity %s", ecs_get_name(it->world, e));
 			egg_render_destroy(render);
-			EgShapedrawList_Destroy(list);
+			EgDraws_List_Destroy(list);
 			ecs_enable(it->world, e, false);
 			continue;
 		}
@@ -69,11 +69,11 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 static void AppDrawContext_Collect(ecs_iter_t *it)
 {
 	AppDrawContext  *d0 = ecs_field_shared(it, AppDrawContext, 0);
-	EgShapedrawList *l  = ecs_field_self(it, EgShapedrawList, 1);
+	EgDraws_List *l  = ecs_field_self(it, EgDraws_List, 1);
 	for (int i = 0; i < it->count; ++i, ++l) {
-		EgShapedrawList_Append(d0->list, l);
+		EgDraws_List_Append(d0->list, l);
 		// Per-entity lists tessellate pixel-sized thickness during collection, so they need the camera scale (applied next frame).
-		EgShapedrawList_SetPixelScale(l, d0->pixelScale);
+		EgDraws_List_SetPixelScale(l, d0->pixelScale);
 	}
 }
 
@@ -84,7 +84,7 @@ void AppDrawImport(ecs_world_t *world)
 	ECS_IMPORT(world, EgWindows);
 	ECS_IMPORT(world, EgSpatials);
 	ECS_IMPORT(world, EgBase);
-	ECS_IMPORT(world, EgShapedraw);
+	ecs_import(world, EgDraws_Import, "EgDraws");
 
 	ECS_COMPONENT_DEFINE(world, AppDrawContext);
 	ECS_COMPONENT_DEFINE(world, AppDrawContextCreate);
@@ -120,6 +120,6 @@ void AppDrawImport(ecs_world_t *world)
 	.callback    = AppDrawContext_Collect,
 	.query.terms = {
 	{.id = ecs_id(AppDrawContext), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
-	{.id = ecs_id(EgShapedrawList), .src.id = EcsSelf, .inout = EcsIn},
+	{.id = ecs_id(EgDraws_List), .src.id = EcsSelf, .inout = EcsIn},
 	}});
 }

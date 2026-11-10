@@ -4,7 +4,7 @@
     "value": {
         "language": "c",
         "public": true,
-        "use": ["EgShapedraw", "flecs"]
+        "use": ["EgDraws", "flecs"]
     },
     "lang.c": {
         "c-standard": "c17",
