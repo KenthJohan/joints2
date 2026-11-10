@@ -201,17 +201,19 @@ void egg_flush(egg_render_t *egg, const EgDraws_List *list, const float *project
 	glUniform1i(egg->atlasUniform, 0);
 
 	// Layers are drawn in index order so higher z lands on top.
-	for (int32_t li = 0; li < list->layerCount; ++li) {
-		const EgDraws_Layer *l = &list->layers[li];
-		if (l->count == 0) {
+	const gverts_t *layers = ecs_vec_first_t(&list->layers, gverts_t);
+	for (int32_t li = 0, layerCount = ecs_vec_count(&list->layers); li < layerCount; ++li) {
+		const ecs_vec_t *vertices = &layers[li].vertices;
+		int32_t count = ecs_vec_count(vertices);
+		if (count == 0) {
 			continue;
 		}
 
 		glBindVertexArray(egg->vaoId);
 		glBindBuffer(GL_ARRAY_BUFFER, egg->vboId);
 
-		glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(l->count * sizeof(egg_vertex_t)), l->data, GL_DYNAMIC_DRAW);
-		glDrawArrays(GL_TRIANGLES, 0, l->count);
+		glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(count * sizeof(egg_vertex_t)), ecs_vec_first(vertices), GL_DYNAMIC_DRAW);
+		glDrawArrays(GL_TRIANGLES, 0, count);
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
