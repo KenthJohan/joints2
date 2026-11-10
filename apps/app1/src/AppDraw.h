@@ -1,5 +1,6 @@
 #pragma once
 #include <flecs.h>
+#include <EgDraws.h>
 #include <egg.h>
 
 typedef struct {

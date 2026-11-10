@@ -20,7 +20,7 @@ static void Test_Render(ecs_iter_t *it)
 		ecs_assert(d->list != NULL, ECS_INTERNAL_ERROR, NULL);
 		d->pixelScale = c0->pixel_scale * 1.0f; // Keep the egg-scale near the camera-derived size.
 		EgDraws_List_SetPixelScale(d->list, d->pixelScale);
-		egg_flush(d->render, d->list, (float *)&c0->vp);
+		egg_flush(d->render, &d->list->layers, (float *)&c0->vp);
 		EgDraws_List_Clear(d->list);
 	}
 }

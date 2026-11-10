@@ -1,5 +1,6 @@
 #include "egg.h"
 
+#include <EgDraws.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -185,9 +186,9 @@ void egg_render_destroy(egg_render_t *egg)
 	free(egg);
 }
 
-void egg_flush(egg_render_t *egg, const EgDraws_List *list, const float *projectionMatrix)
+void egg_flush(egg_render_t *egg, const ecs_vec_t *layers, const float *projectionMatrix)
 {
-	if (egg == NULL || egg->initialized == 0 || list == NULL) {
+	if (egg == NULL || egg->initialized == 0 || layers == NULL) {
 		return;
 	}
 
@@ -201,9 +202,9 @@ void egg_flush(egg_render_t *egg, const EgDraws_List *list, const float *project
 	glUniform1i(egg->atlasUniform, 0);
 
 	// Layers are drawn in index order so higher z lands on top.
-	const gverts_t *layers = ecs_vec_first_t(&list->layers, gverts_t);
-	for (int32_t li = 0, layerCount = ecs_vec_count(&list->layers); li < layerCount; ++li) {
-		const ecs_vec_t *vertices = &layers[li].vertices;
+	const ecs_vec_t *layerVectors = ecs_vec_first_t(layers, ecs_vec_t);
+	for (int32_t li = 0, layerCount = ecs_vec_count(layers); li < layerCount; ++li) {
+		const ecs_vec_t *vertices = &layerVectors[li];
 		int32_t count = ecs_vec_count(vertices);
 		if (count == 0) {
 			continue;
