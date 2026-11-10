@@ -13,13 +13,13 @@
 typedef EgDraws_Vertex egg_vertex_t;
 
 typedef struct egg_render_t {
-	GLuint     vaoId;
-	GLuint     vboId;
-	GLuint     atlasTextureId;
-	GLuint     programId;
-	GLint      projectionUniform;
-	GLint      atlasUniform;
-	int        initialized;
+	GLuint vaoId;
+	GLuint vboId;
+	GLuint atlasTextureId;
+	GLuint programId;
+	GLint  projectionUniform;
+	GLint  atlasUniform;
+	int    initialized;
 } egg_render_t;
 
 static const char *kEggVertexShaderSource =
@@ -186,7 +186,7 @@ void egg_render_destroy(egg_render_t *egg)
 	free(egg);
 }
 
-void egg_flush(egg_render_t *egg, const ecs_vec_t *layers, const float *projectionMatrix)
+void egg_draw_layers(egg_render_t *egg, const ecs_vec_t *layers, const float *projectionMatrix)
 {
 	if (egg == NULL || egg->initialized == 0 || layers == NULL) {
 		return;
@@ -201,20 +201,30 @@ void egg_flush(egg_render_t *egg, const ecs_vec_t *layers, const float *projecti
 	glBindTexture(GL_TEXTURE_2D, egg->atlasTextureId);
 	glUniform1i(egg->atlasUniform, 0);
 
+	// Bind the VAO and VBO for this layer.
+	glBindVertexArray(egg->vaoId);
+	glBindBuffer(GL_ARRAY_BUFFER, egg->vboId);
+
 	// Layers are drawn in index order so higher z lands on top.
-	const ecs_vec_t *layerVectors = ecs_vec_first_t(layers, ecs_vec_t);
-	for (int32_t li = 0, layerCount = ecs_vec_count(layers); li < layerCount; ++li) {
-		const ecs_vec_t *vertices = &layerVectors[li];
-		int32_t count = ecs_vec_count(vertices);
-		if (count == 0) {
+	const ecs_vec_t *l = ecs_vec_first_t(layers, ecs_vec_t);
+
+	// Iterate over each layer and draw its vertices.
+	for (int32_t i = 0; i < ecs_vec_count(layers); ++i) {
+		const ecs_vec_t *v = &l[i];            // Current layer
+		const int32_t    n = ecs_vec_count(v); // Number of vertices in this layer
+
+		// Skip empty layers.
+		if (n == 0) {
 			continue;
 		}
 
-		glBindVertexArray(egg->vaoId);
-		glBindBuffer(GL_ARRAY_BUFFER, egg->vboId);
+		// Upload vertex data for this layer to the GPU.
+		const GLsizeiptr size = (GLsizeiptr)(n * sizeof(egg_vertex_t));
+		const void      *data = ecs_vec_first(v);
+		glBufferData(GL_ARRAY_BUFFER, size, data, GL_DYNAMIC_DRAW);
 
-		glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)(count * sizeof(egg_vertex_t)), ecs_vec_first(vertices), GL_DYNAMIC_DRAW);
-		glDrawArrays(GL_TRIANGLES, 0, count);
+		// Draw (nv) amount of vertices for this layer as triangles.
+		glDrawArrays(GL_TRIANGLES, 0, n);
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
