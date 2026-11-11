@@ -7,7 +7,9 @@ using eg.windows
 
 window1 {
     WindowCreateInfo : {debug: false, enable_opengl: true}
+    
     app.draw.GpuPicking
+
     Position2 : {0, 0}
     Rectangle : {1024, 1024}
     OpenGLContextCreate : {0}

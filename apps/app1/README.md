@@ -1,8 +1,8 @@
 # app1 GPU picking
 
 `app.draw.GpuPicking` on an OpenGL window enables the experimental EgDraws
-picking pass for that window. Without the tag, EgUi uses its existing CPU
-rectangle target selection. `huds.flecs` contains a `Button2` example.
+picking pass for that window. Without the tag, the window has no mouse picking;
+there is no CPU fallback. `huds.flecs` contains a `Button2` example.
 
 The pass stores the low 32 bits of each entity in a single-sample `GL_R32UI`
 texture. It draws all of the window's EgDraws contexts in their normal order,

@@ -28,7 +28,6 @@ template ResizeEdge : parent ResizeState {
     // EG_UI_EDGE_* mask: 1 left, 2 right, 4 bottom, 8 top
     prop edge: i32 = 2
     Element
-    eg.ui.local.mouse.Position
     eg.ui.script.events.Target
     mut hover = false
     mut grab = false

@@ -9,7 +9,6 @@ using eg.draws
 // Interaction base: tracks hover and whether `button` (flecs: 0=left, 1=middle, 2=right) is held.
 template Button {
     prop button: i32 = 0
-    eg.ui.local.mouse.Position
     eg.ui.script.events.Target
     mut hover = false
     mut held = false
