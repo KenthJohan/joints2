@@ -102,11 +102,11 @@ int main(int argc, char *argv[])
 
 	ecs_time_t fps_timer = {0};
 	ecs_time_measure(&fps_timer);
-	double fps_elapsed = 0.0;
-	double fps_reset_elapsed = 0.0;
-	double fps_min = 0.0;
-	double fps_max = 0.0;
-	unsigned int fps_frames = 0;
+	double       fps_elapsed       = 0.0;
+	double       fps_reset_elapsed = 0.0;
+	double       fps_min           = 0.0;
+	double       fps_max           = 0.0;
+	unsigned int fps_frames        = 0;
 
 	while (1) {
 		bool quit = ecs_progress(world, 1.0f / 60.0f);
@@ -119,8 +119,8 @@ int main(int argc, char *argv[])
 			double fps = fps_frames / fps_elapsed;
 			fps_reset_elapsed += fps_elapsed;
 			if (fps_min == 0.0 || fps_reset_elapsed >= 10.0) {
-				fps_min = fps;
-				fps_max = fps;
+				fps_min           = fps;
+				fps_max           = fps;
 				fps_reset_elapsed = 0.0;
 			} else {
 				if (fps < fps_min) {
@@ -134,7 +134,7 @@ int main(int argc, char *argv[])
 			snprintf(text, sizeof(text), "FPS: %.1f  Min: %.1f  Max: %.1f", fps, fps_min, fps_max);
 			ecs_set(world, fps_label, EgBaseText, {.value = text});
 			fps_elapsed = 0.0;
-			fps_frames = 0;
+			fps_frames  = 0;
 		}
 		if (ecs_has(world, e_window, EgWindowsCloseRequest)) {
 			printf("Window should close\n");

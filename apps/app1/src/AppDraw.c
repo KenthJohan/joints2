@@ -34,8 +34,8 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 	ecs_log(-1, "AppDrawContext_Create: '%s'", ecs_get_name(it->world, e_window));
 
 	for (int i = 0; i < it->count; ++i, ++def) {
-		ecs_entity_t     e      = it->entities[i];
-		egg_render_t    *render = egg_render_init();
+		ecs_entity_t  e      = it->entities[i];
+		egg_render_t *render = egg_render_init();
 		EgDraws_List *list   = EgDraws_List_Create();
 		if (render == NULL || list == NULL) {
 			ecs_err("Failed to create render or draw context for entity %s", ecs_get_name(it->world, e));
@@ -68,8 +68,8 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 
 static void AppDrawContext_Collect(ecs_iter_t *it)
 {
-	AppDrawContext  *d0 = ecs_field_shared(it, AppDrawContext, 0);
-	EgDraws_List *l  = ecs_field_self(it, EgDraws_List, 1);
+	AppDrawContext *d0 = ecs_field_shared(it, AppDrawContext, 0);
+	EgDraws_List   *l  = ecs_field_self(it, EgDraws_List, 1);
 	for (int i = 0; i < it->count; ++i, ++l) {
 		EgDraws_List_Append(d0->list, l);
 		// Per-entity lists tessellate pixel-sized thickness during collection, so they need the camera scale (applied next frame).
