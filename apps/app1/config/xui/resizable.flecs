@@ -29,6 +29,7 @@ template ResizeEdge : parent ResizeState {
     prop edge: i32 = 2
     Element
     eg.ui.script.events.Target
+    eg.ui.script.events.Capture
     mut hover = false
     mut grab = false
     if edge == 1 {
@@ -57,9 +58,11 @@ template ResizeEdge : parent ResizeState {
     }
     async {
         while true {
-            await on.press(this)
-            grab = true
-            active = edge
+            const e = await on.press(this)
+            if e.button == 0 {
+                grab = true
+                active = edge
+            }
         }
     }
     async {

@@ -34,6 +34,21 @@ The current Flecs input dispatcher does not deliver a release to the pressed
 entity when the pointer is over the background, so the example button's
 `held` state can remain set after dragging off and releasing.
 
+Resize handles opt into `eg.ui.script.events.Capture`. A left-button press
+captures that handle until release, so `on.drag` keeps bubbling to the
+rectangle even over other objects or outside the window. SDL mouse capture is
+requested for outside-window movement and released on completion. Losing
+window focus, closing the window, or disabling/removing the handle cancels the
+capture; backends without SDL capture support may not deliver outside-window
+motion. Other mouse buttons are ignored during the captured drag until they
+are released. If a handle is deleted mid-drag it cannot receive its release;
+its owner's script must clean up any state that outlives that handle.
+
+Flecs sees the captured handle as the target throughout the drag and release.
+Its hover therefore remains on the handle during capture, and its normal click
+event may also be delivered on release outside it (or on cancellation).
+Ordinary buttons do not opt in and retain their existing behavior.
+
 Enabling GPU picking installs app1's script-input `to_local` hook for ancestor
 coordinates. Flecs event hooks are world-wide and this replaces any hooks
 previously registered by the application.

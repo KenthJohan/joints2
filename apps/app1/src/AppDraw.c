@@ -52,6 +52,9 @@ ECS_COMPONENT_DECLARE(AppDrawPickState);
 typedef struct {
 	SDL_Window *focus;
 	uint8_t buttons[EG_BUTTONS_MOUSE_MAX];
+	ecs_entity_t capture_window;
+	SDL_Window *capture_sdl_window;
+	bool capture_enabled;
 } AppDrawPickInput;
 
 ECS_COMPONENT_DECLARE(AppDrawPickInput);
@@ -270,12 +273,86 @@ static void AppDraw_ToLocal(ecs_world_t *world, ecs_entity_t entity,
 	}
 }
 
+static bool AppDraw_CaptureBegin(ecs_world_t *world, void *ctx)
+{
+	(void)ctx;
+	SDL_Window *focus = SDL_GetMouseFocus();
+	AppDrawPickInput *input = ecs_singleton_ensure(world, AppDrawPickInput);
+	input->capture_window = 0;
+	input->capture_sdl_window = focus;
+	input->capture_enabled = false;
+	ecs_iter_t it = ecs_each_id(world, ecs_id(EgWindowsWindow));
+	ecs_iter_t *iter = &it;
+	while (ecs_each_next(iter)) {
+		const EgWindowsWindow *windows = ecs_field(iter, EgWindowsWindow, 0);
+		for (int32_t i = 0; i < it.count; ++i) {
+			if (windows[i].object == focus) input->capture_window = it.entities[i];
+		}
+	}
+	if (!focus || !input->capture_window) {
+		ecs_err("AppDraw: cannot capture mouse without a focused window");
+		return false;
+	}
+	input->capture_enabled = SDL_CaptureMouse(true);
+	if (!input->capture_enabled) ecs_err("AppDraw: cannot capture mouse: %s", SDL_GetError());
+	return input->capture_enabled;
+}
+
+static bool AppDraw_CaptureValid(ecs_world_t *world, void *ctx)
+{
+	(void)ctx;
+	const AppDrawPickInput *input = ecs_singleton_get(world, AppDrawPickInput);
+	if (!input || !input->capture_window || !ecs_is_alive(world, input->capture_window)) return false;
+	const EgWindowsWindow *window = ecs_get(world, input->capture_window, EgWindowsWindow);
+	if (!window || window->object != input->capture_sdl_window) return false;
+	SDL_WindowFlags flags = SDL_GetWindowFlags(input->capture_sdl_window);
+	return ecs_has_id(world, input->capture_window, AppDrawGpuPicking) &&
+		!ecs_has_id(world, input->capture_window, EcsDisabled) &&
+		!ecs_has_id(world, input->capture_window, EgWindowsCloseRequest) &&
+		SDL_GetKeyboardFocus() == input->capture_sdl_window &&
+		!(flags & (SDL_WINDOW_HIDDEN | SDL_WINDOW_MINIMIZED)) &&
+		(!input->capture_enabled || (flags & SDL_WINDOW_MOUSE_CAPTURE));
+}
+
+static void AppDraw_CaptureEnd(ecs_world_t *world, void *ctx)
+{
+	(void)ctx;
+	AppDrawPickInput *input = ecs_singleton_get_mut(world, AppDrawPickInput);
+	if (!input) return;
+	if (input->capture_enabled && !SDL_CaptureMouse(false)) {
+		ecs_err("AppDraw: cannot release mouse capture: %s", SDL_GetError());
+	}
+	input->capture_window = 0;
+	input->capture_sdl_window = NULL;
+	input->capture_enabled = false;
+}
+
 static bool AppDraw_PickMouse(ecs_world_t *world, ecs_entity_t *target,
 	float *screen_x, float *screen_y, void *ctx)
 {
 	(void)ctx;
 	SDL_Window *focus = SDL_GetMouseFocus();
 	AppDrawPickInput *input = ecs_singleton_ensure(world, AppDrawPickInput);
+	if (input->capture_window && AppDraw_CaptureValid(world, NULL)) {
+		SDL_Window *captured_window = input->capture_sdl_window;
+		float x, y;
+		if (SDL_GetMouseFocus() == captured_window) {
+			SDL_GetMouseState(&x, &y);
+		} else {
+			int wx, wy;
+			SDL_GetGlobalMouseState(&x, &y);
+			if (!SDL_GetWindowPosition(captured_window, &wx, &wy)) {
+				ecs_err("AppDraw: cannot get captured window position: %s", SDL_GetError());
+				return false;
+			}
+			x -= wx;
+			y -= wy;
+		}
+		*screen_x = x;
+		*screen_y = y;
+		*target = 0;
+		return true;
+	}
 	bool focus_changed = input->focus != focus;
 	input->focus = focus;
 	bool buttons_changed = false;
@@ -491,7 +568,12 @@ void AppDrawImport(ecs_world_t *world)
 	ECS_COMPONENT_DEFINE(world, AppDrawPickState);
 	ECS_COMPONENT_DEFINE(world, AppDrawPickInput);
 	ecs_set_hooks(world, AppDrawPickState, {.dtor = AppDrawPickState_dtor, .move = AppDrawPickState_move});
-	ecs_singleton_set(world, EgUiScriptEventsPicker, {.pick = AppDraw_PickMouse});
+	ecs_singleton_set(world, EgUiScriptEventsPicker, {
+		.pick = AppDraw_PickMouse,
+		.capture_begin = AppDraw_CaptureBegin,
+		.capture_valid = AppDraw_CaptureValid,
+		.capture_end = AppDraw_CaptureEnd
+	});
 
 	ecs_struct(world,
 	{.entity = ecs_id(AppDrawContextCreate),
