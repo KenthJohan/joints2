@@ -1,0 +1,22 @@
+{
+	"id": "egg_test",
+	"type": "application",
+	"value": {
+		"description": "OpenGL picking regression tests",
+		"public": false,
+		"use": ["egg", "EgDraws", "flecs"]
+	},
+	"test": {
+		"testsuites": [{
+			"id": "Picking",
+			"setup": true,
+			"teardown": true,
+			"testcases": ["test_integer_target"]
+		}]
+	},
+	"lang.c": {
+		"c-standard": "c11",
+		"cflags": ["-DGL_GLEXT_PROTOTYPES"],
+		"lib": ["egg", "EgDraws", "flecs", "SDL3", "GL"]
+	}
+}

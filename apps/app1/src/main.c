@@ -15,6 +15,7 @@
 #include <EgPhysicsBox2d.h>
 #include <EgUi.h>
 #include <EgBase.h>
+#include <EgButtons.h>
 
 #include "AppDraw.h"
 
@@ -88,6 +89,13 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
+	ecs_entity_t quit_binding = ecs_lookup(world, "keybindings.quit");
+	if (!quit_binding || !ecs_has(world, quit_binding, EgButtonsBinding)) {
+		fprintf(stderr, "Failed to find quit key binding\n");
+		ecs_fini(world);
+		return EXIT_FAILURE;
+	}
+
 	ecs_entity_t fps_label = ecs_lookup(world, "huds.root2d.fps_counter");
 	if (!fps_label) {
 		fprintf(stderr, "Failed to find FPS label\n");
@@ -111,6 +119,16 @@ int main(int argc, char *argv[])
 	while (1) {
 		bool quit = ecs_progress(world, 1.0f / 60.0f);
 		if (!quit) {
+			break;
+		}
+		EgButtonsBinding const *binding = ecs_get(world, quit_binding, EgButtonsBinding);
+		EgButtonsState *buttons = ecs_singleton_get_mut(world, EgButtonsState);
+		if (!binding || !buttons) {
+			fprintf(stderr, "Quit binding or button state is missing\n");
+			ecs_fini(world);
+			return EXIT_FAILURE;
+		}
+		if (EgButtonsState_get(buttons, (uint32_t)binding->button0) & binding->mask) {
 			break;
 		}
 		fps_elapsed += ecs_time_measure(&fps_timer);

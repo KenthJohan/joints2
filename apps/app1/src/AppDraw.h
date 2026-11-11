@@ -22,5 +22,6 @@ typedef struct {
 
 extern ECS_COMPONENT_DECLARE(AppDrawContext);
 extern ECS_COMPONENT_DECLARE(AppDrawContextCreate);
+extern ECS_TAG_DECLARE(AppDrawGpuPicking);
 
 void AppDrawImport(ecs_world_t *world);

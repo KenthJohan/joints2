@@ -8,11 +8,6 @@ quit {
         button0:SCANCODE_ESCAPE, 
         mask:BUTTON_PRESSED, 
     }
-    eg.buttons.ActionToggleEntity : {
-        entity:eg.windows.window1, 
-        relation:0, 
-        toggle:eg.windows.CloseRequest
-    }
 }
 
 
