@@ -1,0 +1,50 @@
+
+/* A friendly warning from bake.test
+ * ----------------------------------------------------------------------------
+ * This file is generated. To add/remove testcases modify the 'project.json' of
+ * the test project. ANY CHANGE TO THIS FILE IS LOST AFTER (RE)BUILDING!
+ * ----------------------------------------------------------------------------
+ */
+
+#include <bake_test.h>
+
+// Testsuite 'Snapshot'
+void Snapshot_setup(void);
+void Snapshot_teardown(void);
+void Snapshot_test_publish_and_invalidate(void);
+void Snapshot_test_live_eligibility(void);
+void Snapshot_test_on_demand(void);
+void Snapshot_test_multiple_windows(void);
+
+bake_test_case Snapshot_testcases[] = {
+    {
+        "test_publish_and_invalidate",
+        Snapshot_test_publish_and_invalidate
+    },
+    {
+        "test_live_eligibility",
+        Snapshot_test_live_eligibility
+    },
+    {
+        "test_on_demand",
+        Snapshot_test_on_demand
+    },
+    {
+        "test_multiple_windows",
+        Snapshot_test_multiple_windows
+    }
+};
+
+static bake_test_suite suites[] = {
+    {
+        "Snapshot",
+        Snapshot_setup,
+        Snapshot_teardown,
+        4,
+        Snapshot_testcases
+    }
+};
+
+int main(int argc, char *argv[]) {
+    return bake_test_run("AppDraw_test", argc, argv, suites, 1);
+}

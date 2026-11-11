@@ -157,3 +157,121 @@ void Picking_test_integer_target(void)
 	test_assert(egg_pick_target_read(target, 16, 16, &result));
 	test_assert(result == 0);
 }
+
+static void add_pixel(int layer_index, uint32_t id, int x, int y)
+{
+	add_quad(layer_index, id, 255);
+	ecs_vec_t *layer = ecs_vec_get_t(&layers, ecs_vec_t, layer_index);
+	EgDraws_Vertex *v = ecs_vec_first_t(layer, EgDraws_Vertex) + ecs_vec_count(layer) - 6;
+	float left = (float)x / 32.0f - 1.0f;
+	float right = (float)(x + 1) / 32.0f - 1.0f;
+	float bottom = (float)y / 32.0f - 1.0f;
+	float top = (float)(y + 1) / 32.0f - 1.0f;
+	for (int i = 0; i < 6; ++i) {
+		v[i].position[0] = v[i].position[0] < 0 ? left : right;
+		v[i].position[1] = v[i].position[1] < 0 ? bottom : top;
+	}
+}
+
+void Picking_test_region(void)
+{
+	const float identity[16] = {1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1};
+	uint32_t skipped = 77, result = 0;
+	// Input (32,31) corresponds to OpenGL pixel (32,32).
+	add_pixel(0, 11, 31, 32);
+	add_pixel(1, 22, 33, 32);
+	add_pixel(2, 33, 33, 33);
+	glViewport(2, 3, 10, 11);
+	glEnable(GL_SCISSOR_TEST);
+	glScissor(4, 5, 6, 7);
+	glColorMask(GL_FALSE, GL_TRUE, GL_FALSE, GL_TRUE);
+	glColorMaski(1, GL_TRUE, GL_FALSE, GL_TRUE, GL_FALSE);
+	glEnablei(GL_BLEND, 1);
+	test_assert(egg_pick_target_begin_region(target, 64, 64, 32, 31));
+	GLint old_draw;
+	glGetIntegerv(GL_DRAW_FRAMEBUFFER_BINDING, &old_draw);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, egg_pick_target_framebuffer(target));
+	glDrawBuffer(GL_NONE);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, (GLuint)old_draw);
+	GLint old_read;
+	glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &old_read);
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, egg_pick_target_framebuffer(target));
+	glReadBuffer(GL_NONE);
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, (GLuint)old_read);
+	test_assert(egg_pick_draw_layers(target, renderer, &layers, identity, selected, &skipped));
+	test_assert(egg_pick_target_read_region(target, &result));
+	test_int(result, 22); // Equidistant: later layer wins; diagonals are farther away.
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, egg_pick_target_framebuffer(target));
+	GLint read_buffer;
+	glGetIntegerv(GL_READ_BUFFER, &read_buffer);
+	test_int(read_buffer, GL_NONE);
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, (GLuint)old_read);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, egg_pick_target_framebuffer(target));
+	GLint draw_buffer;
+	glGetIntegerv(GL_DRAW_BUFFER0, &draw_buffer);
+	test_int(draw_buffer, GL_NONE);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, (GLuint)old_draw);
+	egg_render_t *second = egg_render_init();
+	test_assert(second != NULL);
+	ecs_vec_t second_layers = {0};
+	ecs_vec_t *second_layer = ecs_vec_append_t(NULL, &second_layers, ecs_vec_t);
+	ecs_vec_init_t(NULL, second_layer, EgDraws_Vertex, 0);
+	EgDraws_Vertex *second_vertices = ecs_vec_grow_t(NULL, second_layer, EgDraws_Vertex, 6);
+	ecs_vec_t *first_layer = ecs_vec_get_t(&layers, ecs_vec_t, 0);
+	memcpy(second_vertices, ecs_vec_first(first_layer), 6 * sizeof(*second_vertices));
+	for (int i = 0; i < 6; ++i) second_vertices[i].pick_id = 66;
+	test_assert(egg_pick_draw_layers(target, second, &second_layers, identity, selected, &skipped));
+	test_assert(egg_pick_target_read_region(target, &result));
+	test_int(result, 66); // Later draw context wins an equal-distance tie.
+	ecs_vec_fini_t(NULL, second_layer, EgDraws_Vertex);
+	ecs_vec_fini_t(NULL, &second_layers, ecs_vec_t);
+	egg_render_destroy(second);
+	GLint box[4], viewport[4];
+	GLboolean mask[4];
+	glGetIntegerv(GL_SCISSOR_BOX, box);
+	glGetIntegerv(GL_VIEWPORT, viewport);
+	glGetBooleanv(GL_COLOR_WRITEMASK, mask);
+	test_assert(glIsEnabled(GL_SCISSOR_TEST));
+	test_int(box[0], 4); test_int(box[1], 5); test_int(box[2], 6); test_int(box[3], 7);
+	test_int(viewport[0], 2); test_int(viewport[1], 3); test_int(viewport[2], 10); test_int(viewport[3], 11);
+	test_assert(!mask[0] && mask[1] && !mask[2] && mask[3]);
+	glGetBooleani_v(GL_COLOR_WRITEMASK, 1, mask);
+	test_assert(mask[0] && !mask[1] && mask[2] && !mask[3]);
+	test_assert(glIsEnabledi(GL_BLEND, 1));
+
+	add_pixel(0, 44, 32, 32);
+	test_assert(egg_pick_target_begin_region(target, 64, 64, 32, 31));
+	test_assert(egg_pick_draw_layers(target, renderer, &layers, identity, NULL, NULL));
+	test_assert(egg_pick_target_read_region(target, &result));
+	test_int(result, 44); // Center wins over later adjacent primitives.
+
+	// An unrelated region must be cleared instead of returning stale pixels.
+	test_assert(egg_pick_target_begin_region(target, 64, 64, 0, 0));
+	test_assert(egg_pick_draw_layers(target, renderer, &layers, identity, selected, &skipped));
+	test_assert(egg_pick_target_read_region(target, &result));
+	test_int(result, 0);
+	test_assert(!egg_pick_target_read(target, 32, 31, &result));
+	add_pixel(3, 55, 0, 63);
+	test_assert(egg_pick_target_begin_region(target, 64, 64, 0, 0));
+	test_assert(egg_pick_draw_layers(target, renderer, &layers, identity, selected, &skipped));
+	test_assert(egg_pick_target_read_region(target, &result));
+	test_int(result, 55);
+	add_pixel(3, 56, 63, 63);
+	add_pixel(3, 57, 0, 0);
+	add_pixel(3, 58, 63, 0);
+	const int corners[3][3] = {{63,0,56}, {0,63,57}, {63,63,58}};
+	for (int i = 0; i < 3; ++i) {
+		test_assert(egg_pick_target_begin_region(target, 64, 64, corners[i][0], corners[i][1]));
+		test_assert(egg_pick_draw_layers(target, renderer, &layers, identity, selected, &skipped));
+		test_assert(egg_pick_target_read_region(target, &result));
+		test_int(result, corners[i][2]);
+	}
+	glDisable(GL_SCISSOR_TEST);
+	test_assert(egg_pick_target_begin_region(target, 64, 64, 63, 63));
+	test_assert(egg_pick_draw_layers(target, renderer, &layers, identity, selected, &skipped));
+	test_assert(!glIsEnabled(GL_SCISSOR_TEST));
+	test_assert(!egg_pick_target_begin_region(target, 64, 64, 64, 0));
+	glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+	glDisablei(GL_BLEND, 1);
+	glDisable(GL_SCISSOR_TEST);
+}

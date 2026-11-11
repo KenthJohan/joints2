@@ -22,6 +22,7 @@ typedef struct egg_render_t {
 	GLint  atlasUniform;
 	GLint  pickProjectionUniform;
 	GLint  pickAtlasUniform;
+	GLint  pickOrderUniform;
 	int    initialized;
 } egg_render_t;
 
@@ -32,6 +33,10 @@ struct egg_pick_target_t {
 	int width;
 	int height;
 	int valid;
+	int region_x, region_y, region_w, region_h;
+	int center_x, center_y;
+	uint32_t next_order;
+	bool region_mode;
 };
 
 static const char *kEggVertexShaderSource =
@@ -82,10 +87,11 @@ static const char *kEggPickFragmentShaderSource =
 "flat in vec4 f_color;\n"
 "flat in uint f_id;\n"
 "uniform sampler2D atlasTexture;\n"
-"layout(location = 0) out uint pickId;\n"
+"uniform uint orderBase;\n"
+"layout(location = 0) out uvec2 pickValue;\n"
 "void main(void) {\n"
 "    if (f_id == 0u || f_color.a * texture(atlasTexture, f_uv).r <= 0.0) discard;\n"
-"    pickId = f_id;\n"
+"    pickValue = uvec2(f_id, orderBase + uint(gl_PrimitiveID));\n"
 "}\n";
 
 static GLuint sCompileShader(GLenum type, const char *source)
@@ -182,6 +188,7 @@ egg_render_t *egg_render_init(void)
 	egg->atlasUniform      = glGetUniformLocation(egg->programId, "atlasTexture");
 	egg->pickProjectionUniform = glGetUniformLocation(egg->pickProgramId, "projectionMatrix");
 	egg->pickAtlasUniform = glGetUniformLocation(egg->pickProgramId, "atlasTexture");
+	egg->pickOrderUniform = glGetUniformLocation(egg->pickProgramId, "orderBase");
 
 	glGenVertexArrays(1, &egg->vaoId);
 	glGenBuffers(1, &egg->vboId);
@@ -316,9 +323,13 @@ void egg_pick_target_destroy(egg_pick_target_t *target)
 	free(target);
 }
 
-bool egg_pick_target_begin(egg_pick_target_t *target, int width, int height)
+static bool sPickBegin(egg_pick_target_t *target, int width, int height,
+	int x, int y, int region_width, int region_height)
 {
-	if (!target || width <= 0 || height <= 0) {
+	if (!target || width <= 0 || height <= 0 || x < 0 || y < 0 ||
+		region_width <= 0 || region_height <= 0 || x > width - region_width ||
+		y > height - region_height) {
+		fprintf(stderr, "egg: invalid picking target dimensions\n");
 		if (target) target->valid = 0;
 		return false;
 	}
@@ -328,10 +339,13 @@ bool egg_pick_target_begin(egg_pick_target_t *target, int width, int height)
 	glGetIntegerv(GL_PIXEL_UNPACK_BUFFER_BINDING, &old_unpack);
 	glGetIntegerv(GL_RENDERBUFFER_BINDING, &old_renderbuffer);
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, target->framebuffer);
+	GLint target_draw_buffer;
+	glGetIntegerv(GL_DRAW_BUFFER0, &target_draw_buffer);
+	glDrawBuffer(GL_COLOR_ATTACHMENT0);
 	if (width != target->width || height != target->height) {
 		glBindTexture(GL_TEXTURE_2D, target->texture);
 		glBindBuffer(GL_PIXEL_UNPACK_BUFFER, 0);
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_R32UI, width, height, 0, GL_RED_INTEGER, GL_UNSIGNED_INT, NULL);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RG32UI, width, height, 0, GL_RG_INTEGER, GL_UNSIGNED_INT, NULL);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
 		glFramebufferTexture2D(GL_DRAW_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, target->texture, 0);
@@ -350,18 +364,28 @@ bool egg_pick_target_begin(egg_pick_target_t *target, int width, int height)
 		GLboolean scissor = glIsEnabled(GL_SCISSOR_TEST);
 		GLboolean mask[4];
 		GLboolean depth_mask;
-		glGetBooleanv(GL_COLOR_WRITEMASK, mask);
+		GLint scissor_box[4];
+		glGetIntegerv(GL_SCISSOR_BOX, scissor_box);
+		glGetBooleani_v(GL_COLOR_WRITEMASK, 0, mask);
 		glGetBooleanv(GL_DEPTH_WRITEMASK, &depth_mask);
-		glDisable(GL_SCISSOR_TEST);
-		glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+		glEnable(GL_SCISSOR_TEST);
+		glScissor(x, y, region_width, region_height);
+		glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 		glDepthMask(GL_TRUE);
 		const GLuint zero[4] = {0, 0, 0, 0};
 		const GLfloat depth = 1.0f;
 		glClearBufferuiv(GL_COLOR, 0, zero);
 		glClearBufferfv(GL_DEPTH, 0, &depth);
-		glColorMask(mask[0], mask[1], mask[2], mask[3]);
+		glColorMaski(0, mask[0], mask[1], mask[2], mask[3]);
 		glDepthMask(depth_mask);
-		if (scissor) glEnable(GL_SCISSOR_TEST);
+		glScissor(scissor_box[0], scissor_box[1], scissor_box[2], scissor_box[3]);
+		if (!scissor) glDisable(GL_SCISSOR_TEST);
+		target->region_x = x;
+		target->region_y = y;
+		target->region_w = region_width;
+		target->region_h = region_height;
+		target->next_order = 1;
+		target->region_mode = false;
 		target->valid = 1;
 	}
 	GLenum error = glGetError();
@@ -373,8 +397,33 @@ bool egg_pick_target_begin(egg_pick_target_t *target, int width, int height)
 	glBindTexture(GL_TEXTURE_2D, (GLuint)old_texture);
 	glBindBuffer(GL_PIXEL_UNPACK_BUFFER, (GLuint)old_unpack);
 	glBindRenderbuffer(GL_RENDERBUFFER, (GLuint)old_renderbuffer);
+	glDrawBuffer((GLenum)target_draw_buffer);
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, (GLuint)old_draw);
 	return target->valid != 0;
+}
+
+bool egg_pick_target_begin(egg_pick_target_t *target, int width, int height)
+{
+	return sPickBegin(target, width, height, 0, 0, width, height);
+}
+
+bool egg_pick_target_begin_region(egg_pick_target_t *target, int width, int height, int x, int y)
+{
+	if (!target || width <= 0 || height <= 0 || x < 0 || y < 0 || x >= width || y >= height) {
+		fprintf(stderr, "egg: invalid picking region\n");
+		if (target) target->valid = 0;
+		return false;
+	}
+	int gl_y = height - 1 - y;
+	int left = x > 0 ? x - 1 : 0;
+	int bottom = gl_y > 0 ? gl_y - 1 : 0;
+	int right = x < width - 1 ? x + 1 : x;
+	int top = gl_y < height - 1 ? gl_y + 1 : gl_y;
+	if (!sPickBegin(target, width, height, left, bottom, right - left + 1, top - bottom + 1)) return false;
+	target->center_x = x;
+	target->center_y = gl_y;
+	target->region_mode = true;
+	return true;
 }
 
 uint32_t egg_pick_target_framebuffer(const egg_pick_target_t *target)
@@ -385,7 +434,7 @@ uint32_t egg_pick_target_framebuffer(const egg_pick_target_t *target)
 bool egg_pick_draw_layers(egg_pick_target_t *target, egg_render_t *egg,
 	const ecs_vec_t *layers, const float *projectionMatrix, egg_pick_filter_t filter, void *ctx)
 {
-	if (!target || !target->valid || !egg || !egg->initialized || !layers || !projectionMatrix || !filter) {
+	if (!target || !target->valid || !egg || !egg->initialized || !layers || !projectionMatrix) {
 		fprintf(stderr, "egg: invalid picking draw arguments\n");
 		return false;
 	}
@@ -398,12 +447,23 @@ bool egg_pick_draw_layers(egg_pick_target_t *target, egg_render_t *egg,
 	glGetIntegerv(GL_ACTIVE_TEXTURE, &active);
 	glActiveTexture(GL_TEXTURE0);
 	glGetIntegerv(GL_TEXTURE_BINDING_2D, &texture);
-	GLboolean blend = glIsEnabled(GL_BLEND);
+	GLboolean blend = glIsEnabledi(GL_BLEND, 0);
 	GLboolean depth = glIsEnabled(GL_DEPTH_TEST);
+	GLboolean scissor = glIsEnabled(GL_SCISSOR_TEST);
+	GLboolean color_mask[4];
+	GLint scissor_box[4];
+	glGetIntegerv(GL_SCISSOR_BOX, scissor_box);
+	glGetBooleani_v(GL_COLOR_WRITEMASK, 0, color_mask);
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, target->framebuffer);
+	GLint target_draw_buffer;
+	glGetIntegerv(GL_DRAW_BUFFER0, &target_draw_buffer);
+	glDrawBuffer(GL_COLOR_ATTACHMENT0);
 	glViewport(0, 0, target->width, target->height);
-	glDisable(GL_BLEND);
+	glEnable(GL_SCISSOR_TEST);
+	glScissor(target->region_x, target->region_y, target->region_w, target->region_h);
+	glDisablei(GL_BLEND, 0);
 	glDisable(GL_DEPTH_TEST);
+	glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 	glUseProgram(egg->pickProgramId);
 	glUniformMatrix4fv(egg->pickProjectionUniform, 1, GL_FALSE, projectionMatrix);
 	glBindTexture(GL_TEXTURE_2D, egg->atlasTextureId);
@@ -416,21 +476,34 @@ bool egg_pick_draw_layers(egg_pick_target_t *target, egg_render_t *egg,
 	for (int32_t i = 0; i < ecs_vec_count(layers); ++i) {
 		int32_t n = ecs_vec_count(&l[i]);
 		if (!n) continue;
-		size_t size = (size_t)n * sizeof(egg_vertex_t);
-		egg_vertex_t *vertices = malloc(size);
-		if (!vertices) {
-			fprintf(stderr, "egg: failed to allocate picking vertices\n");
+		uint32_t primitives = (uint32_t)n / 3;
+		if (primitives > UINT32_MAX - target->next_order) {
+			fprintf(stderr, "egg: picking draw order overflow\n");
 			success = false;
 			break;
 		}
-		memcpy(vertices, ecs_vec_first(&l[i]), size);
-		for (int32_t j = 0; j < n; ++j) {
-			if (vertices[j].pick_id && !filter(vertices[j].pick_id, ctx)) {
-				vertices[j].pick_id = 0;
+		size_t size = (size_t)n * sizeof(egg_vertex_t);
+		const egg_vertex_t *data = ecs_vec_first(&l[i]);
+		egg_vertex_t *vertices = NULL;
+		if (filter) {
+			vertices = malloc(size);
+			if (!vertices) {
+				fprintf(stderr, "egg: failed to allocate picking vertices\n");
+				success = false;
+				break;
 			}
+			memcpy(vertices, data, size);
+			for (int32_t j = 0; j < n; ++j) {
+				if (vertices[j].pick_id && !filter(vertices[j].pick_id, ctx)) {
+					vertices[j].pick_id = 0;
+				}
+			}
+			data = vertices;
 		}
-		glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)size, vertices, GL_DYNAMIC_DRAW);
+		glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)size, data, GL_DYNAMIC_DRAW);
+		glUniform1ui(egg->pickOrderUniform, target->next_order);
 		glDrawArrays(GL_TRIANGLES, 0, n);
+		target->next_order += primitives;
 		free(vertices);
 		GLenum error = glGetError();
 		if (error != GL_NO_ERROR) {
@@ -440,9 +513,13 @@ bool egg_pick_draw_layers(egg_pick_target_t *target, egg_render_t *egg,
 		}
 	}
 	if (!success) target->valid = 0;
+	glDrawBuffer((GLenum)target_draw_buffer);
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, (GLuint)framebuffer);
 	glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
-	if (blend) glEnable(GL_BLEND);
+	glScissor(scissor_box[0], scissor_box[1], scissor_box[2], scissor_box[3]);
+	if (!scissor) glDisable(GL_SCISSOR_TEST);
+	glColorMaski(0, color_mask[0], color_mask[1], color_mask[2], color_mask[3]);
+	if (blend) glEnablei(GL_BLEND, 0);
 	if (depth) glEnable(GL_DEPTH_TEST);
 	glBindVertexArray((GLuint)vao);
 	glBindBuffer(GL_ARRAY_BUFFER, (GLuint)buffer);
@@ -454,10 +531,14 @@ bool egg_pick_draw_layers(egg_pick_target_t *target, egg_render_t *egg,
 
 bool egg_pick_target_read(egg_pick_target_t *target, int x, int y, uint32_t *id)
 {
-	if (!target || !target->valid || !id || x < 0 || y < 0 || x >= target->width || y >= target->height) {
+	if (!target || !target->valid || !id || x < 0 || y < 0 || x >= target->width || y >= target->height ||
+		x < target->region_x || x >= target->region_x + target->region_w ||
+		target->height - 1 - y < target->region_y ||
+		target->height - 1 - y >= target->region_y + target->region_h) {
+		fprintf(stderr, "egg: invalid picking pixel read\n");
 		return false;
 	}
-	GLint framebuffer, pack, alignment, row_length, skip_rows, skip_pixels, swap_bytes;
+	GLint framebuffer, pack, alignment, row_length, skip_rows, skip_pixels, swap_bytes, read_buffer;
 	glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &framebuffer);
 	glGetIntegerv(GL_PIXEL_PACK_BUFFER_BINDING, &pack);
 	glGetIntegerv(GL_PACK_ALIGNMENT, &alignment);
@@ -466,6 +547,8 @@ bool egg_pick_target_read(egg_pick_target_t *target, int x, int y, uint32_t *id)
 	glGetIntegerv(GL_PACK_SKIP_PIXELS, &skip_pixels);
 	glGetIntegerv(GL_PACK_SWAP_BYTES, &swap_bytes);
 	glBindFramebuffer(GL_READ_FRAMEBUFFER, target->framebuffer);
+	glGetIntegerv(GL_READ_BUFFER, &read_buffer);
+	glReadBuffer(GL_COLOR_ATTACHMENT0);
 	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
 	glPixelStorei(GL_PACK_ALIGNMENT, 1);
 	glPixelStorei(GL_PACK_ROW_LENGTH, 0);
@@ -473,6 +556,7 @@ bool egg_pick_target_read(egg_pick_target_t *target, int x, int y, uint32_t *id)
 	glPixelStorei(GL_PACK_SKIP_PIXELS, 0);
 	glPixelStorei(GL_PACK_SWAP_BYTES, GL_FALSE);
 	glReadPixels(x, target->height - 1 - y, 1, 1, GL_RED_INTEGER, GL_UNSIGNED_INT, id);
+	glReadBuffer((GLenum)read_buffer);
 	glPixelStorei(GL_PACK_ALIGNMENT, alignment);
 	glPixelStorei(GL_PACK_ROW_LENGTH, row_length);
 	glPixelStorei(GL_PACK_SKIP_ROWS, skip_rows);
@@ -485,6 +569,66 @@ bool egg_pick_target_read(egg_pick_target_t *target, int x, int y, uint32_t *id)
 		fprintf(stderr, "egg: OpenGL error reading picking target: 0x%x\n", (unsigned)error);
 		target->valid = 0;
 		return false;
+	}
+	return true;
+}
+
+bool egg_pick_target_read_region(egg_pick_target_t *target, uint32_t *id)
+{
+	if (!target || !target->valid || !target->region_mode || !id) {
+		fprintf(stderr, "egg: invalid picking region read\n");
+		return false;
+	}
+	GLint framebuffer, pack, alignment, row_length, skip_rows, skip_pixels, swap_bytes, read_buffer;
+	glGetIntegerv(GL_READ_FRAMEBUFFER_BINDING, &framebuffer);
+	glGetIntegerv(GL_PIXEL_PACK_BUFFER_BINDING, &pack);
+	glGetIntegerv(GL_PACK_ALIGNMENT, &alignment);
+	glGetIntegerv(GL_PACK_ROW_LENGTH, &row_length);
+	glGetIntegerv(GL_PACK_SKIP_ROWS, &skip_rows);
+	glGetIntegerv(GL_PACK_SKIP_PIXELS, &skip_pixels);
+	glGetIntegerv(GL_PACK_SWAP_BYTES, &swap_bytes);
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, target->framebuffer);
+	glGetIntegerv(GL_READ_BUFFER, &read_buffer);
+	glReadBuffer(GL_COLOR_ATTACHMENT0);
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, 0);
+	glPixelStorei(GL_PACK_ALIGNMENT, 1);
+	glPixelStorei(GL_PACK_ROW_LENGTH, 0);
+	glPixelStorei(GL_PACK_SKIP_ROWS, 0);
+	glPixelStorei(GL_PACK_SKIP_PIXELS, 0);
+	glPixelStorei(GL_PACK_SWAP_BYTES, GL_FALSE);
+	uint32_t pixels[3 * 3 * 2] = {0};
+	glReadPixels(target->region_x, target->region_y, target->region_w, target->region_h,
+		GL_RG_INTEGER, GL_UNSIGNED_INT, pixels);
+	glReadBuffer((GLenum)read_buffer);
+	glPixelStorei(GL_PACK_ALIGNMENT, alignment);
+	glPixelStorei(GL_PACK_ROW_LENGTH, row_length);
+	glPixelStorei(GL_PACK_SKIP_ROWS, skip_rows);
+	glPixelStorei(GL_PACK_SKIP_PIXELS, skip_pixels);
+	glPixelStorei(GL_PACK_SWAP_BYTES, swap_bytes);
+	glBindBuffer(GL_PIXEL_PACK_BUFFER, (GLuint)pack);
+	glBindFramebuffer(GL_READ_FRAMEBUFFER, (GLuint)framebuffer);
+	GLenum error = glGetError();
+	if (error != GL_NO_ERROR) {
+		fprintf(stderr, "egg: OpenGL error reading picking region: 0x%x\n", (unsigned)error);
+		target->valid = 0;
+		return false;
+	}
+	*id = 0;
+	int best_distance = 3;
+	uint32_t best_order = 0;
+	for (int y = 0; y < target->region_h; ++y) {
+		for (int x = 0; x < target->region_w; ++x) {
+			int index = (y * target->region_w + x) * 2;
+			int dx = target->region_x + x - target->center_x;
+			int dy = target->region_y + y - target->center_y;
+			int distance = dx * dx + dy * dy;
+			if (pixels[index] && (distance < best_distance ||
+				(distance == best_distance && pixels[index + 1] > best_order))) {
+				*id = pixels[index];
+				best_distance = distance;
+				best_order = pixels[index + 1];
+			}
+		}
 	}
 	return true;
 }

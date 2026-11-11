@@ -1,36 +1,78 @@
 #include "AppDraw.h"
 #include <EgWindows.h>
+#include <EgWindowsSdlGl.h>
 #include <EgCameras.h>
 #include <EgSpatials.h>
 #include <EgShapes.h>
 #include <EgBase.h>
 #include <EgDraws.h>
 #include <EgUi.h>
+#include <EgButtons.h>
 #include <ecsx.h>
 #include <egg.h>
 #include <SDL3/SDL.h>
+#include <stdlib.h>
+#include <string.h>
 
 ECS_COMPONENT_DECLARE(AppDrawContext);
 ECS_COMPONENT_DECLARE(AppDrawContextCreate);
 ECS_TAG_DECLARE(AppDrawGpuPicking);
 
 typedef struct {
+	egg_render_t *render;
+	EgDraws_List *list;
+	float projection[16];
+	uint32_t *ids;
+	size_t id_count;
+	size_t id_capacity;
+} AppDrawPickBatch;
+
+typedef struct {
+	AppDrawPickBatch *batches;
+	size_t count;
+	size_t capacity;
+	int64_t frame;
+	int width, height;
+	bool valid;
+} AppDrawPickScene;
+
+typedef struct {
 	egg_pick_target_t *target;
 	SDL_Window *window;
 	SDL_GLContext gl_context;
-	int64_t frame;
-	int width;
-	int height;
-	bool valid;
+	AppDrawPickScene shown;
+	AppDrawPickScene building;
+	float mouse_x, mouse_y;
+	uint32_t cached_id;
+	bool cached;
 } AppDrawPickState;
 
 ECS_COMPONENT_DECLARE(AppDrawPickState);
+
+typedef struct {
+	SDL_Window *focus;
+	uint8_t buttons[EG_BUTTONS_MOUSE_MAX];
+} AppDrawPickInput;
+
+ECS_COMPONENT_DECLARE(AppDrawPickInput);
+
+static void AppDrawPickScene_free(AppDrawPickScene *scene)
+{
+	for (size_t i = 0; i < scene->capacity; ++i) {
+		EgDraws_List_Destroy(scene->batches[i].list);
+		free(scene->batches[i].ids);
+	}
+	free(scene->batches);
+	*scene = (AppDrawPickScene){0};
+}
 
 static void AppDrawPickState_dtor(void *ptr, int32_t count, const ecs_type_info_t *ti)
 {
 	(void)ti;
 	AppDrawPickState *states = ptr;
 	for (int32_t i = 0; i < count; ++i) {
+		AppDrawPickScene_free(&states[i].shown);
+		AppDrawPickScene_free(&states[i].building);
 		if (!states[i].target) continue;
 		SDL_Window *previous_window = SDL_GL_GetCurrentWindow();
 		SDL_GLContext previous_context = SDL_GL_GetCurrentContext();
@@ -67,6 +109,154 @@ static bool AppDraw_IsPickable(uint32_t id, void *ctx)
 	return true;
 }
 
+static bool AppDrawPickScene_add(AppDrawPickScene *scene, egg_render_t *render,
+	const EgDraws_List *list, const float *projection, ecs_world_t *world)
+{
+	if (scene->count == scene->capacity) {
+		size_t capacity = scene->capacity ? scene->capacity * 2 : 4;
+		AppDrawPickBatch *batches = realloc(scene->batches, capacity * sizeof(*batches));
+		if (!batches) {
+			ecs_err("AppDraw: cannot allocate picking batches");
+			return false;
+		}
+		memset(batches + scene->capacity, 0, (capacity - scene->capacity) * sizeof(*batches));
+		scene->batches = batches;
+		scene->capacity = capacity;
+	}
+	AppDrawPickBatch *batch = &scene->batches[scene->count++];
+	if (!batch->list) batch->list = EgDraws_List_Create();
+	if (!batch->list) {
+		ecs_err("AppDraw: cannot allocate picking list");
+		return false;
+	}
+	batch->render = render;
+	memcpy(batch->projection, projection, sizeof(batch->projection));
+	EgDraws_List_Clear(batch->list);
+	const ecs_vec_t *layers = ecs_vec_first_t(&list->layers, ecs_vec_t);
+	size_t total = 0;
+	for (int32_t i = 0; i < ecs_vec_count(&list->layers); ++i) total += (size_t)ecs_vec_count(&layers[i]);
+	if (total > batch->id_capacity) {
+		uint32_t *ids = realloc(batch->ids, total * sizeof(*ids));
+		if (!ids) {
+			ecs_err("AppDraw: cannot allocate picking IDs");
+			return false;
+		}
+		batch->ids = ids;
+		batch->id_capacity = total;
+	}
+	batch->id_count = total;
+	size_t offset = 0;
+	uint32_t last_id = 0, last_eligible = 0;
+	for (int32_t i = 0; i < ecs_vec_count(&list->layers); ++i) {
+		int32_t count = ecs_vec_count(&layers[i]);
+		if (!count) continue;
+		ecs_vec_t *dst = EgDraws_List_GetLayer(batch->list, i);
+		if (!dst) {
+			ecs_err("AppDraw: cannot allocate picking layer");
+			return false;
+		}
+		EgDraws_Vertex *vertices = ecs_vec_grow_t(NULL, dst, EgDraws_Vertex, count);
+		if (!vertices) {
+			ecs_err("AppDraw: cannot allocate picking vertices");
+			return false;
+		}
+		memcpy(vertices, ecs_vec_first(&layers[i]), (size_t)count * sizeof(*vertices));
+		for (int32_t j = 0; j < count; ++j) {
+			uint32_t id = vertices[j].pick_id;
+			batch->ids[offset++] = id;
+			if (id != last_id) {
+				last_id = id;
+				last_eligible = id && AppDraw_IsPickable(id, world) ? id : 0;
+			}
+			vertices[j].pick_id = last_eligible;
+		}
+	}
+	return true;
+}
+
+static bool AppDrawPickScene_equal(const AppDrawPickScene *a, const AppDrawPickScene *b)
+{
+	if (!a->valid || !b->valid || a->width != b->width || a->height != b->height || a->count != b->count) return false;
+	for (size_t i = 0; i < a->count; ++i) {
+		const AppDrawPickBatch *x = &a->batches[i], *y = &b->batches[i];
+		if (x->render != y->render || x->id_count != y->id_count ||
+			memcmp(x->projection, y->projection, sizeof(x->projection)) ||
+			(x->id_count && memcmp(x->ids, y->ids, x->id_count * sizeof(*x->ids)))) return false;
+		const ecs_vec_t *xl = ecs_vec_first_t(&x->list->layers, ecs_vec_t);
+		const ecs_vec_t *yl = ecs_vec_first_t(&y->list->layers, ecs_vec_t);
+		int32_t xc = ecs_vec_count(&x->list->layers), yc = ecs_vec_count(&y->list->layers);
+		int32_t layers = xc > yc ? xc : yc;
+		for (int32_t j = 0; j < layers; ++j) {
+			int32_t xn = j < xc ? ecs_vec_count(&xl[j]) : 0;
+			int32_t yn = j < yc ? ecs_vec_count(&yl[j]) : 0;
+			if (xn != yn || (xn && memcmp(ecs_vec_first(&xl[j]), ecs_vec_first(&yl[j]),
+				(size_t)xn * sizeof(EgDraws_Vertex)))) return false;
+		}
+	}
+	return true;
+}
+
+static bool AppDrawPickScene_update_eligibility(AppDrawPickScene *scene, ecs_world_t *world)
+{
+	bool changed = false;
+	for (size_t i = 0; i < scene->count; ++i) {
+		AppDrawPickBatch *batch = &scene->batches[i];
+		ecs_vec_t *layers = ecs_vec_first_t(&batch->list->layers, ecs_vec_t);
+		size_t offset = 0;
+		uint32_t last_id = 0, last_eligible = 0;
+		for (int32_t j = 0; j < ecs_vec_count(&batch->list->layers); ++j) {
+			EgDraws_Vertex *vertices = ecs_vec_first_t(&layers[j], EgDraws_Vertex);
+			for (int32_t k = 0; k < ecs_vec_count(&layers[j]); ++k) {
+				uint32_t id = batch->ids[offset++];
+				if (id != last_id) {
+					last_id = id;
+					last_eligible = id && AppDraw_IsPickable(id, world) ? id : 0;
+				}
+				if (vertices[k].pick_id != last_eligible) {
+					vertices[k].pick_id = last_eligible;
+					changed = true;
+				}
+			}
+		}
+	}
+	return changed;
+}
+
+static bool AppDrawPickState_publish(AppDrawPickState *state, int64_t frame)
+{
+	if (state->shown.frame != frame && state->building.frame == frame && state->building.valid) {
+		if (!AppDrawPickScene_equal(&state->shown, &state->building)) state->cached = false;
+		AppDrawPickScene previous = state->shown;
+		state->shown = state->building;
+		state->building = previous;
+	}
+	if (!state->shown.valid || state->shown.frame != frame) {
+		state->cached = false;
+		return false;
+	}
+	return true;
+}
+
+static void AppDrawPickFrame_complete(ecs_world_t *world, ecs_entity_t window, bool displayed)
+{
+	AppDrawPickState *state = ecs_get_mut(world, window, AppDrawPickState);
+	if (!state || !ecs_has_id(world, window, AppDrawGpuPicking)) return;
+	AppDrawPickScene *scene = &state->building;
+	int64_t frame = ecs_get_world_info(world)->frame_count_total;
+	if (!displayed) {
+		scene->valid = false;
+		state->cached = false;
+		return;
+	}
+	if (scene->frame != frame) {
+		scene->frame = frame;
+		scene->count = 0;
+		scene->valid = SDL_GetWindowSizeInPixels(state->window, &scene->width, &scene->height);
+		if (!scene->valid) ecs_err("AppDraw: cannot get framebuffer size: %s", SDL_GetError());
+		if (scene->width <= 0 || scene->height <= 0) scene->valid = false;
+	}
+}
+
 static void AppDraw_ToLocal(ecs_world_t *world, ecs_entity_t entity,
 	float screen_x, float screen_y, float *local_x, float *local_y, void *ctx)
 {
@@ -85,6 +275,16 @@ static bool AppDraw_PickMouse(ecs_world_t *world, ecs_entity_t *target,
 {
 	(void)ctx;
 	SDL_Window *focus = SDL_GetMouseFocus();
+	AppDrawPickInput *input = ecs_singleton_ensure(world, AppDrawPickInput);
+	bool focus_changed = input->focus != focus;
+	input->focus = focus;
+	bool buttons_changed = false;
+	const EgButtonsState *buttons = ecs_singleton_get(world, EgButtonsState);
+	for (int i = 1; i < EG_BUTTONS_MOUSE_MAX; ++i) {
+		uint8_t held = buttons ? buttons->mouse[i] & EG_BUTTONS_STATE_HELD : 0;
+		if (input->buttons[i] != held) buttons_changed = true;
+		input->buttons[i] = held;
+	}
 	ecs_entity_t window = 0;
 	bool any_gpu_window = false;
 	ecs_iter_t it = ecs_each_id(world, ecs_id(EgWindowsWindow));
@@ -107,17 +307,33 @@ static bool AppDraw_PickMouse(ecs_world_t *world, ecs_entity_t *target,
 	SDL_GetMouseState(&x, &y);
 	*screen_x = x;
 	*screen_y = y;
-	AppDrawPickState const *state = ecs_get(world, window, AppDrawPickState);
-	if (!state || !state->target || !state->valid ||
-		state->frame != ecs_get_world_info(world)->frame_count_total - 1) return true;
+	AppDrawPickState *state = ecs_get_mut(world, window, AppDrawPickState);
+	if (!state) return true;
+	int64_t expected_frame = ecs_get_world_info(world)->frame_count_total - 1;
+	if (!AppDrawPickState_publish(state, expected_frame)) return true;
 	int logical_w, logical_h, pixel_w, pixel_h;
 	if (!SDL_GetWindowSize(focus, &logical_w, &logical_h) ||
 		!SDL_GetWindowSizeInPixels(focus, &pixel_w, &pixel_h)) {
 		ecs_err("AppDraw: cannot get window size: %s", SDL_GetError());
+		state->cached = false;
 		return true;
 	}
-	if (logical_w <= 0 || logical_h <= 0 || pixel_w != state->width || pixel_h != state->height ||
-		x < 0 || y < 0 || x >= logical_w || y >= logical_h) return true;
+	if (logical_w <= 0 || logical_h <= 0 || pixel_w != state->shown.width || pixel_h != state->shown.height ||
+		x < 0 || y < 0 || x >= logical_w || y >= logical_h) {
+		state->cached = false;
+		return true;
+	}
+
+	if (AppDrawPickScene_update_eligibility(&state->shown, world)) state->cached = false;
+	if (focus_changed || buttons_changed || x != state->mouse_x || y != state->mouse_y) state->cached = false;
+	state->mouse_x = x;
+	state->mouse_y = y;
+	if (state->cached) {
+		if (state->cached_id && AppDraw_IsPickable(state->cached_id, world)) {
+			*target = ecs_get_alive(world, state->cached_id);
+		}
+		return true;
+	}
 
 	SDL_Window *previous_window = SDL_GL_GetCurrentWindow();
 	SDL_GLContext previous_context = SDL_GL_GetCurrentContext();
@@ -126,14 +342,25 @@ static bool AppDraw_PickMouse(ecs_world_t *world, ecs_entity_t *target,
 		return true;
 	}
 	uint32_t id = 0;
-	bool read = egg_pick_target_read(state->target,
-		(int)(x * pixel_w / logical_w), (int)(y * pixel_h / logical_h), &id);
-	if (!read) ecs_err("AppDraw: failed to read picking target");
+	if (!state->target) state->target = egg_pick_target_create();
+	bool read = state->target && egg_pick_target_begin_region(state->target, pixel_w, pixel_h,
+		(int)(x * pixel_w / logical_w), (int)(y * pixel_h / logical_h));
+	for (size_t i = 0; read && i < state->shown.count; ++i) {
+		AppDrawPickBatch *batch = &state->shown.batches[i];
+		read = egg_pick_draw_layers(state->target, batch->render, &batch->list->layers,
+			batch->projection, NULL, NULL);
+	}
+	if (read) read = egg_pick_target_read_region(state->target, &id);
+	if (!read) ecs_err("AppDraw: failed to render or read picking region");
 	if (!SDL_GL_MakeCurrent(previous_window, previous_context)) {
 		ecs_err("AppDraw: cannot restore OpenGL context: %s", SDL_GetError());
 		return true;
 	}
-	if (read && AppDraw_IsPickable(id, world)) *target = ecs_get_alive(world, id);
+	if (read) {
+		state->cached = true;
+		state->cached_id = id;
+		if (AppDraw_IsPickable(id, world)) *target = ecs_get_alive(world, id);
+	}
 	return true;
 }
 
@@ -142,7 +369,8 @@ static void Test_Render(ecs_iter_t *it)
 	AppDrawContext *d  = ecs_field_self(it, AppDrawContext, 1);
 	EgCamerasState *c0 = ecs_field_shared(it, EgCamerasState, 2);
 	ecs_entity_t window = ecs_pair_second(it->world, ecs_field_id(it, 0));
-	AppDrawPickState *pick = ecs_get_mut(it->world, window, AppDrawPickState);
+	AppDrawPickState *pick = ecs_has_id(it->world, window, AppDrawGpuPicking) ?
+		ecs_get_mut(it->world, window, AppDrawPickState) : NULL;
 	for (int i = 0; i < it->count; ++i, ++d) {
 		ecs_assert(d->render != NULL, ECS_INTERNAL_ERROR, NULL);
 		ecs_assert(d->list != NULL, ECS_INTERNAL_ERROR, NULL);
@@ -151,24 +379,19 @@ static void Test_Render(ecs_iter_t *it)
 		egg_draw_layers(d->render, &d->list->layers, (float *)&c0->vp);
 		if (pick) {
 			int64_t frame = ecs_get_world_info(it->world)->frame_count_total;
-			if (pick->frame != frame) {
-				pick->frame = frame;
-				pick->valid = false;
-				if (!pick->target) pick->target = egg_pick_target_create();
-				if (!SDL_GetWindowSizeInPixels(pick->window, &pick->width, &pick->height)) {
+			AppDrawPickScene *scene = &pick->building;
+			if (scene->frame != frame) {
+				scene->frame = frame;
+				scene->count = 0;
+				scene->valid = true;
+				if (!SDL_GetWindowSizeInPixels(pick->window, &scene->width, &scene->height)) {
 					ecs_err("AppDraw: cannot get framebuffer size: %s", SDL_GetError());
-					pick->width = pick->height = 0;
+					scene->width = scene->height = 0;
 				}
-				if (pick->target && pick->width > 0 && pick->height > 0) {
-					pick->valid = egg_pick_target_begin(pick->target, pick->width, pick->height);
-					if (!pick->valid) ecs_err("AppDraw: cannot begin picking frame");
-				}
+				if (scene->width <= 0 || scene->height <= 0) scene->valid = false;
 			}
-			if (pick->valid &&
-				!egg_pick_draw_layers(pick->target, d->render, &d->list->layers,
-					(float *)&c0->vp, AppDraw_IsPickable, it->world)) {
-				ecs_err("AppDraw: cannot draw picking layers");
-				pick->valid = false;
+			if (scene->valid && !AppDrawPickScene_add(scene, d->render, d->list, (float *)&c0->vp, it->world)) {
+				scene->valid = false;
 			}
 		}
 		EgDraws_List_Clear(d->list);
@@ -194,7 +417,9 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 	if (ecs_has_id(it->world, e_window, AppDrawGpuPicking)) {
 		if (!ecs_has(it->world, e_window, AppDrawPickState)) {
 			ecs_set(it->world, e_window, AppDrawPickState,
-				{.window = window->object, .gl_context = gl->gl_context, .frame = -1});
+				{.window = window->object, .gl_context = gl->gl_context,
+				 .shown = {.frame = -1}, .building = {.frame = -1}});
+			ecs_set(it->world, e_window, EgWindowsSdlGlFrameCallback, {.complete = AppDrawPickFrame_complete});
 			ecs_script_set_event_hooks(it->world, &(ecs_script_event_hooks_t){.to_local = AppDraw_ToLocal});
 		}
 	}
@@ -254,6 +479,7 @@ void AppDrawImport(ecs_world_t *world)
 	ECS_MODULE(world, AppDraw);
 	ecs_set_name_prefix(world, "AppDraw");
 	ECS_IMPORT(world, EgWindows);
+	ECS_IMPORT(world, EgWindowsSdlGl);
 	ECS_IMPORT(world, EgSpatials);
 	ECS_IMPORT(world, EgBase);
 	ECS_IMPORT(world, EgUi);
@@ -263,6 +489,7 @@ void AppDrawImport(ecs_world_t *world)
 	ECS_COMPONENT_DEFINE(world, AppDrawContextCreate);
 	ECS_TAG_DEFINE(world, AppDrawGpuPicking);
 	ECS_COMPONENT_DEFINE(world, AppDrawPickState);
+	ECS_COMPONENT_DEFINE(world, AppDrawPickInput);
 	ecs_set_hooks(world, AppDrawPickState, {.dtor = AppDrawPickState_dtor, .move = AppDrawPickState_move});
 	ecs_singleton_set(world, EgUiScriptEventsPicker, {.pick = AppDraw_PickMouse});
 

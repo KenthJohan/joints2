@@ -1,0 +1,22 @@
+{
+	"id": "AppDraw_test",
+	"type": "application",
+	"value": {
+		"description": "App1 picking snapshot regression tests",
+		"public": false,
+		"use": ["EgWindows", "EgWindowsSdlGl", "EgCameras", "EgSpatials", "EgShapes", "EgBase", "EgDraws", "EgUi", "EgButtons", "ecsx", "egg", "flecs"]
+	},
+	"test": {
+		"testsuites": [{
+			"id": "Snapshot",
+			"setup": true,
+			"teardown": true,
+			"testcases": ["test_publish_and_invalidate", "test_live_eligibility", "test_on_demand", "test_multiple_windows"]
+		}]
+	},
+	"lang.c": {
+		"c-standard": "gnu99",
+		"cflags": ["-DGL_GLEXT_PROTOTYPES"],
+		"lib": ["EgWindows", "EgWindowsSdlGl", "EgCameras", "EgSpatials", "EgShapes", "EgBase", "EgDraws", "EgUi", "EgButtons", "ecsx", "egg", "flecs", "SDL3", "GL", "m"]
+	}
+}

@@ -12,11 +12,16 @@
 void Picking_setup(void);
 void Picking_teardown(void);
 void Picking_test_integer_target(void);
+void Picking_test_region(void);
 
 bake_test_case Picking_testcases[] = {
     {
         "test_integer_target",
         Picking_test_integer_target
+    },
+    {
+        "test_region",
+        Picking_test_region
     }
 };
 
@@ -25,7 +30,7 @@ static bake_test_suite suites[] = {
         "Picking",
         Picking_setup,
         Picking_teardown,
-        1,
+        2,
         Picking_testcases
     }
 };
