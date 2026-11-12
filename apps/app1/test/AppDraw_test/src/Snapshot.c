@@ -213,6 +213,52 @@ static void focus_window(SDL_Window *window)
 	test_assert(SDL_GetMouseFocus() == window);
 }
 
+void Snapshot_test_drag_window_bounds(void)
+{
+	test_assert(SDL_Init(SDL_INIT_VIDEO));
+	SDL_Window *window = SDL_CreateWindow("app drag test", 64, 64, 0);
+	test_assert(window != NULL);
+	ecs_entity_t e_window = ecs_new(world);
+	ecs_set(world, e_window, EgWindowsWindow, {.object = window});
+	ecs_add_id(world, e_window, AppDrawGpuPicking);
+	focus_window(window);
+	test_assert(SDL_GetKeyboardFocus() == window);
+	test_assert(AppDraw_CaptureBegin(world, NULL));
+	test_assert(AppDraw_CaptureValid(world, NULL));
+
+	ecs_entity_t target = entity;
+	float x = 0, y = 0;
+	test_assert(AppDraw_PickMouse(world, &target, &x, &y, NULL));
+	test_assert(target == 0);
+	test_flt(x, 32);
+	test_flt(y, 32);
+
+	ecs_add_id(world, e_window, EcsDisabled);
+	test_assert(!AppDraw_CaptureValid(world, NULL));
+	ecs_remove_id(world, e_window, EcsDisabled);
+	ecs_add_id(world, e_window, EgWindowsCloseRequest);
+	test_assert(!AppDraw_CaptureValid(world, NULL));
+	ecs_remove_id(world, e_window, EgWindowsCloseRequest);
+	test_assert(AppDraw_CaptureValid(world, NULL));
+
+	test_assert(AppDraw_InsideWindow(0, 0, 64, 64));
+	test_assert(AppDraw_InsideWindow(63, 63, 64, 64));
+	test_assert(!AppDraw_InsideWindow(-1, 32, 64, 64));
+	test_assert(!AppDraw_InsideWindow(64, 32, 64, 64));
+	test_assert(!AppDraw_InsideWindow(32, -1, 64, 64));
+	test_assert(!AppDraw_InsideWindow(32, 64, 64, 64));
+	SDL_WarpMouseInWindow(window, 65, 32);
+	for (int i = 0; i < 50 && SDL_GetMouseFocus() == window; ++i) {
+		SDL_PumpEvents();
+		SDL_Delay(10);
+	}
+	test_assert(!AppDraw_CaptureValid(world, NULL));
+	AppDraw_CaptureEnd(world, NULL);
+	test_assert(!AppDraw_CaptureValid(world, NULL));
+	SDL_DestroyWindow(window);
+	SDL_Quit();
+}
+
 void Snapshot_test_multiple_windows(void)
 {
 	test_assert(SDL_Init(SDL_INIT_VIDEO));
@@ -258,7 +304,10 @@ void Snapshot_test_multiple_windows(void)
 	test_assert(AppDraw_PickMouse(world, &result, &x, &y, NULL));
 	test_assert(result == targets[0]);
 	test_assert(SDL_GL_GetCurrentContext() == contexts[1]);
+	test_assert(AppDraw_CaptureBegin(world, NULL));
 	focus_window(windows[1]);
+	test_assert(!AppDraw_CaptureValid(world, NULL));
+	AppDraw_CaptureEnd(world, NULL);
 	test_assert(AppDraw_PickMouse(world, &result, &x, &y, NULL));
 	test_assert(result == targets[1]);
 	focus_window(windows[0]);

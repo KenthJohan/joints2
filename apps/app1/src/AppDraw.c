@@ -54,7 +54,6 @@ typedef struct {
 	uint8_t buttons[EG_BUTTONS_MOUSE_MAX];
 	ecs_entity_t capture_window;
 	SDL_Window *capture_sdl_window;
-	bool capture_enabled;
 } AppDrawPickInput;
 
 ECS_COMPONENT_DECLARE(AppDrawPickInput);
@@ -280,7 +279,6 @@ static bool AppDraw_CaptureBegin(ecs_world_t *world, void *ctx)
 	AppDrawPickInput *input = ecs_singleton_ensure(world, AppDrawPickInput);
 	input->capture_window = 0;
 	input->capture_sdl_window = focus;
-	input->capture_enabled = false;
 	ecs_iter_t it = ecs_each_id(world, ecs_id(EgWindowsWindow));
 	ecs_iter_t *iter = &it;
 	while (ecs_each_next(iter)) {
@@ -290,12 +288,15 @@ static bool AppDraw_CaptureBegin(ecs_world_t *world, void *ctx)
 		}
 	}
 	if (!focus || !input->capture_window) {
-		ecs_err("AppDraw: cannot capture mouse without a focused window");
+		ecs_err("AppDraw: cannot begin drag without a focused window");
 		return false;
 	}
-	input->capture_enabled = SDL_CaptureMouse(true);
-	if (!input->capture_enabled) ecs_err("AppDraw: cannot capture mouse: %s", SDL_GetError());
-	return input->capture_enabled;
+	return true;
+}
+
+static bool AppDraw_InsideWindow(float x, float y, int width, int height)
+{
+	return x >= 0 && y >= 0 && x < width && y < height;
 }
 
 static bool AppDraw_CaptureValid(ecs_world_t *world, void *ctx)
@@ -306,12 +307,20 @@ static bool AppDraw_CaptureValid(ecs_world_t *world, void *ctx)
 	const EgWindowsWindow *window = ecs_get(world, input->capture_window, EgWindowsWindow);
 	if (!window || window->object != input->capture_sdl_window) return false;
 	SDL_WindowFlags flags = SDL_GetWindowFlags(input->capture_sdl_window);
-	return ecs_has_id(world, input->capture_window, AppDrawGpuPicking) &&
-		!ecs_has_id(world, input->capture_window, EcsDisabled) &&
-		!ecs_has_id(world, input->capture_window, EgWindowsCloseRequest) &&
-		SDL_GetKeyboardFocus() == input->capture_sdl_window &&
-		!(flags & (SDL_WINDOW_HIDDEN | SDL_WINDOW_MINIMIZED)) &&
-		(!input->capture_enabled || (flags & SDL_WINDOW_MOUSE_CAPTURE));
+	if (!ecs_has_id(world, input->capture_window, AppDrawGpuPicking) ||
+		ecs_has_id(world, input->capture_window, EcsDisabled) ||
+		ecs_has_id(world, input->capture_window, EgWindowsCloseRequest) ||
+		SDL_GetMouseFocus() != input->capture_sdl_window ||
+		SDL_GetKeyboardFocus() != input->capture_sdl_window ||
+		(flags & (SDL_WINDOW_HIDDEN | SDL_WINDOW_MINIMIZED))) return false;
+	int width, height;
+	if (!SDL_GetWindowSize(input->capture_sdl_window, &width, &height)) {
+		ecs_err("AppDraw: cannot get drag window size: %s", SDL_GetError());
+		return false;
+	}
+	float x, y;
+	SDL_GetMouseState(&x, &y);
+	return AppDraw_InsideWindow(x, y, width, height);
 }
 
 static void AppDraw_CaptureEnd(ecs_world_t *world, void *ctx)
@@ -319,12 +328,8 @@ static void AppDraw_CaptureEnd(ecs_world_t *world, void *ctx)
 	(void)ctx;
 	AppDrawPickInput *input = ecs_singleton_get_mut(world, AppDrawPickInput);
 	if (!input) return;
-	if (input->capture_enabled && !SDL_CaptureMouse(false)) {
-		ecs_err("AppDraw: cannot release mouse capture: %s", SDL_GetError());
-	}
 	input->capture_window = 0;
 	input->capture_sdl_window = NULL;
-	input->capture_enabled = false;
 }
 
 static bool AppDraw_PickMouse(ecs_world_t *world, ecs_entity_t *target,
@@ -333,23 +338,8 @@ static bool AppDraw_PickMouse(ecs_world_t *world, ecs_entity_t *target,
 	(void)ctx;
 	SDL_Window *focus = SDL_GetMouseFocus();
 	AppDrawPickInput *input = ecs_singleton_ensure(world, AppDrawPickInput);
-	if (input->capture_window && AppDraw_CaptureValid(world, NULL)) {
-		SDL_Window *captured_window = input->capture_sdl_window;
-		float x, y;
-		if (SDL_GetMouseFocus() == captured_window) {
-			SDL_GetMouseState(&x, &y);
-		} else {
-			int wx, wy;
-			SDL_GetGlobalMouseState(&x, &y);
-			if (!SDL_GetWindowPosition(captured_window, &wx, &wy)) {
-				ecs_err("AppDraw: cannot get captured window position: %s", SDL_GetError());
-				return false;
-			}
-			x -= wx;
-			y -= wy;
-		}
-		*screen_x = x;
-		*screen_y = y;
+	if (input->capture_window && focus == input->capture_sdl_window) {
+		SDL_GetMouseState(screen_x, screen_y);
 		*target = 0;
 		return true;
 	}
@@ -396,7 +386,7 @@ static bool AppDraw_PickMouse(ecs_world_t *world, ecs_entity_t *target,
 		return true;
 	}
 	if (logical_w <= 0 || logical_h <= 0 || pixel_w != state->shown.width || pixel_h != state->shown.height ||
-		x < 0 || y < 0 || x >= logical_w || y >= logical_h) {
+		!AppDraw_InsideWindow(x, y, logical_w, logical_h)) {
 		state->cached = false;
 		return true;
 	}

@@ -36,13 +36,12 @@ entity when the pointer is over the background, so the example button's
 
 Resize handles opt into `eg.ui.script.events.Capture`. A left-button press
 captures that handle until release, so `on.drag` keeps bubbling to the
-rectangle even over other objects or outside the window. SDL mouse capture is
-requested for outside-window movement and released on completion. Losing
+rectangle even over other objects inside the window. Leaving the window, losing
 window focus, closing the window, or disabling/removing the handle cancels the
-capture; backends without SDL capture support may not deliver outside-window
-motion. Other mouse buttons are ignored during the captured drag until they
-are released. If a handle is deleted mid-drag it cannot receive its release;
-its owner's script must clean up any state that outlives that handle.
+capture. App1 does not request SDL mouse capture for outside-window dragging.
+Other mouse buttons are ignored during the captured drag until they are
+released. If a handle is deleted mid-drag it cannot receive its release; its
+owner's script must clean up any state that outlives that handle.
 
 Flecs sees the captured handle as the target throughout the drag and release.
 Its hover therefore remains on the handle during capture, and its normal click

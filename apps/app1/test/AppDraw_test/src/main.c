@@ -15,6 +15,7 @@ void Snapshot_test_publish_and_invalidate(void);
 void Snapshot_test_live_eligibility(void);
 void Snapshot_test_on_demand(void);
 void Snapshot_test_multiple_windows(void);
+void Snapshot_test_drag_window_bounds(void);
 
 bake_test_case Snapshot_testcases[] = {
     {
@@ -32,6 +33,10 @@ bake_test_case Snapshot_testcases[] = {
     {
         "test_multiple_windows",
         Snapshot_test_multiple_windows
+    },
+    {
+        "test_drag_window_bounds",
+        Snapshot_test_drag_window_bounds
     }
 };
 
@@ -40,7 +45,7 @@ static bake_test_suite suites[] = {
         "Snapshot",
         Snapshot_setup,
         Snapshot_teardown,
-        4,
+        5,
         Snapshot_testcases
     }
 };
