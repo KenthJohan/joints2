@@ -1,6 +1,5 @@
 #include "AppDraw.h"
 #include <EgWindows.h>
-#include <EgWindowsSdlGl.h>
 #include <EgCameras.h>
 #include <EgSpatials.h>
 #include <EgShapes.h>
@@ -10,7 +9,6 @@
 #include <EgButtons.h>
 #include <ecsx.h>
 #include <egg.h>
-#include <SDL3/SDL.h>
 #include <stdlib.h>
 #include <string.h>
 
@@ -38,8 +36,8 @@ typedef struct {
 
 typedef struct {
 	egg_pick_target_t *target;
-	SDL_Window *window;
-	SDL_GLContext gl_context;
+	EgWindowsGlBinding binding;
+	EgWindowsGlBackend gl;
 	AppDrawPickScene shown;
 	AppDrawPickScene building;
 	float mouse_x, mouse_y;
@@ -50,10 +48,10 @@ typedef struct {
 ECS_COMPONENT_DECLARE(AppDrawPickState);
 
 typedef struct {
-	SDL_Window *focus;
+	ecs_entity_t focus;
 	uint8_t buttons[EG_BUTTONS_MOUSE_MAX];
 	ecs_entity_t capture_window;
-	SDL_Window *capture_sdl_window;
+	void *capture_object;
 } AppDrawPickInput;
 
 ECS_COMPONENT_DECLARE(AppDrawPickInput);
@@ -76,16 +74,12 @@ static void AppDrawPickState_dtor(void *ptr, int32_t count, const ecs_type_info_
 		AppDrawPickScene_free(&states[i].shown);
 		AppDrawPickScene_free(&states[i].building);
 		if (!states[i].target) continue;
-		SDL_Window *previous_window = SDL_GL_GetCurrentWindow();
-		SDL_GLContext previous_context = SDL_GL_GetCurrentContext();
-		if (!SDL_GL_MakeCurrent(states[i].window, states[i].gl_context)) {
-			ecs_err("AppDraw: cannot make picking context current: %s", SDL_GetError());
+		EgWindowsGlBinding previous = states[i].gl.current();
+		if (!states[i].gl.make_current(states[i].binding)) {
 			continue;
 		}
 		egg_pick_target_destroy(states[i].target);
-		if (!SDL_GL_MakeCurrent(previous_window, previous_context)) {
-			ecs_err("AppDraw: cannot restore OpenGL context: %s", SDL_GetError());
-		}
+		states[i].gl.make_current(previous);
 	}
 }
 
@@ -253,8 +247,12 @@ static void AppDrawPickFrame_complete(ecs_world_t *world, ecs_entity_t window, b
 	if (scene->frame != frame) {
 		scene->frame = frame;
 		scene->count = 0;
-		scene->valid = SDL_GetWindowSizeInPixels(state->window, &scene->width, &scene->height);
-		if (!scene->valid) ecs_err("AppDraw: cannot get framebuffer size: %s", SDL_GetError());
+		const EgWindowsWindowState *window_state = ecs_get(world, window, EgWindowsWindowState);
+		scene->valid = window_state && window_state->valid && window_state->object == state->binding.window;
+		if (scene->valid) {
+			scene->width = window_state->pixel_width;
+			scene->height = window_state->pixel_height;
+		}
 		if (scene->width <= 0 || scene->height <= 0) scene->valid = false;
 	}
 }
@@ -275,19 +273,12 @@ static void AppDraw_ToLocal(ecs_world_t *world, ecs_entity_t entity,
 static bool AppDraw_CaptureBegin(ecs_world_t *world, void *ctx)
 {
 	(void)ctx;
-	SDL_Window *focus = SDL_GetMouseFocus();
+	const EgWindowsInputState *focus = ecs_singleton_get(world, EgWindowsInputState);
 	AppDrawPickInput *input = ecs_singleton_ensure(world, AppDrawPickInput);
-	input->capture_window = 0;
-	input->capture_sdl_window = focus;
-	ecs_iter_t it = ecs_each_id(world, ecs_id(EgWindowsWindow));
-	ecs_iter_t *iter = &it;
-	while (ecs_each_next(iter)) {
-		const EgWindowsWindow *windows = ecs_field(iter, EgWindowsWindow, 0);
-		for (int32_t i = 0; i < it.count; ++i) {
-			if (windows[i].object == focus) input->capture_window = it.entities[i];
-		}
-	}
-	if (!focus || !input->capture_window) {
+	input->capture_window = focus ? focus->mouse_window : 0;
+	const EgWindowsWindow *window = input->capture_window ? ecs_get(world, input->capture_window, EgWindowsWindow) : NULL;
+	input->capture_object = window ? window->object : NULL;
+	if (!input->capture_object) {
 		ecs_err("AppDraw: cannot begin drag without a focused window");
 		return false;
 	}
@@ -304,23 +295,17 @@ static bool AppDraw_CaptureValid(ecs_world_t *world, void *ctx)
 	(void)ctx;
 	const AppDrawPickInput *input = ecs_singleton_get(world, AppDrawPickInput);
 	if (!input || !input->capture_window || !ecs_is_alive(world, input->capture_window)) return false;
+	const EgWindowsInputState *focus = ecs_singleton_get(world, EgWindowsInputState);
+	if (!focus || focus->mouse_window != input->capture_window) return false;
 	const EgWindowsWindow *window = ecs_get(world, input->capture_window, EgWindowsWindow);
-	if (!window || window->object != input->capture_sdl_window) return false;
-	SDL_WindowFlags flags = SDL_GetWindowFlags(input->capture_sdl_window);
+	const EgWindowsWindowState *state = ecs_get(world, input->capture_window, EgWindowsWindowState);
+	if (!window || window->object != input->capture_object || !state ||
+		state->object != window->object || !state->valid) return false;
 	if (!ecs_has_id(world, input->capture_window, AppDrawGpuPicking) ||
 		ecs_has_id(world, input->capture_window, EcsDisabled) ||
 		ecs_has_id(world, input->capture_window, EgWindowsCloseRequest) ||
-		SDL_GetMouseFocus() != input->capture_sdl_window ||
-		SDL_GetKeyboardFocus() != input->capture_sdl_window ||
-		(flags & (SDL_WINDOW_HIDDEN | SDL_WINDOW_MINIMIZED))) return false;
-	int width, height;
-	if (!SDL_GetWindowSize(input->capture_sdl_window, &width, &height)) {
-		ecs_err("AppDraw: cannot get drag window size: %s", SDL_GetError());
-		return false;
-	}
-	float x, y;
-	SDL_GetMouseState(&x, &y);
-	return AppDraw_InsideWindow(x, y, width, height);
+		!state->mouse_focus || !state->keyboard_focus || state->hidden || state->minimized) return false;
+	return AppDraw_InsideWindow(state->mouse_x, state->mouse_y, state->width, state->height);
 }
 
 static void AppDraw_CaptureEnd(ecs_world_t *world, void *ctx)
@@ -329,22 +314,31 @@ static void AppDraw_CaptureEnd(ecs_world_t *world, void *ctx)
 	AppDrawPickInput *input = ecs_singleton_get_mut(world, AppDrawPickInput);
 	if (!input) return;
 	input->capture_window = 0;
-	input->capture_sdl_window = NULL;
+	input->capture_object = NULL;
 }
 
 static bool AppDraw_PickMouse(ecs_world_t *world, ecs_entity_t *target,
 	float *screen_x, float *screen_y, void *ctx)
 {
 	(void)ctx;
-	SDL_Window *focus = SDL_GetMouseFocus();
+	const EgWindowsInputState *focus = ecs_singleton_get(world, EgWindowsInputState);
+	ecs_entity_t window = focus ? focus->mouse_window : 0;
+	if (window && !ecs_is_alive(world, window)) window = 0;
+	const EgWindowsWindowState *window_state = window ? ecs_get(world, window, EgWindowsWindowState) : NULL;
+	const EgWindowsWindow *window_object = window ? ecs_get(world, window, EgWindowsWindow) : NULL;
+	if (!window_object || !window_state || window_state->object != window_object->object || !window_state->mouse_focus) {
+		window_state = NULL;
+	}
 	AppDrawPickInput *input = ecs_singleton_ensure(world, AppDrawPickInput);
-	if (input->capture_window && focus == input->capture_sdl_window) {
-		SDL_GetMouseState(screen_x, screen_y);
+	if (input->capture_window && window == input->capture_window && window_state && window_state->valid &&
+		window_state->object == input->capture_object) {
+		*screen_x = window_state->mouse_x;
+		*screen_y = window_state->mouse_y;
 		*target = 0;
 		return true;
 	}
-	bool focus_changed = input->focus != focus;
-	input->focus = focus;
+	bool focus_changed = input->focus != window;
+	input->focus = window;
 	bool buttons_changed = false;
 	const EgButtonsState *buttons = ecs_singleton_get(world, EgButtonsState);
 	for (int i = 1; i < EG_BUTTONS_MOUSE_MAX; ++i) {
@@ -352,39 +346,42 @@ static bool AppDraw_PickMouse(ecs_world_t *world, ecs_entity_t *target,
 		if (input->buttons[i] != held) buttons_changed = true;
 		input->buttons[i] = held;
 	}
-	ecs_entity_t window = 0;
-	bool any_gpu_window = false;
-	ecs_iter_t it = ecs_each_id(world, ecs_id(EgWindowsWindow));
-	ecs_iter_t *iter = &it;
-	while (ecs_each_next(iter)) {
-		EgWindowsWindow const *windows = ecs_field(iter, EgWindowsWindow, 0);
-		for (int32_t i = 0; i < it.count; ++i) {
-			bool gpu = ecs_has_id(world, it.entities[i], AppDrawGpuPicking);
-			any_gpu_window |= gpu;
-			if (windows[i].object == focus) window = it.entities[i];
-		}
-	}
 	if (!window) {
-		return focus == NULL && any_gpu_window;
+		if (!focus || focus->mouse_focus) return false;
+		ecs_iter_t it = ecs_each_id(world, AppDrawGpuPicking);
+		while (ecs_each_next(&it)) {
+			for (int32_t i = 0; i < it.count; ++i) {
+				if (ecs_has(world, it.entities[i], EgWindowsWindow)) {
+					ecs_iter_fini(&it);
+					return true;
+				}
+			}
+		}
+		return false;
 	}
 	if (!ecs_has_id(world, window, AppDrawGpuPicking)) return false;
 
 	*target = 0;
-	float x, y;
-	SDL_GetMouseState(&x, &y);
+	if (!window_state || !window_state->valid) {
+		AppDrawPickState *state = ecs_get_mut(world, window, AppDrawPickState);
+		if (state) state->cached = false;
+		return true;
+	}
+	float x = window_state->mouse_x, y = window_state->mouse_y;
 	*screen_x = x;
 	*screen_y = y;
 	AppDrawPickState *state = ecs_get_mut(world, window, AppDrawPickState);
 	if (!state) return true;
-	int64_t expected_frame = ecs_get_world_info(world)->frame_count_total - 1;
-	if (!AppDrawPickState_publish(state, expected_frame)) return true;
-	int logical_w, logical_h, pixel_w, pixel_h;
-	if (!SDL_GetWindowSize(focus, &logical_w, &logical_h) ||
-		!SDL_GetWindowSizeInPixels(focus, &pixel_w, &pixel_h)) {
-		ecs_err("AppDraw: cannot get window size: %s", SDL_GetError());
+	const EgWindowsOpenGLContext *gl_context = ecs_get(world, window, EgWindowsOpenGLContext);
+	if (state->binding.window != window_state->object || !gl_context ||
+		state->binding.context != gl_context->gl_context) {
 		state->cached = false;
 		return true;
 	}
+	int64_t expected_frame = ecs_get_world_info(world)->frame_count_total - 1;
+	if (!AppDrawPickState_publish(state, expected_frame)) return true;
+	int logical_w = window_state->width, logical_h = window_state->height;
+	int pixel_w = window_state->pixel_width, pixel_h = window_state->pixel_height;
 	if (logical_w <= 0 || logical_h <= 0 || pixel_w != state->shown.width || pixel_h != state->shown.height ||
 		!AppDraw_InsideWindow(x, y, logical_w, logical_h)) {
 		state->cached = false;
@@ -402,10 +399,8 @@ static bool AppDraw_PickMouse(ecs_world_t *world, ecs_entity_t *target,
 		return true;
 	}
 
-	SDL_Window *previous_window = SDL_GL_GetCurrentWindow();
-	SDL_GLContext previous_context = SDL_GL_GetCurrentContext();
-	if (!SDL_GL_MakeCurrent(state->window, state->gl_context)) {
-		ecs_err("AppDraw: cannot make picking context current: %s", SDL_GetError());
+	EgWindowsGlBinding previous = state->gl.current();
+	if (!state->gl.make_current(state->binding)) {
 		return true;
 	}
 	uint32_t id = 0;
@@ -419,8 +414,7 @@ static bool AppDraw_PickMouse(ecs_world_t *world, ecs_entity_t *target,
 	}
 	if (read) read = egg_pick_target_read_region(state->target, &id);
 	if (!read) ecs_err("AppDraw: failed to render or read picking region");
-	if (!SDL_GL_MakeCurrent(previous_window, previous_context)) {
-		ecs_err("AppDraw: cannot restore OpenGL context: %s", SDL_GetError());
+	if (!state->gl.make_current(previous)) {
 		return true;
 	}
 	if (read) {
@@ -450,10 +444,12 @@ static void Test_Render(ecs_iter_t *it)
 			if (scene->frame != frame) {
 				scene->frame = frame;
 				scene->count = 0;
-				scene->valid = true;
-				if (!SDL_GetWindowSizeInPixels(pick->window, &scene->width, &scene->height)) {
-					ecs_err("AppDraw: cannot get framebuffer size: %s", SDL_GetError());
-					scene->width = scene->height = 0;
+				const EgWindowsWindowState *window_state = ecs_get(it->world, window, EgWindowsWindowState);
+				scene->valid = window_state && window_state->valid &&
+					window_state->object == pick->binding.window;
+				if (scene->valid) {
+					scene->width = window_state->pixel_width;
+					scene->height = window_state->pixel_height;
 				}
 				if (scene->width <= 0 || scene->height <= 0) scene->valid = false;
 			}
@@ -471,22 +467,23 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 	ecs_entity_t          e_window = ecs_field_src(it, 1);
 	EgWindowsOpenGLContext const *gl = ecs_field_shared(it, EgWindowsOpenGLContext, 1);
 	EgWindowsWindow const *window = ecs_get(it->world, e_window, EgWindowsWindow);
-	if (!window) {
-		ecs_err("AppDraw: window for render context not found");
+	const EgWindowsGlBackend *backend = ecs_singleton_get(it->world, EgWindowsGlBackend);
+	if (!window || !backend || !backend->current || !backend->make_current) {
+		ecs_err("AppDraw: window or OpenGL backend not found");
 		return;
 	}
-	SDL_Window *previous_window = SDL_GL_GetCurrentWindow();
-	SDL_GLContext previous_context = SDL_GL_GetCurrentContext();
-	if (!SDL_GL_MakeCurrent(window->object, gl->gl_context)) {
-		ecs_err("AppDraw: cannot make render context current: %s", SDL_GetError());
+	EgWindowsGlBackend gl_backend = *backend;
+	EgWindowsGlBinding previous = gl_backend.current();
+	EgWindowsGlBinding binding = {window->object, gl->gl_context};
+	if (!gl_backend.make_current(binding)) {
 		return;
 	}
 	if (ecs_has_id(it->world, e_window, AppDrawGpuPicking)) {
 		if (!ecs_has(it->world, e_window, AppDrawPickState)) {
 			ecs_set(it->world, e_window, AppDrawPickState,
-				{.window = window->object, .gl_context = gl->gl_context,
+				{.binding = binding, .gl = gl_backend,
 				 .shown = {.frame = -1}, .building = {.frame = -1}});
-			ecs_set(it->world, e_window, EgWindowsSdlGlFrameCallback, {.complete = AppDrawPickFrame_complete});
+			ecs_set(it->world, e_window, EgWindowsFrameCallback, {.complete = AppDrawPickFrame_complete});
 			ecs_script_set_event_hooks(it->world, &(ecs_script_event_hooks_t){.to_local = AppDraw_ToLocal});
 		}
 	}
@@ -524,9 +521,7 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 		{.id = ecs_id(EgCamerasState), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
 		}});
 	}
-	if (!SDL_GL_MakeCurrent(previous_window, previous_context)) {
-		ecs_err("AppDraw: cannot restore OpenGL context: %s", SDL_GetError());
-	}
+	gl_backend.make_current(previous);
 	ecs_log_set_level(-1);
 }
 
@@ -546,7 +541,6 @@ void AppDrawImport(ecs_world_t *world)
 	ECS_MODULE(world, AppDraw);
 	ecs_set_name_prefix(world, "AppDraw");
 	ECS_IMPORT(world, EgWindows);
-	ECS_IMPORT(world, EgWindowsSdlGl);
 	ECS_IMPORT(world, EgSpatials);
 	ECS_IMPORT(world, EgBase);
 	ECS_IMPORT(world, EgUi);

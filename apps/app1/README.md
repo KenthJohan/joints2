@@ -52,6 +52,13 @@ Enabling GPU picking installs app1's script-input `to_local` hook for ancestor
 coordinates. Flecs event hooks are world-wide and this replaces any hooks
 previously registered by the application.
 
+Window focus, mouse coordinates and logical/framebuffer sizes are read from
+`EgWindows` state, refreshed by `EgWindowsSdl` after polling events each frame.
+The SDL GL backend supplies context switching and frame completion through
+`EgWindows`, so AppDraw does not depend on SDL APIs. Other backends must supply
+the same state and OpenGL operations before enabling GPU picking. Native window
+and GL context handles must remain valid while their picking state exists.
+
 Entity generations are not stored. If an entity is deleted and its index is
 reused between rendering and readback, the result can refer to the new entity.
 This experiment does not implement 3D picking.
