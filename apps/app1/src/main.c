@@ -36,8 +36,11 @@ void run_managed_file(ecs_world_t *world, const char *file)
 	ecs_log_set_level(0);
 	ecs_entity_t script = ecs_script(world, {.filename = file});
 	ecs_log_set_level(-1);
-	if (!script) {
-		printf("Failed to run managed script file: %s\n", file);
+	const EcsScript *script_data = script ? ecs_get(world, script, EcsScript) : NULL;
+	if (!script_data || script_data->error) {
+		fprintf(stderr, "Failed to run managed script file: %s%s%s\n", file,
+			script_data && script_data->error ? ": " : "",
+			script_data && script_data->error ? script_data->error : "");
 		exit(EXIT_FAILURE);
 	}
 }
