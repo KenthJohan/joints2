@@ -11,7 +11,7 @@
 			"id": "Snapshot",
 			"setup": true,
 			"teardown": true,
-			"testcases": ["test_publish_and_invalidate", "test_live_eligibility", "test_on_demand", "test_pick_target_lifecycle", "test_multiple_windows", "test_drag_window_bounds", "test_frame_callbacks"]
+			"testcases": ["test_publish_and_invalidate", "test_live_eligibility", "test_on_demand", "test_pick_target_lifecycle", "test_renderer_lifecycle", "test_multiple_windows", "test_drag_window_bounds", "test_frame_callbacks", "test_render_cycle_picking"]
 		}]
 	},
 	"lang.c": {

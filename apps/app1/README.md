@@ -12,24 +12,26 @@ its atlas alpha multiplied by the vertex alpha is greater than zero. A tagged
 entity without drawn geometry cannot be picked.
 
 The existing EgUi dispatcher sends the resolved target to
-`ecs_script_mouse_event`. The picker retains the last rendered frame's ordered
-geometry and renders a scissored 3×3 framebuffer-pixel region on demand.
+`ecs_script_mouse_event`. During the window's render cycle, a scissored 3×3
+framebuffer-pixel region is drawn alongside the visible draw lists while the
+window's GL context is current. The region is read before presentation; only
+after a successful presentation does the input picker use the resulting target
+in the next frame.
 The center pixel wins; otherwise the nearest nonempty pixel wins, with the
 last-drawn primitive breaking distance ties. If that still ties, the first
 pixel in bottom-to-top, left-to-right framebuffer order wins. The region is
 clipped at window edges. This makes nearby objects clickable even when the
 center pixel is empty.
 
-Mouse movement, an observed button transition, focus or framebuffer changes,
-and changes to the retained scene or target eligibility invalidate the cached
-result. Consequently a stationary cursor still tracks moving objects, but an
-animated scene can require a pick every frame. Snapshot copying, comparison,
-and eligibility checks also cost CPU time and memory. The read uses the last
-rendered frame, so it may not reflect geometry or camera changes made since
-that frame. The first frame, a resize and a minimized window have no pick until
-a valid frame has been rendered. Mouse positions are converted from logical
-window coordinates to framebuffer pixels. Readback is synchronous and may
-stall the GPU. Buttons retain frame-based input aggregation.
+The result uses the pointer position and geometry from the preceding render.
+Moving the pointer before the next input event can therefore target an object
+that is no longer under it. A result is rejected if its entity is no longer
+alive or eligible, or if the window state and framebuffer size are invalid.
+The first frame, a resize and a minimized window have no pick until a valid
+frame has been rendered. Mouse positions are converted from logical window
+coordinates to framebuffer pixels. Each eligible frame performs synchronous
+readback, which may stall the GPU. Eligibility checks also cost CPU time and
+memory. Buttons retain frame-based input aggregation.
 The current Flecs input dispatcher does not deliver a release to the pressed
 entity when the pointer is over the background, so the example button's
 `held` state can remain set after dragging off and releasing.
@@ -54,11 +56,16 @@ previously registered by the application.
 
 Window focus, mouse coordinates and logical/framebuffer sizes are read from
 `EgWindows` state, refreshed by `EgWindowsSdl` after polling events each frame.
-The SDL GL backend supplies context switching and frame completion through
-`EgWindows`, so AppDraw does not depend on SDL APIs. Other backends must supply
-the same state and OpenGL operations before enabling GPU picking. Native window
-and GL context handles must remain valid while their picking state exists.
+The SDL GL backend supplies context switching, frame callbacks, and
+context-current resource cleanup through `EgWindows`, so AppDraw does not
+depend on SDL APIs. Renderer and picking resources are created during rendering
+and cleaned up when their components or owning window/context are removed.
+Other backends must provide the same state and cleanup operation. Native window
+and GL context handles must remain valid until their components are removed;
+they must not be replaced on the same entity.
 
-Entity generations are not stored. If an entity is deleted and its index is
-reused between rendering and readback, the result can refer to the new entity.
-This experiment does not implement 3D picking.
+The GPU stores only entity indices. If an entity is deleted and its index is
+reused between geometry generation and readback, the result can refer to the
+new entity. After readback the full entity ID is retained, preventing an index
+reused before event delivery from selecting a different entity. This experiment
+does not implement 3D picking.

@@ -15,9 +15,11 @@ void Snapshot_test_publish_and_invalidate(void);
 void Snapshot_test_live_eligibility(void);
 void Snapshot_test_on_demand(void);
 void Snapshot_test_pick_target_lifecycle(void);
+void Snapshot_test_renderer_lifecycle(void);
 void Snapshot_test_multiple_windows(void);
 void Snapshot_test_drag_window_bounds(void);
 void Snapshot_test_frame_callbacks(void);
+void Snapshot_test_render_cycle_picking(void);
 
 bake_test_case Snapshot_testcases[] = {
     {
@@ -37,6 +39,10 @@ bake_test_case Snapshot_testcases[] = {
         Snapshot_test_pick_target_lifecycle
     },
     {
+        "test_renderer_lifecycle",
+        Snapshot_test_renderer_lifecycle
+    },
+    {
         "test_multiple_windows",
         Snapshot_test_multiple_windows
     },
@@ -47,6 +53,10 @@ bake_test_case Snapshot_testcases[] = {
     {
         "test_frame_callbacks",
         Snapshot_test_frame_callbacks
+    },
+    {
+        "test_render_cycle_picking",
+        Snapshot_test_render_cycle_picking
     }
 };
 
@@ -55,7 +65,7 @@ static bake_test_suite suites[] = {
         "Snapshot",
         Snapshot_setup,
         Snapshot_teardown,
-        7,
+        9,
         Snapshot_testcases
     }
 };
