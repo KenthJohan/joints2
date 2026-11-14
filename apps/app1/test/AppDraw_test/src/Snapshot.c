@@ -139,7 +139,7 @@ void Snapshot_test_on_demand(void)
 	ecs_set(world, e_window, EgWindowsOpenGLContext, {.gl_context = context});
 	ecs_add_id(world, e_window, AppDrawGpuPicking);
 	ecs_set(world, e_window, AppDrawPickState,
-		{.binding = {window, context}, .gl = *ecs_singleton_get(world, EgWindowsGlBackend),
+		{.gl = *ecs_singleton_get(world, EgWindowsGlBackend),
 		 .shown = {.frame = -2}, .building = {.frame = -2}});
 	ecs_singleton_set(world, EgButtonsState, {{0}});
 	ecs_vec_t *layer = ecs_vec_get_t(&list->layers, ecs_vec_t, 0);
@@ -229,8 +229,90 @@ void Snapshot_test_on_demand(void)
 	test_int(state->building.count, 0);
 	test_int(state->building.width, 96);
 
+	const EgWindowsGlBackend *backend = ecs_singleton_get(world, EgWindowsGlBackend);
+	EgWindowsGlBinding current = backend->current();
 	ecs_remove(world, e_window, AppDrawPickState);
+	EgWindowsGlBinding restored = backend->current();
+	test_assert(restored.window == current.window && restored.context == current.context);
 	egg_render_destroy(renderer);
+	SDL_GL_DestroyContext(context);
+	SDL_DestroyWindow(window);
+	SDL_Quit();
+}
+
+void Snapshot_test_pick_target_lifecycle(void)
+{
+	test_assert(SDL_Init(SDL_INIT_VIDEO));
+	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3));
+	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3));
+	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE));
+	const EgWindowsGlBackend *backend = ecs_singleton_get(world, EgWindowsGlBackend);
+	test_assert(backend && backend->current && backend->make_current);
+
+	SDL_Window *context_window = SDL_CreateWindow("pick target context removal", 64, 64, SDL_WINDOW_OPENGL);
+	test_assert(context_window != NULL);
+	SDL_GLContext context = SDL_GL_CreateContext(context_window);
+	test_assert(context != NULL);
+	ecs_entity_t e_context = ecs_new(world);
+	ecs_set(world, e_context, EgWindowsWindow, {.object = context_window});
+	ecs_set(world, e_context, EgWindowsOpenGLContext, {.gl_context = context});
+	ecs_set(world, e_context, AppDrawPickState,
+		{.gl = *backend, .shown = {.frame = -1}, .building = {.frame = -1}});
+	AppDrawPickState *state = ecs_get_mut(world, e_context, AppDrawPickState);
+	state->target = egg_pick_target_create();
+	test_assert(state->target != NULL);
+	test_assert(backend->make_current((EgWindowsGlBinding){0}));
+	ecs_remove(world, e_context, EgWindowsOpenGLContext);
+	state = ecs_get_mut(world, e_context, AppDrawPickState);
+	test_assert(state && state->target == NULL);
+	EgWindowsGlBinding current = backend->current();
+	test_assert(!current.window && !current.context);
+	ecs_remove(world, e_context, AppDrawPickState);
+	test_assert(SDL_GL_MakeCurrent(context_window, context));
+	SDL_GL_DestroyContext(context);
+	SDL_DestroyWindow(context_window);
+
+	SDL_Window *state_window = SDL_CreateWindow("pick target state removal", 64, 64, SDL_WINDOW_OPENGL);
+	test_assert(state_window != NULL);
+	context = SDL_GL_CreateContext(state_window);
+	test_assert(context != NULL);
+	ecs_entity_t e_state = ecs_new(world);
+	ecs_set(world, e_state, EgWindowsWindow, {.object = state_window});
+	ecs_set(world, e_state, EgWindowsOpenGLContext, {.gl_context = context});
+	ecs_set(world, e_state, AppDrawPickState,
+		{.gl = *backend, .shown = {.frame = -1}, .building = {.frame = -1}});
+	state = ecs_get_mut(world, e_state, AppDrawPickState);
+	state->target = egg_pick_target_create();
+	test_assert(state->target != NULL);
+	test_assert(backend->make_current((EgWindowsGlBinding){0}));
+	ecs_remove(world, e_state, AppDrawPickState);
+	current = backend->current();
+	test_assert(!current.window && !current.context);
+	test_assert(SDL_GL_MakeCurrent(state_window, context));
+	SDL_GL_DestroyContext(context);
+	SDL_DestroyWindow(state_window);
+
+	SDL_Window *window = SDL_CreateWindow("pick target window removal", 64, 64, SDL_WINDOW_OPENGL);
+	test_assert(window != NULL);
+	context = SDL_GL_CreateContext(window);
+	test_assert(context != NULL);
+	ecs_entity_t e_window = ecs_new(world);
+	ecs_set(world, e_window, EgWindowsWindow, {.object = window});
+	ecs_set(world, e_window, EgWindowsOpenGLContext, {.gl_context = context});
+	ecs_set(world, e_window, AppDrawPickState,
+		{.gl = *backend, .shown = {.frame = -1}, .building = {.frame = -1}});
+	state = ecs_get_mut(world, e_window, AppDrawPickState);
+	state->target = egg_pick_target_create();
+	test_assert(state->target != NULL);
+	test_assert(backend->make_current((EgWindowsGlBinding){0}));
+	ecs_remove(world, e_window, EgWindowsWindow);
+	state = ecs_get_mut(world, e_window, AppDrawPickState);
+	test_assert(state && state->target == NULL);
+	current = backend->current();
+	test_assert(!current.window && !current.context);
+	ecs_remove(world, e_window, EgWindowsOpenGLContext);
+	ecs_remove(world, e_window, AppDrawPickState);
+	test_assert(SDL_GL_MakeCurrent(window, context));
 	SDL_GL_DestroyContext(context);
 	SDL_DestroyWindow(window);
 	SDL_Quit();
@@ -347,7 +429,7 @@ void Snapshot_test_multiple_windows(void)
 		ecs_set(world, window_entities[i], EgWindowsOpenGLContext, {.gl_context = contexts[i]});
 		ecs_add_id(world, window_entities[i], AppDrawGpuPicking);
 		ecs_set(world, window_entities[i], AppDrawPickState,
-			{.binding = {windows[i], contexts[i]}, .gl = *ecs_singleton_get(world, EgWindowsGlBackend),
+			{.gl = *ecs_singleton_get(world, EgWindowsGlBackend),
 			 .shown = {.frame = -2}, .building = {.frame = -2}});
 		for (int j = 0; j < 3; ++j) v[j].pick_id = (uint32_t)targets[i];
 		AppDrawPickState *state = ecs_get_mut(world, window_entities[i], AppDrawPickState);
@@ -378,7 +460,17 @@ void Snapshot_test_multiple_windows(void)
 	test_assert(!AppDraw_PickMouse(world, &result, &x, &y, NULL));
 	SDL_DestroyWindow(external);
 	for (int i = 0; i < 2; ++i) {
-		ecs_remove(world, window_entities[i], AppDrawPickState);
+		int other = 1 - i;
+		test_assert(SDL_GL_MakeCurrent(windows[other], contexts[other]));
+		if (i == 0) {
+			ecs_remove(world, window_entities[i], AppDrawPickState);
+		} else {
+			ecs_remove(world, window_entities[i], EgWindowsOpenGLContext);
+			ecs_remove(world, window_entities[i], AppDrawPickState);
+		}
+		test_assert(SDL_GL_GetCurrentContext() == contexts[other]);
+	}
+	for (int i = 0; i < 2; ++i) {
 		test_assert(SDL_GL_MakeCurrent(windows[i], contexts[i]));
 		egg_render_destroy(renderers[i]);
 		SDL_GL_DestroyContext(contexts[i]);

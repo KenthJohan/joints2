@@ -36,7 +36,6 @@ typedef struct {
 
 typedef struct {
 	egg_pick_target_t *target;
-	EgWindowsGlBinding binding;
 	EgWindowsGlBackend gl;
 	AppDrawPickScene shown;
 	AppDrawPickScene building;
@@ -73,13 +72,62 @@ static void AppDrawPickState_dtor(void *ptr, int32_t count, const ecs_type_info_
 	for (int32_t i = 0; i < count; ++i) {
 		AppDrawPickScene_free(&states[i].shown);
 		AppDrawPickScene_free(&states[i].building);
-		if (!states[i].target) continue;
-		EgWindowsGlBinding previous = states[i].gl.current();
-		if (!states[i].gl.make_current(states[i].binding)) {
-			continue;
-		}
-		egg_pick_target_destroy(states[i].target);
-		states[i].gl.make_current(previous);
+	}
+}
+
+static void AppDrawPickState_destroy_target(AppDrawPickState *state, void *window, void *context)
+{
+	if (!state || !state->target) return;
+	if (!window || !context) {
+		ecs_err("AppDraw: cannot destroy picking target without window and OpenGL context");
+		return;
+	}
+	EgWindowsGlBinding binding = {window, context};
+	EgWindowsGlBinding previous = state->gl.current();
+	if (!state->gl.make_current(binding)) {
+		ecs_err("AppDraw: cannot make picking context current to destroy target");
+		return;
+	}
+	egg_pick_target_destroy(state->target);
+	state->target = NULL;
+	if (!state->gl.make_current(previous)) {
+		ecs_err("AppDraw: cannot restore OpenGL context after destroying picking target");
+	}
+}
+
+static void AppDrawPickState_remove(ecs_iter_t *it)
+{
+	for (int32_t i = 0; i < it->count; ++i) {
+		ecs_entity_t entity = it->entities[i];
+		AppDrawPickState *state = ecs_field(it, AppDrawPickState, 0) + i;
+		const EgWindowsWindow *window = ecs_get(it->world, entity, EgWindowsWindow);
+		const EgWindowsOpenGLContext *context = ecs_get(it->world, entity, EgWindowsOpenGLContext);
+		AppDrawPickState_destroy_target(state, window ? window->object : NULL,
+			context ? context->gl_context : NULL);
+	}
+}
+
+static void AppDrawPickWindow_remove(ecs_iter_t *it)
+{
+	EgWindowsWindow *windows = ecs_field(it, EgWindowsWindow, 0);
+	for (int32_t i = 0; i < it->count; ++i) {
+		ecs_entity_t entity = it->entities[i];
+		AppDrawPickState *state = ecs_get_mut(it->world, entity, AppDrawPickState);
+		const EgWindowsOpenGLContext *context = ecs_get(it->world, entity, EgWindowsOpenGLContext);
+		AppDrawPickState_destroy_target(state, windows[i].object,
+			context ? context->gl_context : NULL);
+	}
+}
+
+static void AppDrawPickContext_remove(ecs_iter_t *it)
+{
+	EgWindowsOpenGLContext *contexts = ecs_field(it, EgWindowsOpenGLContext, 0);
+	for (int32_t i = 0; i < it->count; ++i) {
+		ecs_entity_t entity = it->entities[i];
+		AppDrawPickState *state = ecs_get_mut(it->world, entity, AppDrawPickState);
+		const EgWindowsWindow *window = ecs_get(it->world, entity, EgWindowsWindow);
+		AppDrawPickState_destroy_target(state, window ? window->object : NULL,
+			contexts[i].gl_context);
 	}
 }
 
@@ -248,7 +296,9 @@ static void AppDrawPickFrame_complete(ecs_world_t *world, ecs_entity_t window, b
 		scene->frame = frame;
 		scene->count = 0;
 		const EgWindowsWindowState *window_state = ecs_get(world, window, EgWindowsWindowState);
-		scene->valid = window_state && window_state->valid && window_state->object == state->binding.window;
+		const EgWindowsWindow *window_object = ecs_get(world, window, EgWindowsWindow);
+		scene->valid = window_state && window_state->valid && window_object &&
+			window_state->object == window_object->object;
 		if (scene->valid) {
 			scene->width = window_state->pixel_width;
 			scene->height = window_state->pixel_height;
@@ -373,11 +423,12 @@ static bool AppDraw_PickMouse(ecs_world_t *world, ecs_entity_t *target,
 	AppDrawPickState *state = ecs_get_mut(world, window, AppDrawPickState);
 	if (!state) return true;
 	const EgWindowsOpenGLContext *gl_context = ecs_get(world, window, EgWindowsOpenGLContext);
-	if (state->binding.window != window_state->object || !gl_context ||
-		state->binding.context != gl_context->gl_context) {
+	if (!window_object || !window_object->object || window_state->object != window_object->object ||
+		!gl_context || !gl_context->gl_context) {
 		state->cached = false;
 		return true;
 	}
+	EgWindowsGlBinding binding = {window_object->object, gl_context->gl_context};
 	int64_t expected_frame = ecs_get_world_info(world)->frame_count_total - 1;
 	if (!AppDrawPickState_publish(state, expected_frame)) return true;
 	int logical_w = window_state->width, logical_h = window_state->height;
@@ -400,7 +451,7 @@ static bool AppDraw_PickMouse(ecs_world_t *world, ecs_entity_t *target,
 	}
 
 	EgWindowsGlBinding previous = state->gl.current();
-	if (!state->gl.make_current(state->binding)) {
+	if (!state->gl.make_current(binding)) {
 		return true;
 	}
 	uint32_t id = 0;
@@ -430,8 +481,8 @@ static void Test_Render(ecs_iter_t *it)
 	AppDrawContext *d  = ecs_field_self(it, AppDrawContext, 1);
 	EgCamerasState *c0 = ecs_field_shared(it, EgCamerasState, 2);
 	ecs_entity_t window = ecs_pair_second(it->world, ecs_field_id(it, 0));
-	AppDrawPickState *pick = ecs_has_id(it->world, window, AppDrawGpuPicking) ?
-		ecs_get_mut(it->world, window, AppDrawPickState) : NULL;
+	AppDrawPickState *pick = ecs_has_id(it->world, window, AppDrawGpuPicking) ? ecs_get_mut(it->world, window, AppDrawPickState) : NULL;
+
 	for (int i = 0; i < it->count; ++i, ++d) {
 		ecs_assert(d->render != NULL, ECS_INTERNAL_ERROR, NULL);
 		ecs_assert(d->list != NULL, ECS_INTERNAL_ERROR, NULL);
@@ -445,8 +496,9 @@ static void Test_Render(ecs_iter_t *it)
 				scene->frame = frame;
 				scene->count = 0;
 				const EgWindowsWindowState *window_state = ecs_get(it->world, window, EgWindowsWindowState);
-				scene->valid = window_state && window_state->valid &&
-					window_state->object == pick->binding.window;
+				const EgWindowsWindow *window_object = ecs_get(it->world, window, EgWindowsWindow);
+				scene->valid = window_state && window_state->valid && window_object &&
+					window_state->object == window_object->object;
 				if (scene->valid) {
 					scene->width = window_state->pixel_width;
 					scene->height = window_state->pixel_height;
@@ -481,7 +533,7 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 	if (ecs_has_id(it->world, e_window, AppDrawGpuPicking)) {
 		if (!ecs_has(it->world, e_window, AppDrawPickState)) {
 			ecs_set(it->world, e_window, AppDrawPickState,
-				{.binding = binding, .gl = gl_backend,
+				{.gl = gl_backend,
 				 .shown = {.frame = -1}, .building = {.frame = -1}});
 			ecs_set(it->world, e_window, EgWindowsFrameCallback, {.complete = AppDrawPickFrame_complete});
 			ecs_script_set_event_hooks(it->world, &(ecs_script_event_hooks_t){.to_local = AppDraw_ToLocal});
@@ -552,6 +604,18 @@ void AppDrawImport(ecs_world_t *world)
 	ECS_COMPONENT_DEFINE(world, AppDrawPickState);
 	ECS_COMPONENT_DEFINE(world, AppDrawPickInput);
 	ecs_set_hooks(world, AppDrawPickState, {.dtor = AppDrawPickState_dtor, .move = AppDrawPickState_move});
+	ecs_observer(world,
+	{.query = {.terms = {{.id = ecs_id(AppDrawPickState)}}},
+	.events = {EcsOnRemove},
+	.callback = AppDrawPickState_remove});
+	ecs_observer(world,
+	{.query = {.terms = {{.id = ecs_id(EgWindowsWindow)}}},
+	.events = {EcsOnRemove},
+	.callback = AppDrawPickWindow_remove});
+	ecs_observer(world,
+	{.query = {.terms = {{.id = ecs_id(EgWindowsOpenGLContext)}}},
+	.events = {EcsOnRemove},
+	.callback = AppDrawPickContext_remove});
 	ecs_singleton_set(world, EgUiScriptEventsPicker, {
 		.pick = AppDraw_PickMouse,
 		.capture_begin = AppDraw_CaptureBegin,
