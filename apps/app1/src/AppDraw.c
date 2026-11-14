@@ -15,14 +15,15 @@ ECS_COMPONENT_DECLARE(AppDrawContextCreate);
 ECS_TAG_DECLARE(AppDrawGpuPicking);
 
 typedef struct {
-	egg_pick_target_t *target;
+	egg_pick_async_t *async;
 	ecs_entity_t picked;
 	int64_t frame;
 	int width, height;
 	bool drawing;
-	bool drew;
 	bool ready;
 	bool cached;
+	bool failed;
+	bool unavailable;
 } AppDrawPickState;
 
 ECS_COMPONENT_DECLARE(AppDrawPickState);
@@ -88,14 +89,14 @@ static void AppDrawWindow_destroy_renderers(ecs_world_t *world, ecs_entity_t win
 static void AppDrawPickTarget_destroy(void *resource)
 {
 	AppDrawPickState *state = resource;
-	egg_pick_target_destroy(state->target);
-	state->target = NULL;
+	egg_pick_async_destroy(state->async);
+	state->async = NULL;
 }
 
 static void AppDrawPickState_destroy_target(AppDrawPickState *state, void *window,
 	const EgWindowsOpenGLContext *context)
 {
-	if (!state || !state->target) return;
+	if (!state || !state->async) return;
 	if (!window || !context || !context->gl_context || !context->cleanup) {
 		ecs_err("AppDraw: cannot destroy picking target without window and OpenGL context");
 		return;
@@ -113,6 +114,17 @@ static void AppDrawPickState_remove(ecs_iter_t *it)
 		const EgWindowsWindow *window = ecs_get(it->world, entity, EgWindowsWindow);
 		const EgWindowsOpenGLContext *context = ecs_get(it->world, entity, EgWindowsOpenGLContext);
 		AppDrawPickState_destroy_target(state, window ? window->object : NULL, context);
+	}
+}
+
+static void AppDrawGpuPicking_remove(ecs_iter_t *it)
+{
+	for (int32_t i = 0; i < it->count; ++i) {
+		AppDrawPickState *state = ecs_get_mut(it->world, it->entities[i], AppDrawPickState);
+		if (!state) continue;
+		state->cached = false;
+		state->picked = 0;
+		egg_pick_async_invalidate(state->async);
 	}
 }
 
@@ -162,74 +174,124 @@ static bool AppDraw_IsPickable(uint32_t id, void *ctx)
 	return true;
 }
 
+static uint64_t AppDraw_ResolvePickable(uint32_t id, void *ctx)
+{
+	ecs_world_t *world = ctx;
+	return AppDraw_IsPickable(id, world) ? ecs_get_alive(world, id) : 0;
+}
+
 static void AppDrawPickFrame_begin(ecs_world_t *world, ecs_entity_t window)
 {
 	AppDrawPickState *state = ecs_get_mut(world, window, AppDrawPickState);
-	if (!state || !ecs_has_id(world, window, AppDrawGpuPicking)) return;
-	state->cached = false;
+	if (!state) return;
 	state->drawing = false;
-	state->drew = false;
 	state->ready = false;
-	state->picked = 0;
+	state->failed = false;
 	const EgWindowsInputState *focus = ecs_singleton_get(world, EgWindowsInputState);
 	const EgWindowsWindowState *window_state = ecs_get(world, window, EgWindowsWindowState);
 	const EgWindowsWindow *window_object = ecs_get(world, window, EgWindowsWindow);
-	if (!focus || focus->mouse_window != window || !window_state || !window_state->valid ||
+	if (!ecs_has_id(world, window, AppDrawGpuPicking) ||
+		!focus || focus->mouse_window != window || !window_state || !window_state->valid ||
 		!window_object || window_state->object != window_object->object ||
 		!window_state->mouse_focus || window_state->hidden || window_state->minimized ||
 		window_state->width <= 0 || window_state->height <= 0 ||
 		window_state->pixel_width <= 0 || window_state->pixel_height <= 0 ||
 		window_state->mouse_x < 0 || window_state->mouse_y < 0 ||
-		window_state->mouse_x >= window_state->width || window_state->mouse_y >= window_state->height) return;
+		window_state->mouse_x >= window_state->width || window_state->mouse_y >= window_state->height) {
+		state->cached = false;
+		state->picked = 0;
+		egg_pick_async_invalidate(state->async);
+		if (state->async) {
+			uint64_t ignored_id, ignored_frame;
+			if (egg_pick_async_poll(state->async, &ignored_id, &ignored_frame) < 0)
+				ecs_err("AppDraw: failed to retire invalid picking results");
+		}
+		return;
+	}
+	if (state->width != window_state->pixel_width || state->height != window_state->pixel_height) {
+		state->cached = false;
+		state->picked = 0;
+		egg_pick_async_invalidate(state->async);
+	}
 	state->width = window_state->pixel_width;
 	state->height = window_state->pixel_height;
-	state->frame = ecs_get_world_info(world)->frame_count_total;
-	if (!state->target) state->target = egg_pick_target_create();
-	state->drawing = state->target && egg_pick_target_begin_region(state->target, state->width, state->height,
-		(int)(window_state->mouse_x * state->width / window_state->width),
-		(int)(window_state->mouse_y * state->height / window_state->height));
-	if (!state->drawing) ecs_err("AppDraw: failed to begin picking region");
+	if (state->unavailable) return;
+	if (!state->async) {
+		state->async = egg_pick_async_create();
+		if (!state->async) {
+			ecs_err("AppDraw: GPU picking is unavailable for this context");
+			state->unavailable = true;
+			return;
+		}
+	}
+	uint64_t id = 0, completed_frame = 0;
+	int poll = egg_pick_async_poll(state->async, &id, &completed_frame);
+	if (poll < 0) {
+		ecs_err("AppDraw: failed to poll GPU picking");
+		state->cached = false;
+		state->picked = 0;
+		state->unavailable = true;
+		egg_pick_async_invalidate(state->async);
+		return;
+	}
+	if (poll > 0 && (!state->cached || completed_frame > (uint64_t)state->frame)) {
+		state->picked = id;
+		state->frame = (int64_t)completed_frame;
+		state->cached = true;
+	}
+	int x = (int)(window_state->mouse_x * state->width / window_state->width);
+	int y = state->height - 1 - (int)(window_state->mouse_y * state->height / window_state->height);
+	int started = egg_pick_async_begin(state->async, x, y,
+		(uint64_t)ecs_get_world_info(world)->frame_count_total);
+	if (started < 0) {
+		ecs_err("AppDraw: failed to begin GPU picking");
+		state->cached = false;
+		state->picked = 0;
+		state->unavailable = true;
+		egg_pick_async_invalidate(state->async);
+	}
+	state->drawing = started > 0;
 }
 
 static void AppDrawPickFrame_draw(ecs_world_t *world, AppDrawPickState *state,
 	egg_render_t *render, const EgDraws_List *list, const float *projection)
 {
-	if (!state || !state->drawing) return;
-	state->drew = true;
-	if (!egg_pick_draw_layers(state->target, render, &list->layers, projection, AppDraw_IsPickable, world)) {
-		state->drawing = false;
-		ecs_err("AppDraw: failed to render picking region");
+	if (!state || !state->drawing || state->failed) {
+		egg_draw_layers(render, &list->layers, projection);
+		return;
+	}
+	if (!egg_pick_async_draw(state->async, render, &list->layers, projection, AppDraw_ResolvePickable, world)) {
+		state->failed = true;
+		state->unavailable = true;
+		state->cached = false;
+		state->picked = 0;
+		egg_pick_async_invalidate(state->async);
+		ecs_err("AppDraw: failed to render asynchronous picking");
 	}
 }
 
 static void AppDrawPickFrame_end(ecs_world_t *world, ecs_entity_t window)
 {
 	AppDrawPickState *state = ecs_get_mut(world, window, AppDrawPickState);
-	if (!state || !ecs_has_id(world, window, AppDrawGpuPicking)) return;
-	if (!state->drawing || !state->drew ||
-		state->frame != ecs_get_world_info(world)->frame_count_total) {
-		state->drawing = false;
-		return;
-	}
-	uint32_t id = 0;
+	if (!state || !state->drawing) return;
 	state->drawing = false;
-	if (!egg_pick_target_read_region(state->target, &id)) {
-		ecs_err("AppDraw: failed to read picking region");
-		return;
+	state->ready = egg_pick_async_end(state->async);
+	if (!state->ready) {
+		ecs_err("AppDraw: failed to finish GPU picking");
+		state->cached = false;
+		state->picked = 0;
+		state->unavailable = true;
+		egg_pick_async_invalidate(state->async);
 	}
-	state->ready = true;
-	state->picked = id ? ecs_get_alive(world, id) : 0;
 }
 
 static void AppDrawPickFrame_complete(ecs_world_t *world, ecs_entity_t window, bool displayed)
 {
 	AppDrawPickState *state = ecs_get_mut(world, window, AppDrawPickState);
-	if (!state || !ecs_has_id(world, window, AppDrawGpuPicking)) return;
+	if (!state) return;
 	state->drawing = false;
-	state->cached = displayed && state->ready &&
-		state->frame == ecs_get_world_info(world)->frame_count_total;
+	egg_pick_async_complete(state->async, displayed && state->ready && !state->failed);
 	state->ready = false;
-	if (!state->cached) state->picked = 0;
 }
 
 static void AppDraw_ToLocal(ecs_world_t *world, ecs_entity_t entity,
@@ -314,6 +376,16 @@ static bool AppDraw_PickMouse(ecs_world_t *world, ecs_entity_t *target,
 		return true;
 	}
 	if (!window) {
+		ecs_iter_t states = ecs_each(world, AppDrawPickState);
+		ecs_iter_t *iter = &states;
+		while (ecs_each_next(iter)) {
+			AppDrawPickState *values = ecs_field(iter, AppDrawPickState, 0);
+			for (int32_t i = 0; i < states.count; ++i) {
+				values[i].cached = false;
+				values[i].picked = 0;
+				egg_pick_async_invalidate(values[i].async);
+			}
+		}
 		if (!focus || focus->mouse_focus) return false;
 		ecs_iter_t it = ecs_each_id(world, AppDrawGpuPicking);
 		while (ecs_each_next(&it)) {
@@ -331,7 +403,10 @@ static bool AppDraw_PickMouse(ecs_world_t *world, ecs_entity_t *target,
 	*target = 0;
 	if (!window_state || !window_state->valid) {
 		AppDrawPickState *state = ecs_get_mut(world, window, AppDrawPickState);
-		if (state) state->cached = false;
+		if (state) {
+			state->cached = false;
+			egg_pick_async_invalidate(state->async);
+		}
 		return true;
 	}
 	float x = window_state->mouse_x, y = window_state->mouse_y;
@@ -343,15 +418,16 @@ static bool AppDraw_PickMouse(ecs_world_t *world, ecs_entity_t *target,
 	if (!window_object || !window_object->object || window_state->object != window_object->object ||
 		!gl_context || !gl_context->gl_context) {
 		state->cached = false;
+		egg_pick_async_invalidate(state->async);
 		return true;
 	}
-	int64_t expected_frame = ecs_get_world_info(world)->frame_count_total - 1;
-	if (!state->cached || state->frame != expected_frame) return true;
+	if (!state->cached) return true;
 	int logical_w = window_state->width, logical_h = window_state->height;
 	int pixel_w = window_state->pixel_width, pixel_h = window_state->pixel_height;
 	if (logical_w <= 0 || logical_h <= 0 || pixel_w != state->width || pixel_h != state->height ||
 		!AppDraw_InsideWindow(x, y, logical_w, logical_h)) {
 		state->cached = false;
+		egg_pick_async_invalidate(state->async);
 		return true;
 	}
 
@@ -374,7 +450,7 @@ static void Test_Render(ecs_iter_t *it)
 			if (!d->render) {
 				ecs_err("AppDraw: failed to initialize renderer for entity %s",
 					ecs_get_name(it->world, it->entities[i]));
-				if (pick) pick->drawing = false;
+				if (pick) pick->failed = true;
 				EgDraws_List_Clear(d->list);
 				ecs_enable(it->world, it->entities[i], false);
 				continue;
@@ -382,7 +458,6 @@ static void Test_Render(ecs_iter_t *it)
 		}
 		d->pixelScale = c0->pixel_scale * 1.0f; // Keep the egg-scale near the camera-derived size.
 		EgDraws_List_SetPixelScale(d->list, d->pixelScale);
-		egg_draw_layers(d->render, &d->list->layers, (float *)&c0->vp);
 		AppDrawPickFrame_draw(it->world, pick, d->render, d->list, (float *)&c0->vp);
 		EgDraws_List_Clear(d->list);
 	}
@@ -477,6 +552,10 @@ void AppDrawImport(ecs_world_t *world)
 	{.query = {.terms = {{.id = ecs_id(AppDrawPickState)}}},
 	.events = {EcsOnRemove},
 	.callback = AppDrawPickState_remove});
+	ecs_observer(world,
+	{.query = {.terms = {{.id = AppDrawGpuPicking}}},
+	.events = {EcsOnRemove},
+	.callback = AppDrawGpuPicking_remove});
 	ecs_observer(world,
 	{.query = {.terms = {{.id = ecs_id(EgWindowsWindow)}}},
 	.events = {EcsOnRemove},

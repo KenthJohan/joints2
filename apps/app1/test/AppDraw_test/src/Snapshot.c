@@ -14,6 +14,17 @@ static int renderer_cleanups;
 static SDL_GLContext expected_cleanup_context;
 static bool cleanup_failure_after_destroy;
 
+static bool supports_async(void)
+{
+	return SDL_GL_ExtensionSupported("GL_ARB_gpu_shader_int64") &&
+		SDL_GL_ExtensionSupported("GL_NV_shader_atomic_int64");
+}
+
+static void report_async_skip(void)
+{
+	fprintf(stderr, "AppDraw_test: skipping GPU picking checks; 64-bit atomic extensions unavailable\n");
+}
+
 typedef struct {
 	void (*destroy)(void *);
 	void *resource;
@@ -114,7 +125,16 @@ static void complete_pick(ecs_entity_t window, egg_render_t *renderer)
 	AppDrawPickFrame_end(world, window);
 	AppDrawPickFrame_complete(world, window, true);
 	state = ecs_get_mut(world, window, AppDrawPickState);
-	state->frame--;
+	uint64_t id = 0, frame = 0;
+	int ready = 0;
+	for (int i = 0; i < 1000 && !ready; ++i) {
+		ready = egg_pick_async_poll(state->async, &id, &frame);
+		if (!ready) SDL_Delay(1);
+	}
+	test_int(ready, 1);
+	state->picked = id;
+	state->frame = (int64_t)frame;
+	state->cached = true;
 }
 
 void Snapshot_test_publish_and_invalidate(void)
@@ -126,11 +146,17 @@ void Snapshot_test_publish_and_invalidate(void)
 	state->cached = true;
 	state->picked = entity;
 	AppDrawPickFrame_complete(world, window, false);
-	test_assert(!state->cached && !state->picked);
+	test_assert(state->cached && state->picked == entity);
 	AppDrawPickFrame_begin(world, window);
 	test_assert(!state->drawing);
+	test_assert(!state->cached && !state->picked);
 	AppDrawPickFrame_complete(world, window, true);
 	test_assert(!state->cached);
+	state->cached = true;
+	state->picked = entity;
+	ecs_remove_id(world, window, AppDrawGpuPicking);
+	state = ecs_get_mut(world, window, AppDrawPickState);
+	test_assert(state && !state->cached && !state->picked);
 }
 
 void Snapshot_test_live_eligibility(void)
@@ -153,13 +179,20 @@ void Snapshot_test_live_eligibility(void)
 void Snapshot_test_on_demand(void)
 {
 	test_assert(SDL_Init(SDL_INIT_VIDEO));
-	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3));
+	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4));
 	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3));
 	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE));
 	SDL_Window *window = SDL_CreateWindow("app picking test", 64, 64, SDL_WINDOW_OPENGL);
 	test_assert(window != NULL);
 	SDL_GLContext context = SDL_GL_CreateContext(window);
 	test_assert(context != NULL);
+	if (!supports_async()) {
+		report_async_skip();
+		SDL_GL_DestroyContext(context);
+		SDL_DestroyWindow(window);
+		SDL_Quit();
+		return;
+	}
 	egg_render_t *renderer = egg_render_init();
 	test_assert(renderer != NULL);
 	ecs_entity_t e_window = ecs_new(world);
@@ -179,6 +212,7 @@ void Snapshot_test_on_demand(void)
 		v[i].uv[1] = 0.5f / EG_DRAWS_ATLAS_HEIGHT;
 	}
 	AppDrawPickState *state = ecs_get_mut(world, e_window, AppDrawPickState);
+	SDL_RaiseWindow(window);
 	SDL_WarpMouseInWindow(window, 32, 32);
 	for (int i = 0; i < 50 && SDL_GetMouseFocus() != window; ++i) {
 		SDL_PumpEvents();
@@ -202,7 +236,16 @@ void Snapshot_test_on_demand(void)
 	AppDrawPickFrame_draw(world, state, renderer, list, identity);
 	AppDrawPickFrame_end(world, e_window);
 	AppDrawPickFrame_complete(world, e_window, true);
-	state->frame--;
+	uint64_t id = 0, frame = 0;
+	int ready = 0;
+	for (int i = 0; i < 1000 && !ready; ++i) {
+		ready = egg_pick_async_poll(state->async, &id, &frame);
+		if (!ready) SDL_Delay(1);
+	}
+	test_int(ready, 1);
+	state->picked = id;
+	state->frame = (int64_t)frame;
+	state->cached = true;
 	test_assert(AppDraw_PickMouse(world, &result, &x, &y, NULL));
 	test_assert(result == top);
 	for (int i = 0; i < 3; ++i) v[i].pick_id = (uint32_t)entity;
@@ -273,9 +316,9 @@ void Snapshot_test_on_demand(void)
 	state->cached = true;
 	state->drawing = true;
 	AppDrawPickFrame_complete(world, e_window, false);
-	test_assert(!state->cached && !state->drawing);
+	test_assert(state->cached && !state->drawing);
 	AppDrawPickFrame_complete(world, e_window, true);
-	test_assert(!state->cached);
+	test_assert(state->cached);
 
 	SDL_Window *current_window = SDL_GL_GetCurrentWindow();
 	SDL_GLContext current_context = SDL_GL_GetCurrentContext();
@@ -291,152 +334,64 @@ void Snapshot_test_on_demand(void)
 void Snapshot_test_pick_target_lifecycle(void)
 {
 	test_assert(SDL_Init(SDL_INIT_VIDEO));
-	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3));
+	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4));
 	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3));
 	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE));
 
-
-	SDL_Window *context_window = SDL_CreateWindow("pick target context removal", 64, 64, SDL_WINDOW_OPENGL);
-	test_assert(context_window != NULL);
-	SDL_GLContext context = SDL_GL_CreateContext(context_window);
-	test_assert(context != NULL);
-	ecs_entity_t e_context = ecs_new(world);
-	ecs_set(world, e_context, EgWindowsWindow, {.object = context_window});
-	ecs_set(world, e_context, EgWindowsOpenGLContext, {.gl_context = context, .cleanup = EgWindowsSdlGlCleanup});
-	ecs_set(world, e_context, AppDrawPickState,
-		{.frame = -1});
-	AppDrawPickState *state = ecs_get_mut(world, e_context, AppDrawPickState);
-	state->target = egg_pick_target_create();
-	test_assert(state->target != NULL);
-	test_assert(egg_pick_target_begin_region(state->target, 64, 64, 32, 32));
-	GLuint framebuffer = egg_pick_target_framebuffer(state->target);
-	test_assert(framebuffer && glIsFramebuffer(framebuffer));
-	test_assert(SDL_GL_MakeCurrent(NULL, NULL));
-	ecs_remove(world, e_context, EgWindowsOpenGLContext);
-	state = ecs_get_mut(world, e_context, AppDrawPickState);
-	test_assert(state && state->target == NULL);
-	SDL_Window *current_window = SDL_GL_GetCurrentWindow();
-	SDL_GLContext current_context = SDL_GL_GetCurrentContext();
-	test_assert(!current_window && !current_context);
-	ecs_remove(world, e_context, AppDrawPickState);
-	test_assert(SDL_GL_MakeCurrent(context_window, context));
-	test_assert(!glIsFramebuffer(framebuffer));
-	SDL_GL_DestroyContext(context);
-	SDL_DestroyWindow(context_window);
-
-	SDL_Window *state_window = SDL_CreateWindow("pick target state removal", 64, 64, SDL_WINDOW_OPENGL);
-	test_assert(state_window != NULL);
-	context = SDL_GL_CreateContext(state_window);
-	test_assert(context != NULL);
-	ecs_entity_t e_state = ecs_new(world);
-	ecs_set(world, e_state, EgWindowsWindow, {.object = state_window});
-	ecs_set(world, e_state, EgWindowsOpenGLContext, {.gl_context = context, .cleanup = EgWindowsSdlGlCleanup});
-	ecs_set(world, e_state, AppDrawPickState,
-		{.frame = -1});
-	state = ecs_get_mut(world, e_state, AppDrawPickState);
-	state->target = egg_pick_target_create();
-	test_assert(state->target != NULL);
-	test_assert(egg_pick_target_begin_region(state->target, 64, 64, 32, 32));
-	framebuffer = egg_pick_target_framebuffer(state->target);
-	test_assert(framebuffer && glIsFramebuffer(framebuffer));
-	test_assert(SDL_GL_MakeCurrent(NULL, NULL));
-	ecs_remove(world, e_state, AppDrawPickState);
-	current_window = SDL_GL_GetCurrentWindow();
-	current_context = SDL_GL_GetCurrentContext();
-	test_assert(!current_window && !current_context);
-	test_assert(SDL_GL_MakeCurrent(state_window, context));
-	test_assert(!glIsFramebuffer(framebuffer));
-	SDL_GL_DestroyContext(context);
-	SDL_DestroyWindow(state_window);
-
-	SDL_Window *window = SDL_CreateWindow("pick target window removal", 64, 64, SDL_WINDOW_OPENGL);
-	test_assert(window != NULL);
-	context = SDL_GL_CreateContext(window);
-	test_assert(context != NULL);
-	ecs_entity_t e_window = ecs_new(world);
-	ecs_set(world, e_window, EgWindowsWindow, {.object = window});
-	ecs_set(world, e_window, EgWindowsOpenGLContext, {.gl_context = context, .cleanup = EgWindowsSdlGlCleanup});
-	ecs_set(world, e_window, AppDrawPickState,
-		{.frame = -1});
-	state = ecs_get_mut(world, e_window, AppDrawPickState);
-	state->target = egg_pick_target_create();
-	test_assert(state->target != NULL);
-	test_assert(egg_pick_target_begin_region(state->target, 64, 64, 32, 32));
-	framebuffer = egg_pick_target_framebuffer(state->target);
-	test_assert(framebuffer && glIsFramebuffer(framebuffer));
-	test_assert(SDL_GL_MakeCurrent(NULL, NULL));
-	ecs_remove(world, e_window, EgWindowsWindow);
-	state = ecs_get_mut(world, e_window, AppDrawPickState);
-	test_assert(state && state->target == NULL);
-	current_window = SDL_GL_GetCurrentWindow();
-	current_context = SDL_GL_GetCurrentContext();
-	test_assert(!current_window && !current_context);
-	ecs_remove(world, e_window, EgWindowsOpenGLContext);
-	ecs_remove(world, e_window, AppDrawPickState);
-	test_assert(SDL_GL_MakeCurrent(window, context));
-	test_assert(!glIsFramebuffer(framebuffer));
-	SDL_GL_DestroyContext(context);
-	SDL_DestroyWindow(window);
-
-	window = SDL_CreateWindow("pick target entity deletion", 64, 64, SDL_WINDOW_OPENGL);
-	test_assert(window != NULL);
-	context = SDL_GL_CreateContext(window);
-	test_assert(context != NULL);
-	e_window = ecs_new(world);
-	ecs_set(world, e_window, EgWindowsWindow, {.object = window});
-	ecs_set(world, e_window, EgWindowsOpenGLContext, {.gl_context = context, .cleanup = EgWindowsSdlGlCleanup});
-	ecs_set(world, e_window, AppDrawPickState,
-		{.frame = -1});
-	state = ecs_get_mut(world, e_window, AppDrawPickState);
-	state->target = egg_pick_target_create();
-	test_assert(state->target != NULL);
-	test_assert(egg_pick_target_begin_region(state->target, 64, 64, 32, 32));
-	framebuffer = egg_pick_target_framebuffer(state->target);
-	test_assert(framebuffer && glIsFramebuffer(framebuffer));
-	test_assert(SDL_GL_MakeCurrent(NULL, NULL));
-	ecs_delete(world, e_window);
-	current_window = SDL_GL_GetCurrentWindow();
-	current_context = SDL_GL_GetCurrentContext();
-	test_assert(!current_window && !current_context);
-	test_assert(SDL_GL_MakeCurrent(window, context));
-	test_assert(!glIsFramebuffer(framebuffer));
-	SDL_GL_DestroyContext(context);
-	SDL_DestroyWindow(window);
-
-	window = SDL_CreateWindow("pick target world shutdown", 64, 64, SDL_WINDOW_OPENGL);
-	test_assert(window != NULL);
-	context = SDL_GL_CreateContext(window);
-	test_assert(context != NULL);
-	ecs_world_t *shutdown_world = ecs_init();
-	ECS_IMPORT(shutdown_world, EgWindowsSdl);
-	ECS_IMPORT(shutdown_world, EgWindowsSdlGl);
-	ECS_IMPORT(shutdown_world, AppDraw);
-
-	e_window = ecs_new(shutdown_world);
-	ecs_set(shutdown_world, e_window, EgWindowsWindow, {.object = window});
-	ecs_set(shutdown_world, e_window, EgWindowsOpenGLContext, {.gl_context = context, .cleanup = EgWindowsSdlGlCleanup});
-	ecs_set(shutdown_world, e_window, AppDrawPickState,
-		{.frame = -1});
-	state = ecs_get_mut(shutdown_world, e_window, AppDrawPickState);
-	state->target = egg_pick_target_create();
-	test_assert(state->target != NULL);
-	test_assert(egg_pick_target_begin_region(state->target, 64, 64, 32, 32));
-	framebuffer = egg_pick_target_framebuffer(state->target);
-	test_assert(framebuffer && glIsFramebuffer(framebuffer));
-	test_assert(SDL_GL_MakeCurrent(NULL, NULL));
-	ecs_fini(shutdown_world);
-	test_assert(SDL_GL_GetCurrentContext() == NULL);
-	test_assert(SDL_GL_MakeCurrent(window, context));
-	test_assert(!glIsFramebuffer(framebuffer));
-	SDL_GL_DestroyContext(context);
-	SDL_DestroyWindow(window);
+	for (int mode = 0; mode < 5; ++mode) {
+		SDL_Window *window = SDL_CreateWindow("asynchronous pick lifecycle", 64, 64, SDL_WINDOW_OPENGL);
+		test_assert(window != NULL);
+		SDL_GLContext context = SDL_GL_CreateContext(window);
+		test_assert(context != NULL);
+		if (!supports_async()) {
+			report_async_skip();
+			SDL_GL_DestroyContext(context);
+			SDL_DestroyWindow(window);
+			SDL_Quit();
+			return;
+		}
+		ecs_world_t *w = ecs_init();
+		ECS_IMPORT(w, EgWindowsSdl);
+		ECS_IMPORT(w, EgWindowsSdlGl);
+		ECS_IMPORT(w, AppDraw);
+		ecs_entity_t e = ecs_new(w);
+		ecs_set(w, e, EgWindowsWindow, {.object = window});
+		ecs_set(w, e, EgWindowsOpenGLContext, {.gl_context = context, .cleanup = tracked_cleanup});
+		ecs_set(w, e, AppDrawPickState, {.frame = -1});
+		AppDrawPickState *state = ecs_get_mut(w, e, AppDrawPickState);
+		state->async = egg_pick_async_create();
+		test_assert(state->async != NULL);
+		test_int(egg_pick_async_begin(state->async, 32, 32, 1), 1);
+		test_assert(egg_pick_async_end(state->async));
+		egg_pick_async_complete(state->async, true);
+		renderer_cleanups = 0;
+		expected_cleanup_context = context;
+		test_assert(SDL_GL_MakeCurrent(NULL, NULL));
+		switch (mode) {
+		case 0: ecs_remove(w, e, AppDrawPickState); break;
+		case 1: ecs_remove(w, e, EgWindowsOpenGLContext); break;
+		case 2: ecs_remove(w, e, EgWindowsWindow); break;
+		case 3: ecs_delete(w, e); break;
+		case 4: ecs_fini(w); w = NULL; break;
+		}
+		test_int(renderer_cleanups, 1);
+		test_assert(!SDL_GL_GetCurrentWindow() && !SDL_GL_GetCurrentContext());
+		if (mode == 1 || mode == 2) {
+			state = ecs_get_mut(w, e, AppDrawPickState);
+			test_assert(state && !state->async);
+		}
+		if (w) ecs_fini(w);
+		test_int(renderer_cleanups, 1);
+		SDL_GL_DestroyContext(context);
+		SDL_DestroyWindow(window);
+	}
 	SDL_Quit();
 }
 
 void Snapshot_test_renderer_lifecycle(void)
 {
 	test_assert(SDL_Init(SDL_INIT_VIDEO));
-	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3));
+	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4));
 	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3));
 	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE));
 	SDL_Window *other = SDL_CreateWindow("other context", 64, 64, SDL_WINDOW_OPENGL);
@@ -491,19 +446,26 @@ void Snapshot_test_renderer_lifecycle(void)
 	}
 	test_assert(SDL_GL_MakeCurrent(other, other_context));
 	AppDrawContext draw = {.render = egg_render_init()};
-	AppDrawPickState pick = {.target = egg_pick_target_create()};
-	test_assert(draw.render && pick.target);
-	test_assert(egg_pick_target_begin_region(pick.target, 64, 64, 32, 32));
-	GLuint framebuffer = egg_pick_target_framebuffer(pick.target);
+	if (!supports_async()) {
+		report_async_skip();
+		test_assert(draw.render);
+		egg_render_destroy(draw.render);
+		SDL_GL_DestroyContext(other_context);
+		SDL_DestroyWindow(other);
+		SDL_Quit();
+		return;
+	}
+	AppDrawPickState pick = {.async = egg_pick_async_create()};
+	test_assert(draw.render && pick.async);
 	EgWindowsOpenGLContext failing = {.gl_context = other_context, .cleanup = failing_cleanup};
 	cleanup_failure_after_destroy = false;
 	AppDrawContext_destroy_renderer(&draw, other, &failing);
 	AppDrawPickState_destroy_target(&pick, other, &failing);
-	test_assert(draw.render && pick.target && glIsFramebuffer(framebuffer));
+	test_assert(draw.render && pick.async);
 	cleanup_failure_after_destroy = true;
 	AppDrawContext_destroy_renderer(&draw, other, &failing);
 	AppDrawPickState_destroy_target(&pick, other, &failing);
-	test_assert(!draw.render && !pick.target && !glIsFramebuffer(framebuffer));
+	test_assert(!draw.render && !pick.async);
 	SDL_GL_DestroyContext(other_context);
 	SDL_DestroyWindow(other);
 	SDL_Quit();
@@ -590,7 +552,7 @@ void Snapshot_test_drag_window_bounds(void)
 void Snapshot_test_multiple_windows(void)
 {
 	test_assert(SDL_Init(SDL_INIT_VIDEO));
-	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3));
+	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4));
 	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3));
 	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE));
 	SDL_Window *windows[2];
@@ -613,6 +575,13 @@ void Snapshot_test_multiple_windows(void)
 		test_assert(windows[i] != NULL);
 		contexts[i] = SDL_GL_CreateContext(windows[i]);
 		test_assert(contexts[i] != NULL);
+		if (i == 0 && !supports_async()) {
+			report_async_skip();
+			SDL_GL_DestroyContext(contexts[i]);
+			SDL_DestroyWindow(windows[i]);
+			SDL_Quit();
+			return;
+		}
 		renderers[i] = egg_render_init();
 		test_assert(renderers[i] != NULL);
 		window_entities[i] = ecs_new(world);
@@ -674,7 +643,7 @@ void Snapshot_test_multiple_windows(void)
 void Snapshot_test_frame_callbacks(void)
 {
 	test_assert(SDL_Init(SDL_INIT_VIDEO));
-	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3));
+	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4));
 	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3));
 	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE));
 	SDL_Window *window = SDL_CreateWindow("app frame callback test", 64, 64, SDL_WINDOW_OPENGL);
@@ -713,7 +682,7 @@ void Snapshot_test_frame_callbacks(void)
 void Snapshot_test_render_cycle_picking(void)
 {
 	test_assert(SDL_Init(SDL_INIT_VIDEO));
-	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3));
+	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4));
 	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3));
 	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE));
 	SDL_Window *native = SDL_CreateWindow("render cycle picking", 64, 64, SDL_WINDOW_OPENGL);
@@ -764,11 +733,32 @@ void Snapshot_test_render_cycle_picking(void)
 	const AppDrawContext *drawn = ecs_get(world, draw, AppDrawContext);
 	test_assert(drawn && drawn->render);
 	const AppDrawPickState *state = ecs_get(world, window, AppDrawPickState);
+	if (!supports_async()) {
+		test_assert(state && state->unavailable && !state->cached);
+		ecs_delete(world, window);
+		ecs_query_fini(systems);
+		SDL_GL_DestroyContext(context);
+		SDL_DestroyWindow(native);
+		SDL_Quit();
+		return;
+	}
+	for (int i = 0; i < 1000 && !state->cached; ++i) {
+		SDL_Delay(1);
+		test_assert(ecs_progress(world, 0));
+		state = ecs_get(world, window, AppDrawPickState);
+	}
 	test_assert(state && state->cached && state->picked == entity);
 	ecs_entity_t result = 0;
 	float x = 0, y = 0;
 	test_assert(AppDraw_PickMouse(world, &result, &x, &y, NULL));
 	test_assert(result == entity);
+	ecs_remove(world, draw, AppDrawContext);
+	for (int i = 0; i < 1000 && state->picked; ++i) {
+		SDL_Delay(1);
+		test_assert(ecs_progress(world, 0));
+		state = ecs_get(world, window, AppDrawPickState);
+	}
+	test_assert(state->cached && !state->picked);
 	ecs_delete(world, window);
 	ecs_query_fini(systems);
 	SDL_GL_DestroyContext(context);

@@ -13,6 +13,8 @@ void Picking_setup(void);
 void Picking_teardown(void);
 void Picking_test_integer_target(void);
 void Picking_test_region(void);
+void Picking_test_async(void);
+void Picking_test_benchmark(void);
 
 bake_test_case Picking_testcases[] = {
     {
@@ -22,6 +24,14 @@ bake_test_case Picking_testcases[] = {
     {
         "test_region",
         Picking_test_region
+    },
+    {
+        "test_async",
+        Picking_test_async
+    },
+    {
+        "test_benchmark",
+        Picking_test_benchmark
     }
 };
 
@@ -30,7 +40,7 @@ static bake_test_suite suites[] = {
         "Picking",
         Picking_setup,
         Picking_teardown,
-        2,
+        4,
         Picking_testcases
     }
 };

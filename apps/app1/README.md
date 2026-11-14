@@ -4,34 +4,40 @@
 picking pass for that window. Without the tag, the window has no mouse picking;
 there is no CPU fallback. `huds.flecs` contains a `Button2` example.
 
-The pass stores the low 32 bits of each entity and a primitive draw-order key
-in a single-sample `GL_RG32UI` texture. It draws all of the window's EgDraws contexts in their normal order,
-but only geometry whose entity has `eg.ui.script.events.Target` participates.
+Picking runs in the same pass as visible drawing. Only geometry whose entity
+has `eg.ui.script.events.Target` participates.
 Untagged geometry does not block a target behind it. Text is picked only where
 its atlas alpha multiplied by the vertex alpha is greater than zero. A tagged
 entity without drawn geometry cannot be picked.
 
 The existing EgUi dispatcher sends the resolved target to
-`ecs_script_mouse_event`. During the window's render cycle, a scissored 3×3
-framebuffer-pixel region is drawn alongside the visible draw lists while the
-window's GL context is current. The region is read before presentation; only
-after a successful presentation does the input picker use the resulting target
-in the next frame.
-The center pixel wins; otherwise the nearest nonempty pixel wins, with the
-last-drawn primitive breaking distance ties. If that still ties, the first
-pixel in bottom-to-top, left-to-right framebuffer order wins. The region is
-clipped at window edges. This makes nearby objects clickable even when the
-center pixel is empty.
+`ecs_script_mouse_event`. The fragment shader selects eligible fragments at the
+exact mouse pixel with a 64-bit SSBO atomic. The smallest window-space depth
+wins, with the last-drawn primitive breaking exact depth ties. Visible rendering
+still uses its existing blending and draw order, so the picked object can differ
+from the visually topmost object. Depth values from different cameras are
+compared in window space.
 
-The result uses the pointer position and geometry from the preceding render.
-Moving the pointer before the next input event can therefore target an object
-that is no longer under it. A result is rejected if its entity is no longer
-alive or eligible, or if the window state and framebuffer size are invalid.
-The first frame, a resize and a minimized window have no pick until a valid
-frame has been rendered. Mouse positions are converted from logical window
-coordinates to framebuffer pixels. Each eligible frame performs synchronous
-readback, which may stall the GPU. Eligibility checks also cost CPU time and
+The result is read asynchronously after the frame is presented. The latest
+completed valid result is retained while newer results are pending; when all
+three readback slots are busy, a new pick is skipped. Moving the pointer can
+therefore target an object that is no longer under it. A result is rejected if
+its entity is no longer alive or eligible, or if the window state and framebuffer
+size are invalid. The first frame, a resize and a minimized window have no pick
+until a valid result is ready. Mouse positions are converted from logical window
+coordinates to framebuffer pixels. Eligibility mapping still costs CPU time and
 memory. Buttons retain frame-based input aggregation.
+
+The SDL backend requests OpenGL 4.3 core. GPU picking additionally requires
+`GL_ARB_gpu_shader_int64` and `GL_NV_shader_atomic_int64`; a context without
+both extensions reports that picking is unavailable. Rendering without picking
+does not require those extensions.
+
+For a synthetic comparison of the visible-only, former synchronous and
+single-pass asynchronous renderer paths on a supporting OpenGL context, run
+`EGG_PICK_BENCHMARK=1 bake test vendor/egg/test/egg_test` from the repository
+root. The benchmark reports skipped picks as well as frame time; it does not
+measure the complete application.
 The current Flecs input dispatcher does not deliver a release to the pressed
 entity when the pointer is over the background, so the example button's
 `held` state can remain set after dragging off and releasing.
@@ -64,8 +70,7 @@ Other backends must provide the same state and cleanup operation. Native window
 and GL context handles must remain valid until their components are removed;
 they must not be replaced on the same entity.
 
-The GPU stores only entity indices. If an entity is deleted and its index is
-reused between geometry generation and readback, the result can refer to the
-new entity. After readback the full entity ID is retained, preventing an index
-reused before event delivery from selecting a different entity. This experiment
-does not implement 3D picking.
+The draw list stores only entity indices. A reused index can therefore refer to
+a new entity before draw submission. At submission the full entity ID is saved
+with the pending result, preventing a later reuse before event delivery from
+selecting a different entity. This experiment does not implement 3D picking.

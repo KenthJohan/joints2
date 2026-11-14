@@ -11,7 +11,7 @@
 			"id": "Picking",
 			"setup": true,
 			"teardown": true,
-			"testcases": ["test_integer_target", "test_region"]
+			"testcases": ["test_integer_target", "test_region", "test_async", "test_benchmark"]
 		}]
 	},
 	"lang.c": {
