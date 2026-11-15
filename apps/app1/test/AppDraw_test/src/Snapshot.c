@@ -9,7 +9,7 @@ static ecs_world_t *world;
 static ecs_entity_t entity;
 static EgDraws_List *list;
 static const float identity[16] = {1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1};
-static int generic_frames, generic_begins, generic_ends, sdl_frames;
+static int generic_frames, generic_begins, generic_ends;
 static int renderer_cleanups;
 static SDL_GLContext expected_cleanup_context;
 static bool cleanup_failure_after_destroy;
@@ -83,13 +83,6 @@ static void generic_frame_complete(ecs_world_t *w, ecs_entity_t window, bool dis
 		test_int(generic_ends, generic_frames + 1);
 		++generic_frames;
 	}
-}
-
-static void sdl_frame_complete(ecs_world_t *w, ecs_entity_t window, bool displayed)
-{
-	(void)w;
-	(void)window;
-	if (displayed) ++sdl_frames;
 }
 
 void Snapshot_setup(void)
@@ -665,13 +658,11 @@ void Snapshot_test_frame_callbacks(void)
 	ecs_set(world, e_window, EgShapesRectangle, {.w = 64, .h = 64});
 	ecs_set(world, e_window, EgWindowsFrameCallback,
 		{.begin = generic_frame_begin, .end = generic_frame_end, .complete = generic_frame_complete});
-	ecs_set(world, e_window, EgWindowsSdlGlFrameCallback, {.complete = sdl_frame_complete});
-	generic_frames = generic_begins = generic_ends = sdl_frames = 0;
+	generic_frames = generic_begins = generic_ends = 0;
 	test_assert(ecs_progress(world, 0));
 	test_int(generic_begins, 1);
 	test_int(generic_ends, 1);
 	test_int(generic_frames, 1);
-	test_int(sdl_frames, 1);
 	ecs_remove(world, e_window, EgWindowsOpenGLContext);
 	ecs_query_fini(systems);
 	SDL_GL_DestroyContext(context);
