@@ -69,8 +69,6 @@ static void AppDrawContext_remove(ecs_iter_t *it)
 	for (int32_t i = 0; i < it->count; ++i) {
 		ecs_log(-1, "AppDraw: removing draw context %s", ecs_get_name(it->world, it->entities[i]));
 		AppDrawContext_destroy_renderer(&draw[i], native ? native->object : NULL, context);
-		EgDraws_List_Destroy(draw[i].list);
-		draw[i].list = NULL;
 	}
 }
 
@@ -462,12 +460,12 @@ float *screen_x, float *screen_y, void *ctx)
 static void Test_Render(ecs_iter_t *it)
 {
 	AppDrawContext   *d      = ecs_field_self(it, AppDrawContext, 1);
-	EgCamerasState   *c0     = ecs_field_shared(it, EgCamerasState, 2);
+	EgDraws_List     *list   = ecs_field_self(it, EgDraws_List, 2);
+	EgCamerasState   *c0     = ecs_field_shared(it, EgCamerasState, 3);
 	ecs_entity_t      window = ecs_pair_second(it->world, ecs_field_id(it, 0));
 	AppDrawPickState *pick   = ecs_has_id(it->world, window, AppDrawGpuPicking) ? ecs_get_mut(it->world, window, AppDrawPickState) : NULL;
 
-	for (int i = 0; i < it->count; ++i, ++d) {
-		ecs_assert(d->list != NULL, ECS_INTERNAL_ERROR, NULL);
+	for (int i = 0; i < it->count; ++i, ++d, ++list) {
 		if (!d->render) {
 			d->render = egg_render_init();
 			if (!d->render) {
@@ -475,15 +473,15 @@ static void Test_Render(ecs_iter_t *it)
 				ecs_get_name(it->world, it->entities[i]));
 				if (pick)
 					pick->failed = true;
-				EgDraws_List_Clear(d->list);
+				EgDraws_List_Clear(list);
 				ecs_enable(it->world, it->entities[i], false);
 				continue;
 			}
 		}
 		d->pixelScale = c0->pixel_scale * 1.0f; // Keep the egg-scale near the camera-derived size.
-		EgDraws_List_SetPixelScale(d->list, d->pixelScale);
-		AppDrawPickFrame_draw(it->world, pick, d->render, d->list, (float *)&c0->vp);
-		EgDraws_List_Clear(d->list);
+		EgDraws_List_SetPixelScale(list, d->pixelScale);
+		AppDrawPickFrame_draw(it->world, pick, d->render, list, (float *)&c0->vp);
+		EgDraws_List_Clear(list);
 	}
 }
 
@@ -513,14 +511,8 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 
 	for (int i = 0; i < it->count; ++i, ++def) {
 		ecs_entity_t  e    = it->entities[i];
-		EgDraws_List *list = EgDraws_List_Create();
-		if (list == NULL) {
-			ecs_err("Failed to create draw context for entity %s", ecs_get_name(it->world, e));
-			ecs_enable(it->world, e, false);
-			continue;
-		}
-
-		ecs_set(it->stage, e, AppDrawContext, {NULL, list, 1.0f});
+		ecs_add(it->stage, e, EgDraws_List);
+		ecs_set(it->stage, e, AppDrawContext, {NULL, 1.0f});
 
 		// The window system will call this render system using `ecs_run()` every frame
 		// by putting it as a child of the window entity.
@@ -535,6 +527,7 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 		.query.terms = {
 		{.id = ecs_childof(e_window)},
 		{.id = ecs_id(AppDrawContext), .src.id = EcsSelf, .inout = EcsIn},
+		{.id = ecs_id(EgDraws_List), .src.id = EcsSelf, .inout = EcsInOut},
 		{.id = ecs_id(EgCamerasState), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
 		}});
 	}
@@ -545,8 +538,12 @@ static void AppDrawContext_Collect(ecs_iter_t *it)
 {
 	AppDrawContext *d0 = ecs_field_shared(it, AppDrawContext, 0);
 	EgDraws_List   *l  = ecs_field_self(it, EgDraws_List, 1);
+	EgDraws_List   *dst = ecs_field_shared(it, EgDraws_List, 2);
+	ecs_entity_t    context = ecs_field_src(it, 0);
 	for (int i = 0; i < it->count; ++i, ++l) {
-		EgDraws_List_Append(d0->list, l);
+		if (it->entities[i] != context) {
+			EgDraws_List_Append(dst, l);
+		}
 		// Per-entity lists tessellate pixel-sized thickness during collection, so they need the camera scale (applied next frame).
 		EgDraws_List_SetPixelScale(l, d0->pixelScale);
 	}
@@ -609,7 +606,6 @@ void AppDrawImport(ecs_world_t *world)
 	{.entity = ecs_id(AppDrawContext),
 	.members = {
 	{.name = "render", .type = ecs_id(ecs_uptr_t)},
-	{.name = "list", .type = ecs_id(ecs_uptr_t)},
 	{.name = "pixelScale", .type = ecs_id(ecs_f32_t)},
 	}});
 
@@ -631,5 +627,6 @@ void AppDrawImport(ecs_world_t *world)
 	.query.terms = {
 	{.id = ecs_id(AppDrawContext), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
 	{.id = ecs_id(EgDraws_List), .src.id = EcsSelf, .inout = EcsIn},
+	{.id = ecs_id(EgDraws_List), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsInOut},
 	}});
 }

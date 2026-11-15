@@ -409,16 +409,19 @@ void Snapshot_test_renderer_lifecycle(void)
 		ecs_entity_t draw = ecs_new(w);
 		ecs_add_pair(w, draw, EcsChildOf, intermediate);
 		egg_render_t *renderer = egg_render_init();
-		EgDraws_List *draw_list = EgDraws_List_Create();
-		test_assert(renderer && draw_list);
-		ecs_set(w, draw, AppDrawContext, {.render = renderer, .list = draw_list});
+		test_assert(renderer);
+		ecs_add(w, draw, EgDraws_List);
+		ecs_set(w, draw, AppDrawContext, {.render = renderer});
 		if (mode == 2) ecs_add_id(w, intermediate, EcsDisabled);
 		if (mode == 3) ecs_add_id(w, draw, EcsDisabled);
 		renderer_cleanups = 0;
 		expected_cleanup_context = context;
 		test_assert(SDL_GL_MakeCurrent(other, other_context));
 		switch (mode) {
-		case 0: ecs_remove(w, draw, AppDrawContext); break;
+		case 0:
+			ecs_remove(w, draw, AppDrawContext);
+			test_assert(ecs_has(w, draw, EgDraws_List));
+			break;
 		case 1: ecs_delete(w, draw); break;
 		case 2: ecs_remove(w, window, EgWindowsOpenGLContext); break;
 		case 3: ecs_remove(w, window, EgWindowsWindow); break;
@@ -698,7 +701,8 @@ void Snapshot_test_render_cycle_picking(void)
 	ecs_entity_t draw = ecs_new(world);
 	ecs_add_pair(world, draw, EcsChildOf, window);
 	ecs_add_pair(world, draw, EcsDependsOn, camera);
-	EgDraws_List *draw_list = EgDraws_List_Create();
+	ecs_add(world, draw, EgDraws_List);
+	EgDraws_List *draw_list = ecs_get_mut(world, draw, EgDraws_List);
 	test_assert(draw_list != NULL);
 	ecs_vec_t *layer = EgDraws_List_GetLayer(draw_list, 0);
 	EgDraws_Vertex *v = ecs_vec_grow_t(NULL, layer, EgDraws_Vertex, 3);
@@ -710,13 +714,14 @@ void Snapshot_test_render_cycle_picking(void)
 	v[0].position[0] = -1; v[0].position[1] = -1;
 	v[1].position[0] = 1; v[1].position[1] = -1;
 	v[2].position[0] = 0; v[2].position[1] = 1;
-	ecs_set(world, draw, AppDrawContext, {.list = draw_list, .pixelScale = 1});
+	ecs_set(world, draw, AppDrawContext, {.pixelScale = 1});
 	ecs_entity_t system = ecs_entity(world, {.name = "RenderCyclePickingTest", .parent = window});
 	ecs_system_init(world, &(ecs_system_desc_t){
 		.entity = system, .callback = Test_Render,
 		.query.terms = {
 			{.id = ecs_childof(window)},
 			{.id = ecs_id(AppDrawContext), .src.id = EcsSelf, .inout = EcsIn},
+			{.id = ecs_id(EgDraws_List), .src.id = EcsSelf, .inout = EcsInOut},
 			{.id = ecs_id(EgCamerasState), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn}
 		}});
 	focus_window(native);
