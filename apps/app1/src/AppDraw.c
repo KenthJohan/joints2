@@ -57,14 +57,13 @@ static void AppDrawContext_destroy_renderer(AppDrawContext *draw, void *window,
 
 static void AppDrawContext_remove(ecs_iter_t *it)
 {
+	if (it->event_id != ecs_id(AppDrawContext)) return;
 	AppDrawContext *draw = ecs_field(it, AppDrawContext, 0);
+	const EgWindowsWindow *native = ecs_field(it, EgWindowsWindow, 1);
+	const EgWindowsOpenGLContext *context = ecs_field(it, EgWindowsOpenGLContext, 2);
+	ecs_log(-1, "AppDraw: removing draw context %i", it->count);
 	for (int32_t i = 0; i < it->count; ++i) {
-		ecs_entity_t window = ecs_get_parent(it->world, it->entities[i]);
-		while (window && !ecs_has(it->world, window, EgWindowsOpenGLContext)) {
-			window = ecs_get_parent(it->world, window);
-		}
-		const EgWindowsWindow *native = window ? ecs_get(it->world, window, EgWindowsWindow) : NULL;
-		const EgWindowsOpenGLContext *context = window ? ecs_get(it->world, window, EgWindowsOpenGLContext) : NULL;
+		ecs_log(-1, "AppDraw: removing draw context %s", ecs_get_name(it->world, it->entities[i]));
 		AppDrawContext_destroy_renderer(&draw[i], native ? native->object : NULL, context);
 		EgDraws_List_Destroy(draw[i].list);
 		draw[i].list = NULL;
@@ -544,26 +543,35 @@ void AppDrawImport(ecs_world_t *world)
 	ECS_COMPONENT_DEFINE(world, AppDrawPickState);
 	ECS_COMPONENT_DEFINE(world, AppDrawPickInput);
 	ecs_set_hooks(world, AppDrawPickState, {.move = AppDrawPickState_move});
+
 	ecs_observer(world,
-	{.query = {.terms = {{.id = ecs_id(AppDrawContext)}}},
+	{.query = {.terms = {
+	{.id = ecs_id(AppDrawContext)},
+	{.id = ecs_id(EgWindowsWindow), .trav = EcsChildOf, .src.id = EcsUp, .inout = EcsIn},
+	{.id = ecs_id(EgWindowsOpenGLContext), .trav = EcsChildOf, .src.id = EcsUp, .inout = EcsIn}}},
 	.events = {EcsOnRemove},
 	.callback = AppDrawContext_remove});
+
 	ecs_observer(world,
 	{.query = {.terms = {{.id = ecs_id(AppDrawPickState)}}},
 	.events = {EcsOnRemove},
 	.callback = AppDrawPickState_remove});
+
 	ecs_observer(world,
 	{.query = {.terms = {{.id = AppDrawGpuPicking}}},
 	.events = {EcsOnRemove},
 	.callback = AppDrawGpuPicking_remove});
+
 	ecs_observer(world,
 	{.query = {.terms = {{.id = ecs_id(EgWindowsWindow)}}},
 	.events = {EcsOnRemove},
 	.callback = AppDrawPickWindow_remove});
+
 	ecs_observer(world,
 	{.query = {.terms = {{.id = ecs_id(EgWindowsOpenGLContext)}}},
 	.events = {EcsOnRemove},
 	.callback = AppDrawPickContext_remove});
+
 	ecs_singleton_set(world, EgUiScriptEventsPicker, {
 		.pick = AppDraw_PickMouse,
 		.capture_begin = AppDraw_CaptureBegin,
