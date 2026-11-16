@@ -63,6 +63,7 @@ b2world {
     eg.physics.WorldDef : {gravity_x: 0, gravity_y: -10}
 
     // Renders shapes from eg.draws.List
+    (flecs.core.DependsOn, cameras.cam0)
     (flecs.core.DependsOn, eg.windows.window1.drawctx_1)
 
     // Collects all shapes for rendering

@@ -714,7 +714,7 @@ void Snapshot_test_render_cycle_picking(void)
 	v[0].position[0] = -1; v[0].position[1] = -1;
 	v[1].position[0] = 1; v[1].position[1] = -1;
 	v[2].position[0] = 0; v[2].position[1] = 1;
-	ecs_set(world, draw, AppDrawContext, {.pixelScale = 1});
+	ecs_set(world, draw, AppDrawContext, {0});
 	ecs_entity_t system = ecs_entity(world, {.name = "RenderCyclePickingTest", .parent = window});
 	ecs_system_init(world, &(ecs_system_desc_t){
 		.entity = system, .callback = Test_Render,

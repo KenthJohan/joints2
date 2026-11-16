@@ -478,8 +478,6 @@ static void Test_Render(ecs_iter_t *it)
 				continue;
 			}
 		}
-		d->pixelScale = c0->pixel_scale * 1.0f; // Keep the egg-scale near the camera-derived size.
-		EgDraws_List_SetPixelScale(list, d->pixelScale);
 		AppDrawPickFrame_draw(it->world, pick, d->render, list, (float *)&c0->vp);
 		EgDraws_List_Clear(list);
 	}
@@ -512,7 +510,7 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 	for (int i = 0; i < it->count; ++i, ++def) {
 		ecs_entity_t  e    = it->entities[i];
 		ecs_add(it->stage, e, EgDraws_List);
-		ecs_set(it->stage, e, AppDrawContext, {NULL, 1.0f});
+		ecs_set(it->stage, e, AppDrawContext, {NULL});
 
 		// The window system will call this render system using `ecs_run()` every frame
 		// by putting it as a child of the window entity.
@@ -536,7 +534,6 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 
 static void AppDrawContext_Collect(ecs_iter_t *it)
 {
-	AppDrawContext *d0 = ecs_field_shared(it, AppDrawContext, 0);
 	EgDraws_List   *l  = ecs_field_self(it, EgDraws_List, 1);
 	EgDraws_List   *dst = ecs_field_shared(it, EgDraws_List, 2);
 	ecs_entity_t    context = ecs_field_src(it, 0);
@@ -544,8 +541,6 @@ static void AppDrawContext_Collect(ecs_iter_t *it)
 		if (it->entities[i] != context) {
 			EgDraws_List_Append(dst, l);
 		}
-		// Per-entity lists tessellate pixel-sized thickness during collection, so they need the camera scale (applied next frame).
-		EgDraws_List_SetPixelScale(l, d0->pixelScale);
 	}
 }
 
@@ -606,7 +601,6 @@ void AppDrawImport(ecs_world_t *world)
 	{.entity = ecs_id(AppDrawContext),
 	.members = {
 	{.name = "render", .type = ecs_id(ecs_uptr_t)},
-	{.name = "pixelScale", .type = ecs_id(ecs_f32_t)},
 	}});
 
 	ecs_system(world,

@@ -5,7 +5,6 @@
 
 typedef struct {
 	egg_render_t *render;
-	float         pixelScale;
 } AppDrawContext;
 
 enum {
