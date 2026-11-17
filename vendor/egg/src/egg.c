@@ -13,47 +13,47 @@
 typedef EgDraws_Vertex egg_vertex_t;
 
 typedef struct egg_render_t {
-	GLuint vaoId;
-	GLuint vboId;
-	GLuint atlasTextureId;
-	GLuint programId;
-	GLuint pickProgramId;
-	GLuint asyncProgramId;
-	GLuint eligibilityBuffer;
+	GLuint    vaoId;
+	GLuint    vboId;
+	GLuint    atlasTextureId;
+	GLuint    programId;
+	GLuint    pickProgramId;
+	GLuint    asyncProgramId;
+	GLuint    eligibilityBuffer;
 	uint32_t *eligibility;
-	size_t eligibilityCapacity;
-	GLint  projectionUniform;
-	GLint  atlasUniform;
-	GLint  pickProjectionUniform;
-	GLint  pickAtlasUniform;
-	GLint  pickOrderUniform;
-	GLint  asyncProjectionUniform;
-	GLint  asyncAtlasUniform;
-	GLint  asyncMouseUniform;
-	GLint  asyncOrderUniform;
-	int    initialized;
+	size_t    eligibilityCapacity;
+	GLint     projectionUniform;
+	GLint     atlasUniform;
+	GLint     pickProjectionUniform;
+	GLint     pickAtlasUniform;
+	GLint     pickOrderUniform;
+	GLint     asyncProjectionUniform;
+	GLint     asyncAtlasUniform;
+	GLint     asyncMouseUniform;
+	GLint     asyncOrderUniform;
+	int       initialized;
 } egg_render_t;
 
 enum { EGG_PICK_SLOTS = 3 };
 typedef struct {
-	GLuint buffer;
-	GLsync fence;
+	GLuint    buffer;
+	GLsync    fence;
 	uint64_t *entities;
-	size_t count, capacity;
-	uint64_t frame;
-	bool displayed;
-	bool invalidated;
+	size_t    count, capacity;
+	uint64_t  frame;
+	bool      displayed;
+	bool      invalidated;
 } egg_pick_slot_t;
 
 struct egg_pick_async_t {
 	egg_pick_slot_t slots[EGG_PICK_SLOTS];
-	int active;
-	int x, y;
-	uint32_t order;
+	int             active;
+	int             x, y;
+	uint32_t        order;
 };
 
 typedef struct {
-	GLint buffer;
+	GLint   buffer;
 	GLint64 start, size;
 } egg_storage_binding_t;
 
@@ -78,22 +78,22 @@ static void sRestoreStorageBinding(GLuint index, egg_storage_binding_t binding)
 			glBindBufferBase(GL_SHADER_STORAGE_BUFFER, index, (GLuint)binding.buffer);
 		} else {
 			glBindBufferRange(GL_SHADER_STORAGE_BUFFER, index, (GLuint)binding.buffer,
-				(GLintptr)binding.start, (GLsizeiptr)binding.size);
+			(GLintptr)binding.start, (GLsizeiptr)binding.size);
 		}
 	}
 }
 
 struct egg_pick_target_t {
-	GLuint framebuffer;
-	GLuint texture;
-	GLuint depth;
-	int width;
-	int height;
-	int valid;
-	int region_x, region_y, region_w, region_h;
-	int center_x, center_y;
+	GLuint   framebuffer;
+	GLuint   texture;
+	GLuint   depth;
+	int      width;
+	int      height;
+	int      valid;
+	int      region_x, region_y, region_w, region_h;
+	int      center_x, center_y;
 	uint32_t next_order;
-	bool region_mode;
+	bool     region_mode;
 };
 
 static const char *kEggVertexShaderSource =
@@ -279,11 +279,11 @@ egg_render_t *egg_render_init(void)
 		return NULL;
 	}
 
-	egg->projectionUniform = glGetUniformLocation(egg->programId, "projectionMatrix");
-	egg->atlasUniform      = glGetUniformLocation(egg->programId, "atlasTexture");
+	egg->projectionUniform     = glGetUniformLocation(egg->programId, "projectionMatrix");
+	egg->atlasUniform          = glGetUniformLocation(egg->programId, "atlasTexture");
 	egg->pickProjectionUniform = glGetUniformLocation(egg->pickProgramId, "projectionMatrix");
-	egg->pickAtlasUniform = glGetUniformLocation(egg->pickProgramId, "atlasTexture");
-	egg->pickOrderUniform = glGetUniformLocation(egg->pickProgramId, "orderBase");
+	egg->pickAtlasUniform      = glGetUniformLocation(egg->pickProgramId, "atlasTexture");
+	egg->pickOrderUniform      = glGetUniformLocation(egg->pickProgramId, "orderBase");
 
 	glGenVertexArrays(1, &egg->vaoId);
 	glGenBuffers(1, &egg->vboId);
@@ -336,8 +336,10 @@ void egg_render_destroy(egg_render_t *egg)
 	if (egg->pickProgramId != 0) {
 		glDeleteProgram(egg->pickProgramId);
 	}
-	if (egg->asyncProgramId != 0) glDeleteProgram(egg->asyncProgramId);
-	if (egg->eligibilityBuffer != 0) glDeleteBuffers(1, &egg->eligibilityBuffer);
+	if (egg->asyncProgramId != 0)
+		glDeleteProgram(egg->asyncProgramId);
+	if (egg->eligibilityBuffer != 0)
+		glDeleteBuffers(1, &egg->eligibilityBuffer);
 	free(egg->eligibility);
 
 	free(egg);
@@ -402,7 +404,7 @@ egg_pick_async_t *egg_pick_async_create(void)
 		return NULL;
 	}
 	if (!SDL_GL_ExtensionSupported("GL_ARB_gpu_shader_int64") ||
-		!SDL_GL_ExtensionSupported("GL_NV_shader_atomic_int64")) {
+	    !SDL_GL_ExtensionSupported("GL_NV_shader_atomic_int64")) {
 		fprintf(stderr, "egg: asynchronous picking requires GL_ARB_gpu_shader_int64 and GL_NV_shader_atomic_int64\n");
 		return NULL;
 	}
@@ -432,10 +434,13 @@ egg_pick_async_t *egg_pick_async_create(void)
 
 void egg_pick_async_destroy(egg_pick_async_t *pick)
 {
-	if (!pick) return;
+	if (!pick)
+		return;
 	for (int i = 0; i < EGG_PICK_SLOTS; ++i) {
-		if (pick->slots[i].fence) glDeleteSync(pick->slots[i].fence);
-		if (pick->slots[i].buffer) glDeleteBuffers(1, &pick->slots[i].buffer);
+		if (pick->slots[i].fence)
+			glDeleteSync(pick->slots[i].fence);
+		if (pick->slots[i].buffer)
+			glDeleteBuffers(1, &pick->slots[i].buffer);
 		free(pick->slots[i].entities);
 	}
 	free(pick);
@@ -449,7 +454,8 @@ int egg_pick_async_begin(egg_pick_async_t *pick, int x, int y, uint64_t frame)
 	}
 	for (int i = 0; i < EGG_PICK_SLOTS; ++i) {
 		egg_pick_slot_t *slot = &pick->slots[i];
-		if (slot->fence) continue;
+		if (slot->fence)
+			continue;
 		if (!slot->buffer) {
 			fprintf(stderr, "egg: picking buffer is unavailable\n");
 			return -1;
@@ -464,22 +470,22 @@ int egg_pick_async_begin(egg_pick_async_t *pick, int x, int y, uint64_t frame)
 			fprintf(stderr, "egg: failed to initialize picking buffer\n");
 			return -1;
 		}
-		slot->count = 0;
-		slot->frame = frame;
-		slot->displayed = false;
+		slot->count       = 0;
+		slot->frame       = frame;
+		slot->displayed   = false;
 		slot->invalidated = false;
-		pick->active = i;
-		pick->x = x;
-		pick->y = y;
-		pick->order = 0;
+		pick->active      = i;
+		pick->x           = x;
+		pick->y           = y;
+		pick->order       = 0;
 		return 1;
 	}
 	return 0;
 }
 
 bool egg_pick_async_draw(egg_pick_async_t *pick, egg_render_t *egg,
-	const ecs_vec_t *layers, const float *projectionMatrix,
-	egg_pick_resolve_t resolve, void *ctx)
+const ecs_vec_t *layers, const float *projectionMatrix,
+egg_pick_resolve_t resolve, void *ctx)
 {
 	if (!pick || pick->active < 0 || !egg || !egg->initialized || !layers || !projectionMatrix || !resolve) {
 		fprintf(stderr, "egg: invalid asynchronous pick draw\n");
@@ -493,9 +499,9 @@ bool egg_pick_async_draw(egg_pick_async_t *pick, egg_render_t *egg,
 			return false;
 		}
 		egg->asyncProjectionUniform = glGetUniformLocation(egg->asyncProgramId, "projectionMatrix");
-		egg->asyncAtlasUniform = glGetUniformLocation(egg->asyncProgramId, "atlasTexture");
-		egg->asyncMouseUniform = glGetUniformLocation(egg->asyncProgramId, "mousePixel");
-		egg->asyncOrderUniform = glGetUniformLocation(egg->asyncProgramId, "orderBase");
+		egg->asyncAtlasUniform      = glGetUniformLocation(egg->asyncProgramId, "atlasTexture");
+		egg->asyncMouseUniform      = glGetUniformLocation(egg->asyncProgramId, "mousePixel");
+		egg->asyncOrderUniform      = glGetUniformLocation(egg->asyncProgramId, "orderBase");
 		glGenBuffers(1, &egg->eligibilityBuffer);
 		if (!egg->eligibilityBuffer) {
 			fprintf(stderr, "egg: failed to create picking eligibility buffer\n");
@@ -505,12 +511,12 @@ bool egg_pick_async_draw(egg_pick_async_t *pick, egg_render_t *egg,
 			return false;
 		}
 	}
-	egg_pick_slot_t *slot = &pick->slots[pick->active];
-	const ecs_vec_t *layer = ecs_vec_first_t(layers, ecs_vec_t);
-	GLint old_storage;
+	egg_pick_slot_t      *slot  = &pick->slots[pick->active];
+	const ecs_vec_t      *layer = ecs_vec_first_t(layers, ecs_vec_t);
+	GLint                 old_storage;
 	egg_storage_binding_t old_base0 = sStorageBinding(0);
 	egg_storage_binding_t old_base1 = sStorageBinding(1);
-	GLint64 max_storage;
+	GLint64               max_storage;
 	glGetInteger64v(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &max_storage);
 	glGetIntegerv(GL_SHADER_STORAGE_BUFFER_BINDING, &old_storage);
 	glEnable(GL_BLEND);
@@ -525,11 +531,11 @@ bool egg_pick_async_draw(egg_pick_async_t *pick, egg_render_t *egg,
 	glBindBuffer(GL_ARRAY_BUFFER, egg->vboId);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, slot->buffer);
 	glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, egg->eligibilityBuffer);
-	bool success = true;
+	bool    success    = true;
 	int32_t next_layer = 0;
 	for (int32_t i = 0; i < ecs_vec_count(layers); ++i) {
 		next_layer = i;
-		int32_t n = ecs_vec_count(&layer[i]);
+		int32_t n  = ecs_vec_count(&layer[i]);
 		if (!n) {
 			next_layer = i + 1;
 			continue;
@@ -541,23 +547,25 @@ bool egg_pick_async_draw(egg_pick_async_t *pick, egg_render_t *egg,
 		}
 		size_t count = (size_t)n / 3;
 		if (count > SIZE_MAX - slot->count ||
-			(size_t)n > (size_t)PTRDIFF_MAX / sizeof(egg_vertex_t) ||
-			count > (size_t)PTRDIFF_MAX / sizeof(uint32_t)) {
+		    (size_t)n > (size_t)PTRDIFF_MAX / sizeof(egg_vertex_t) ||
+		    count > (size_t)PTRDIFF_MAX / sizeof(uint32_t)) {
 			fprintf(stderr, "egg: picking metadata size overflow\n");
 			success = false;
 			break;
 		}
 		size_t needed = slot->count + count;
 		if (needed > SIZE_MAX / sizeof(*slot->entities) ||
-			max_storage <= 0 || count > (uint64_t)max_storage / sizeof(uint32_t)) {
+		    max_storage <= 0 || count > (uint64_t)max_storage / sizeof(uint32_t)) {
 			fprintf(stderr, "egg: picking metadata size overflow\n");
 			success = false;
 			break;
 		}
 		if (needed > slot->capacity) {
 			size_t capacity = slot->capacity ? slot->capacity : 64;
-			while (capacity < needed && capacity <= SIZE_MAX / 2) capacity *= 2;
-			if (capacity < needed || capacity > SIZE_MAX / sizeof(*slot->entities)) capacity = needed;
+			while (capacity < needed && capacity <= SIZE_MAX / 2)
+				capacity *= 2;
+			if (capacity < needed || capacity > SIZE_MAX / sizeof(*slot->entities))
+				capacity = needed;
 			uint64_t *entities = realloc(slot->entities, capacity * sizeof(*entities));
 			if (!entities) {
 				fprintf(stderr, "egg: failed to allocate picking entity map\n");
@@ -569,30 +577,32 @@ bool egg_pick_async_draw(egg_pick_async_t *pick, egg_render_t *egg,
 		}
 		if (count > egg->eligibilityCapacity) {
 			size_t capacity = egg->eligibilityCapacity ? egg->eligibilityCapacity : 64;
-			while (capacity < count && capacity <= SIZE_MAX / 2) capacity *= 2;
-			if (capacity < count || capacity > SIZE_MAX / sizeof(*egg->eligibility)) capacity = count;
+			while (capacity < count && capacity <= SIZE_MAX / 2)
+				capacity *= 2;
+			if (capacity < count || capacity > SIZE_MAX / sizeof(*egg->eligibility))
+				capacity = count;
 			uint32_t *eligible = realloc(egg->eligibility, capacity * sizeof(*eligible));
 			if (!eligible) {
 				fprintf(stderr, "egg: failed to allocate picking eligibility map\n");
 				success = false;
 				break;
 			}
-			egg->eligibility = eligible;
+			egg->eligibility         = eligible;
 			egg->eligibilityCapacity = capacity;
 		}
 		const egg_vertex_t *vertices = ecs_vec_first(&layer[i]);
 		for (size_t j = 0; j < count; ++j) {
-			uint32_t id = vertices[j * 3 + 2].pick_id;
-			uint64_t entity = id ? resolve(id, ctx) : 0;
+			uint32_t id                     = vertices[j * 3 + 2].pick_id;
+			uint64_t entity                 = id ? resolve(id, ctx) : 0;
 			slot->entities[slot->count + j] = entity;
-			egg->eligibility[j] = entity != 0;
+			egg->eligibility[j]             = entity != 0;
 		}
 		glBindBuffer(GL_SHADER_STORAGE_BUFFER, egg->eligibilityBuffer);
 		glBufferData(GL_SHADER_STORAGE_BUFFER, count * sizeof(*egg->eligibility), egg->eligibility, GL_STREAM_DRAW);
 		glUniform1ui(egg->asyncOrderUniform, pick->order + 1);
 		glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)((size_t)n * sizeof(*vertices)), vertices, GL_DYNAMIC_DRAW);
 		glDrawArrays(GL_TRIANGLES, 0, n);
-		next_layer = i + 1;
+		next_layer  = i + 1;
 		slot->count = needed;
 		pick->order += (uint32_t)count;
 		if (glGetError() != GL_NO_ERROR) {
@@ -607,9 +617,10 @@ bool egg_pick_async_draw(egg_pick_async_t *pick, egg_render_t *egg,
 		glUniform1i(egg->atlasUniform, 0);
 		for (int32_t i = next_layer; i < ecs_vec_count(layers); ++i) {
 			int32_t n = ecs_vec_count(&layer[i]);
-			if (!n) continue;
+			if (!n)
+				continue;
 			glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr)((size_t)n * sizeof(egg_vertex_t)),
-				ecs_vec_first(&layer[i]), GL_DYNAMIC_DRAW);
+			ecs_vec_first(&layer[i]), GL_DYNAMIC_DRAW);
 			glDrawArrays(GL_TRIANGLES, 0, n);
 		}
 	}
@@ -647,17 +658,19 @@ bool egg_pick_async_end(egg_pick_async_t *pick)
 
 void egg_pick_async_complete(egg_pick_async_t *pick, bool displayed)
 {
-	if (!pick || pick->active < 0) return;
+	if (!pick || pick->active < 0)
+		return;
 	egg_pick_slot_t *slot = &pick->slots[pick->active];
-	slot->displayed = displayed && !slot->invalidated;
-	pick->active = -1;
+	slot->displayed       = displayed && !slot->invalidated;
+	pick->active          = -1;
 }
 
 void egg_pick_async_invalidate(egg_pick_async_t *pick)
 {
-	if (!pick) return;
+	if (!pick)
+		return;
 	for (int i = 0; i < EGG_PICK_SLOTS; ++i) {
-		pick->slots[i].displayed = false;
+		pick->slots[i].displayed   = false;
 		pick->slots[i].invalidated = true;
 	}
 }
@@ -671,9 +684,11 @@ int egg_pick_async_poll(egg_pick_async_t *pick, uint64_t *entity, uint64_t *fram
 	int result = 0;
 	for (int i = 0; i < EGG_PICK_SLOTS; ++i) {
 		egg_pick_slot_t *slot = &pick->slots[i];
-		if (!slot->fence || i == pick->active) continue;
+		if (!slot->fence || i == pick->active)
+			continue;
 		GLenum status = glClientWaitSync(slot->fence, GL_SYNC_FLUSH_COMMANDS_BIT, 0);
-		if (status == GL_TIMEOUT_EXPIRED) continue;
+		if (status == GL_TIMEOUT_EXPIRED)
+			continue;
 		if (status == GL_WAIT_FAILED) {
 			fprintf(stderr, "egg: failed waiting for picking fence\n");
 			glDeleteSync(slot->fence);
@@ -682,7 +697,7 @@ int egg_pick_async_poll(egg_pick_async_t *pick, uint64_t *entity, uint64_t *fram
 			slot->buffer = 0;
 			glGenBuffers(1, &slot->buffer);
 			slot->displayed = false;
-			result = -1;
+			result          = -1;
 			continue;
 		}
 		uint64_t value = UINT64_MAX;
@@ -702,13 +717,13 @@ int egg_pick_async_poll(egg_pick_async_t *pick, uint64_t *entity, uint64_t *fram
 					result = -1;
 				} else {
 					*entity = value == UINT64_MAX ? 0 : slot->entities[order - 1];
-					*frame = slot->frame;
-					result = 1;
+					*frame  = slot->frame;
+					result  = 1;
 				}
 			}
 		}
 		glDeleteSync(slot->fence);
-		slot->fence = NULL;
+		slot->fence     = NULL;
 		slot->displayed = false;
 	}
 	return result;
@@ -737,20 +752,24 @@ void egg_pick_target_destroy(egg_pick_target_t *target)
 	if (target == NULL) {
 		return;
 	}
-	if (target->framebuffer) glDeleteFramebuffers(1, &target->framebuffer);
-	if (target->texture) glDeleteTextures(1, &target->texture);
-	if (target->depth) glDeleteRenderbuffers(1, &target->depth);
+	if (target->framebuffer)
+		glDeleteFramebuffers(1, &target->framebuffer);
+	if (target->texture)
+		glDeleteTextures(1, &target->texture);
+	if (target->depth)
+		glDeleteRenderbuffers(1, &target->depth);
 	free(target);
 }
 
 static bool sPickBegin(egg_pick_target_t *target, int width, int height,
-	int x, int y, int region_width, int region_height)
+int x, int y, int region_width, int region_height)
 {
 	if (!target || width <= 0 || height <= 0 || x < 0 || y < 0 ||
-		region_width <= 0 || region_height <= 0 || x > width - region_width ||
-		y > height - region_height) {
+	    region_width <= 0 || region_height <= 0 || x > width - region_width ||
+	    y > height - region_height) {
 		fprintf(stderr, "egg: invalid picking target dimensions\n");
-		if (target) target->valid = 0;
+		if (target)
+			target->valid = 0;
 		return false;
 	}
 	GLint old_draw, old_texture, old_unpack, old_renderbuffer;
@@ -772,7 +791,7 @@ static bool sPickBegin(egg_pick_target_t *target, int width, int height,
 		glBindRenderbuffer(GL_RENDERBUFFER, target->depth);
 		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width, height);
 		glFramebufferRenderbuffer(GL_DRAW_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, target->depth);
-		target->width = width;
+		target->width  = width;
 		target->height = height;
 	}
 	GLenum status = glCheckFramebufferStatus(GL_DRAW_FRAMEBUFFER);
@@ -784,7 +803,7 @@ static bool sPickBegin(egg_pick_target_t *target, int width, int height,
 		GLboolean scissor = glIsEnabled(GL_SCISSOR_TEST);
 		GLboolean mask[4];
 		GLboolean depth_mask;
-		GLint scissor_box[4];
+		GLint     scissor_box[4];
 		glGetIntegerv(GL_SCISSOR_BOX, scissor_box);
 		glGetBooleani_v(GL_COLOR_WRITEMASK, 0, mask);
 		glGetBooleanv(GL_DEPTH_WRITEMASK, &depth_mask);
@@ -792,21 +811,22 @@ static bool sPickBegin(egg_pick_target_t *target, int width, int height,
 		glScissor(x, y, region_width, region_height);
 		glColorMaski(0, GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
 		glDepthMask(GL_TRUE);
-		const GLuint zero[4] = {0, 0, 0, 0};
-		const GLfloat depth = 1.0f;
+		const GLuint  zero[4] = {0, 0, 0, 0};
+		const GLfloat depth   = 1.0f;
 		glClearBufferuiv(GL_COLOR, 0, zero);
 		glClearBufferfv(GL_DEPTH, 0, &depth);
 		glColorMaski(0, mask[0], mask[1], mask[2], mask[3]);
 		glDepthMask(depth_mask);
 		glScissor(scissor_box[0], scissor_box[1], scissor_box[2], scissor_box[3]);
-		if (!scissor) glDisable(GL_SCISSOR_TEST);
-		target->region_x = x;
-		target->region_y = y;
-		target->region_w = region_width;
-		target->region_h = region_height;
-		target->next_order = 1;
+		if (!scissor)
+			glDisable(GL_SCISSOR_TEST);
+		target->region_x    = x;
+		target->region_y    = y;
+		target->region_w    = region_width;
+		target->region_h    = region_height;
+		target->next_order  = 1;
 		target->region_mode = false;
-		target->valid = 1;
+		target->valid       = 1;
 	}
 	GLenum error = glGetError();
 	if (error != GL_NO_ERROR) {
@@ -831,17 +851,19 @@ bool egg_pick_target_begin_region(egg_pick_target_t *target, int width, int heig
 {
 	if (!target || width <= 0 || height <= 0 || x < 0 || y < 0 || x >= width || y >= height) {
 		fprintf(stderr, "egg: invalid picking region\n");
-		if (target) target->valid = 0;
+		if (target)
+			target->valid = 0;
 		return false;
 	}
-	int gl_y = height - 1 - y;
-	int left = x > 0 ? x - 1 : 0;
+	int gl_y   = height - 1 - y;
+	int left   = x > 0 ? x - 1 : 0;
 	int bottom = gl_y > 0 ? gl_y - 1 : 0;
-	int right = x < width - 1 ? x + 1 : x;
-	int top = gl_y < height - 1 ? gl_y + 1 : gl_y;
-	if (!sPickBegin(target, width, height, left, bottom, right - left + 1, top - bottom + 1)) return false;
-	target->center_x = x;
-	target->center_y = gl_y;
+	int right  = x < width - 1 ? x + 1 : x;
+	int top    = gl_y < height - 1 ? gl_y + 1 : gl_y;
+	if (!sPickBegin(target, width, height, left, bottom, right - left + 1, top - bottom + 1))
+		return false;
+	target->center_x    = x;
+	target->center_y    = gl_y;
 	target->region_mode = true;
 	return true;
 }
@@ -852,7 +874,7 @@ uint32_t egg_pick_target_framebuffer(const egg_pick_target_t *target)
 }
 
 bool egg_pick_draw_layers(egg_pick_target_t *target, egg_render_t *egg,
-	const ecs_vec_t *layers, const float *projectionMatrix, egg_pick_filter_t filter, void *ctx)
+const ecs_vec_t *layers, const float *projectionMatrix, egg_pick_filter_t filter, void *ctx)
 {
 	if (!target || !target->valid || !egg || !egg->initialized || !layers || !projectionMatrix) {
 		fprintf(stderr, "egg: invalid picking draw arguments\n");
@@ -867,11 +889,11 @@ bool egg_pick_draw_layers(egg_pick_target_t *target, egg_render_t *egg,
 	glGetIntegerv(GL_ACTIVE_TEXTURE, &active);
 	glActiveTexture(GL_TEXTURE0);
 	glGetIntegerv(GL_TEXTURE_BINDING_2D, &texture);
-	GLboolean blend = glIsEnabledi(GL_BLEND, 0);
-	GLboolean depth = glIsEnabled(GL_DEPTH_TEST);
+	GLboolean blend   = glIsEnabledi(GL_BLEND, 0);
+	GLboolean depth   = glIsEnabled(GL_DEPTH_TEST);
 	GLboolean scissor = glIsEnabled(GL_SCISSOR_TEST);
 	GLboolean color_mask[4];
-	GLint scissor_box[4];
+	GLint     scissor_box[4];
 	glGetIntegerv(GL_SCISSOR_BOX, scissor_box);
 	glGetBooleani_v(GL_COLOR_WRITEMASK, 0, color_mask);
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, target->framebuffer);
@@ -891,20 +913,21 @@ bool egg_pick_draw_layers(egg_pick_target_t *target, egg_render_t *egg,
 	glBindVertexArray(egg->vaoId);
 	glBindBuffer(GL_ARRAY_BUFFER, egg->vboId);
 
-	bool success = true;
-	const ecs_vec_t *l = ecs_vec_first_t(layers, ecs_vec_t);
+	bool             success = true;
+	const ecs_vec_t *l       = ecs_vec_first_t(layers, ecs_vec_t);
 	for (int32_t i = 0; i < ecs_vec_count(layers); ++i) {
 		int32_t n = ecs_vec_count(&l[i]);
-		if (!n) continue;
+		if (!n)
+			continue;
 		uint32_t primitives = (uint32_t)n / 3;
 		if (primitives > UINT32_MAX - target->next_order) {
 			fprintf(stderr, "egg: picking draw order overflow\n");
 			success = false;
 			break;
 		}
-		size_t size = (size_t)n * sizeof(egg_vertex_t);
-		const egg_vertex_t *data = ecs_vec_first(&l[i]);
-		egg_vertex_t *vertices = NULL;
+		size_t              size     = (size_t)n * sizeof(egg_vertex_t);
+		const egg_vertex_t *data     = ecs_vec_first(&l[i]);
+		egg_vertex_t       *vertices = NULL;
 		if (filter) {
 			vertices = malloc(size);
 			if (!vertices) {
@@ -932,15 +955,19 @@ bool egg_pick_draw_layers(egg_pick_target_t *target, egg_render_t *egg,
 			break;
 		}
 	}
-	if (!success) target->valid = 0;
+	if (!success)
+		target->valid = 0;
 	glDrawBuffer((GLenum)target_draw_buffer);
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, (GLuint)framebuffer);
 	glViewport(viewport[0], viewport[1], viewport[2], viewport[3]);
 	glScissor(scissor_box[0], scissor_box[1], scissor_box[2], scissor_box[3]);
-	if (!scissor) glDisable(GL_SCISSOR_TEST);
+	if (!scissor)
+		glDisable(GL_SCISSOR_TEST);
 	glColorMaski(0, color_mask[0], color_mask[1], color_mask[2], color_mask[3]);
-	if (blend) glEnablei(GL_BLEND, 0);
-	if (depth) glEnable(GL_DEPTH_TEST);
+	if (blend)
+		glEnablei(GL_BLEND, 0);
+	if (depth)
+		glEnable(GL_DEPTH_TEST);
 	glBindVertexArray((GLuint)vao);
 	glBindBuffer(GL_ARRAY_BUFFER, (GLuint)buffer);
 	glBindTexture(GL_TEXTURE_2D, (GLuint)texture);
@@ -952,9 +979,9 @@ bool egg_pick_draw_layers(egg_pick_target_t *target, egg_render_t *egg,
 bool egg_pick_target_read(egg_pick_target_t *target, int x, int y, uint32_t *id)
 {
 	if (!target || !target->valid || !id || x < 0 || y < 0 || x >= target->width || y >= target->height ||
-		x < target->region_x || x >= target->region_x + target->region_w ||
-		target->height - 1 - y < target->region_y ||
-		target->height - 1 - y >= target->region_y + target->region_h) {
+	    x < target->region_x || x >= target->region_x + target->region_w ||
+	    target->height - 1 - y < target->region_y ||
+	    target->height - 1 - y >= target->region_y + target->region_h) {
 		fprintf(stderr, "egg: invalid picking pixel read\n");
 		return false;
 	}
@@ -1018,7 +1045,7 @@ bool egg_pick_target_read_region(egg_pick_target_t *target, uint32_t *id)
 	glPixelStorei(GL_PACK_SWAP_BYTES, GL_FALSE);
 	uint32_t pixels[3 * 3 * 2] = {0};
 	glReadPixels(target->region_x, target->region_y, target->region_w, target->region_h,
-		GL_RG_INTEGER, GL_UNSIGNED_INT, pixels);
+	GL_RG_INTEGER, GL_UNSIGNED_INT, pixels);
 	glReadBuffer((GLenum)read_buffer);
 	glPixelStorei(GL_PACK_ALIGNMENT, alignment);
 	glPixelStorei(GL_PACK_ROW_LENGTH, row_length);
@@ -1033,20 +1060,20 @@ bool egg_pick_target_read_region(egg_pick_target_t *target, uint32_t *id)
 		target->valid = 0;
 		return false;
 	}
-	*id = 0;
-	int best_distance = 3;
-	uint32_t best_order = 0;
+	*id                    = 0;
+	int      best_distance = 3;
+	uint32_t best_order    = 0;
 	for (int y = 0; y < target->region_h; ++y) {
 		for (int x = 0; x < target->region_w; ++x) {
-			int index = (y * target->region_w + x) * 2;
-			int dx = target->region_x + x - target->center_x;
-			int dy = target->region_y + y - target->center_y;
+			int index    = (y * target->region_w + x) * 2;
+			int dx       = target->region_x + x - target->center_x;
+			int dy       = target->region_y + y - target->center_y;
 			int distance = dx * dx + dy * dy;
 			if (pixels[index] && (distance < best_distance ||
-				(distance == best_distance && pixels[index + 1] > best_order))) {
-				*id = pixels[index];
+			                      (distance == best_distance && pixels[index + 1] > best_order))) {
+				*id           = pixels[index];
 				best_distance = distance;
-				best_order = pixels[index + 1];
+				best_order    = pixels[index + 1];
 			}
 		}
 	}

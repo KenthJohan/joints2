@@ -22,54 +22,33 @@ void Snapshot_test_frame_callbacks(void);
 void Snapshot_test_render_cycle_picking(void);
 
 bake_test_case Snapshot_testcases[] = {
-    {
-        "test_publish_and_invalidate",
-        Snapshot_test_publish_and_invalidate
-    },
-    {
-        "test_live_eligibility",
-        Snapshot_test_live_eligibility
-    },
-    {
-        "test_on_demand",
-        Snapshot_test_on_demand
-    },
-    {
-        "test_pick_target_lifecycle",
-        Snapshot_test_pick_target_lifecycle
-    },
-    {
-        "test_renderer_lifecycle",
-        Snapshot_test_renderer_lifecycle
-    },
-    {
-        "test_multiple_windows",
-        Snapshot_test_multiple_windows
-    },
-    {
-        "test_drag_window_bounds",
-        Snapshot_test_drag_window_bounds
-    },
-    {
-        "test_frame_callbacks",
-        Snapshot_test_frame_callbacks
-    },
-    {
-        "test_render_cycle_picking",
-        Snapshot_test_render_cycle_picking
-    }
-};
+{"test_publish_and_invalidate",
+Snapshot_test_publish_and_invalidate},
+{"test_live_eligibility",
+Snapshot_test_live_eligibility},
+{"test_on_demand",
+Snapshot_test_on_demand},
+{"test_pick_target_lifecycle",
+Snapshot_test_pick_target_lifecycle},
+{"test_renderer_lifecycle",
+Snapshot_test_renderer_lifecycle},
+{"test_multiple_windows",
+Snapshot_test_multiple_windows},
+{"test_drag_window_bounds",
+Snapshot_test_drag_window_bounds},
+{"test_frame_callbacks",
+Snapshot_test_frame_callbacks},
+{"test_render_cycle_picking",
+Snapshot_test_render_cycle_picking}};
 
 static bake_test_suite suites[] = {
-    {
-        "Snapshot",
-        Snapshot_setup,
-        Snapshot_teardown,
-        9,
-        Snapshot_testcases
-    }
-};
+{"Snapshot",
+Snapshot_setup,
+Snapshot_teardown,
+9,
+Snapshot_testcases}};
 
-int main(int argc, char *argv[]) {
-    return bake_test_run("AppDraw_test", argc, argv, suites, 1);
+int main(int argc, char *argv[])
+{
+	return bake_test_run("AppDraw_test", argc, argv, suites, 1);
 }

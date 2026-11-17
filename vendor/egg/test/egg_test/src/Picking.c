@@ -7,12 +7,12 @@
 #include <stdlib.h>
 #include <string.h>
 
-static SDL_Window *window;
-static SDL_GLContext context;
-static egg_render_t *renderer;
+static SDL_Window        *window;
+static SDL_GLContext      context;
+static egg_render_t      *renderer;
 static egg_pick_target_t *target;
-static ecs_vec_t layers;
-static ecs_world_t *world;
+static ecs_vec_t          layers;
+static ecs_world_t       *world;
 
 static bool selected(uint32_t id, void *ctx)
 {
@@ -58,16 +58,16 @@ static void add_quad(int layer_index, uint32_t id, uint8_t alpha)
 		ecs_vec_t *layer = ecs_vec_append_t(NULL, &layers, ecs_vec_t);
 		ecs_vec_init_t(NULL, layer, EgDraws_Vertex, 0);
 	}
-	ecs_vec_t *layer = ecs_vec_get_t(&layers, ecs_vec_t, layer_index);
-	EgDraws_Vertex *v = ecs_vec_grow_t(NULL, layer, EgDraws_Vertex, 6);
-	float p[6][2] = {{-0.8f,-0.8f}, {0.8f,-0.8f}, {0.8f,0.8f},
-		{-0.8f,-0.8f}, {0.8f,0.8f}, {-0.8f,0.8f}};
+	ecs_vec_t      *layer   = ecs_vec_get_t(&layers, ecs_vec_t, layer_index);
+	EgDraws_Vertex *v       = ecs_vec_grow_t(NULL, layer, EgDraws_Vertex, 6);
+	float           p[6][2] = {{-0.8f, -0.8f}, {0.8f, -0.8f}, {0.8f, 0.8f},
+	          {-0.8f, -0.8f}, {0.8f, 0.8f}, {-0.8f, 0.8f}};
 	for (int i = 0; i < 6; ++i) {
 		v[i] = (EgDraws_Vertex){
-			.position = {p[i][0], p[i][1]},
-			.uv = {0.5f / EG_DRAWS_ATLAS_WIDTH, 0.5f / EG_DRAWS_ATLAS_HEIGHT},
-			.rgba = {255,255,255,alpha}, .pick_id = id
-		};
+		.position = {p[i][0], p[i][1]},
+		.uv       = {0.5f / EG_DRAWS_ATLAS_WIDTH, 0.5f / EG_DRAWS_ATLAS_HEIGHT},
+		.rgba     = {255, 255, 255, alpha},
+		.pick_id  = id};
 	}
 }
 
@@ -84,18 +84,20 @@ static uint64_t resolve_benchmark(uint32_t id, void *ctx)
 
 void Picking_test_benchmark(void)
 {
-	if (!getenv("EGG_PICK_BENCHMARK")) return;
+	if (!getenv("EGG_PICK_BENCHMARK"))
+		return;
 	egg_pick_async_t *pick = egg_pick_async_create();
 	test_assert(pick != NULL);
 	SDL_GL_SetSwapInterval(0);
-	for (int i = 0; i < 2000; ++i) add_quad(0, (uint32_t)(i + 1), 255);
-	ecs_vec_t *layer = ecs_vec_get_t(&layers, ecs_vec_t, 0);
+	for (int i = 0; i < 2000; ++i)
+		add_quad(0, (uint32_t)(i + 1), 255);
+	ecs_vec_t      *layer    = ecs_vec_get_t(&layers, ecs_vec_t, 0);
 	EgDraws_Vertex *vertices = ecs_vec_first_t(layer, EgDraws_Vertex);
 	for (int32_t i = 0; i < ecs_vec_count(layer); ++i) {
 		vertices[i].position[0] *= 0.1f;
 		vertices[i].position[1] *= 0.1f;
 	}
-	const float matrix[16] = {1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1};
+	const float matrix[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
 	glViewport(0, 0, 64, 64);
 	const int frames = 100;
 	for (int mode = 0; mode < 3; ++mode) {
@@ -118,7 +120,8 @@ void Picking_test_benchmark(void)
 				test_assert(egg_pick_async_poll(pick, &id, &frame) >= 0);
 				int started = egg_pick_async_begin(pick, 32, 31, (uint64_t)i);
 				test_assert(started >= 0);
-				if (!started) egg_draw_layers(renderer, &layers, matrix);
+				if (!started)
+					egg_draw_layers(renderer, &layers, matrix);
 				else {
 					test_assert(egg_pick_async_draw(pick, renderer, &layers, matrix, resolve_benchmark, NULL));
 					test_assert(egg_pick_async_end(pick));
@@ -130,8 +133,9 @@ void Picking_test_benchmark(void)
 		glFinish();
 		double ms = 1000.0 * (SDL_GetPerformanceCounter() - start) / SDL_GetPerformanceFrequency() / frames;
 		printf("picking benchmark %s: %.3f ms/frame; %d/%d picks issued\n",
-			mode == 0 ? "visible only" : mode == 1 ? "old synchronous" : "new asynchronous",
-			ms, issued, frames);
+		mode == 0 ? "visible only" : mode == 1 ? "old synchronous" :
+		                                         "new asynchronous",
+		ms, issued, frames);
 	}
 	egg_pick_async_destroy(pick);
 }
@@ -139,10 +143,11 @@ void Picking_test_benchmark(void)
 static uint64_t async_result(egg_pick_async_t *pick, uint64_t expected_frame)
 {
 	uint64_t id = 0, frame = 0;
-	int ready = 0;
+	int      ready = 0;
 	for (int i = 0; i < 1000 && !ready; ++i) {
 		ready = egg_pick_async_poll(pick, &id, &frame);
-		if (!ready) SDL_Delay(1);
+		if (!ready)
+			SDL_Delay(1);
 	}
 	test_int(ready, 1);
 	test_assert(frame == expected_frame);
@@ -152,12 +157,12 @@ static uint64_t async_result(egg_pick_async_t *pick, uint64_t expected_frame)
 void Picking_test_async(void)
 {
 	if (!SDL_GL_ExtensionSupported("GL_ARB_gpu_shader_int64") ||
-		!SDL_GL_ExtensionSupported("GL_NV_shader_atomic_int64")) {
+	    !SDL_GL_ExtensionSupported("GL_NV_shader_atomic_int64")) {
 		test_assert(egg_pick_async_create() == NULL);
 		return;
 	}
-	const float identity[16] = {1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1};
-	uint32_t skipped = 77;
+	const float identity[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+	uint32_t    skipped      = 77;
 	add_quad(0, 42, 255);
 	add_quad(1, skipped, 255);
 	add_quad(2, 55, 0);
@@ -172,7 +177,7 @@ void Picking_test_async(void)
 	glReadPixels(32, 32, 1, 1, GL_RGBA, GL_UNSIGNED_BYTE, visible);
 	glClear(GL_COLOR_BUFFER_BIT);
 	GLuint bindings[2];
-	GLint alignment = 0;
+	GLint  alignment = 0;
 	glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &alignment);
 	test_assert(alignment > 0);
 	glGenBuffers(2, bindings);
@@ -184,7 +189,7 @@ void Picking_test_async(void)
 	test_int(egg_pick_async_begin(pick, 32, 32, 7), 1);
 	test_assert(egg_pick_async_draw(pick, renderer, &layers, identity, resolve_async, &skipped));
 	for (int i = 0; i < 2; ++i) {
-		GLint buffer = 0;
+		GLint   buffer = 0;
 		GLint64 start = 0, size = 0;
 		glGetIntegeri_v(GL_SHADER_STORAGE_BUFFER_BINDING, (GLuint)i, &buffer);
 		glGetInteger64i_v(GL_SHADER_STORAGE_BUFFER_START, (GLuint)i, &start);
@@ -207,8 +212,9 @@ void Picking_test_async(void)
 	ecs_vec_init_t(NULL, near_layer, EgDraws_Vertex, 0);
 	EgDraws_Vertex *near_vertices = ecs_vec_grow_t(NULL, near_layer, EgDraws_Vertex, 6);
 	memcpy(near_vertices, ecs_vec_first(ecs_vec_get_t(&layers, ecs_vec_t, 0)), 6 * sizeof(*near_vertices));
-	for (int i = 0; i < 6; ++i) near_vertices[i].pick_id = 88;
-	float near_projection[16] = {1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,-0.5f,1};
+	for (int i = 0; i < 6; ++i)
+		near_vertices[i].pick_id = 88;
+	float near_projection[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, -0.5f, 1};
 	test_int(egg_pick_async_begin(pick, 32, 32, 8), 1);
 	test_assert(egg_pick_async_draw(pick, renderer, &near_layers, near_projection, resolve_async, &skipped));
 	test_assert(egg_pick_async_draw(pick, renderer, &layers, identity, resolve_async, &skipped));
@@ -221,7 +227,8 @@ void Picking_test_async(void)
 	test_assert(egg_pick_async_end(pick));
 	egg_pick_async_complete(pick, true);
 	test_assert(async_result(pick, 10) == 88);
-	for (int i = 0; i < 6; ++i) near_vertices[i].pick_id = skipped;
+	for (int i = 0; i < 6; ++i)
+		near_vertices[i].pick_id = skipped;
 	test_int(egg_pick_async_begin(pick, 32, 32, 11), 1);
 	test_assert(egg_pick_async_draw(pick, renderer, &layers, identity, resolve_async, &skipped));
 	test_assert(egg_pick_async_draw(pick, renderer, &near_layers, near_projection, resolve_async, &skipped));
@@ -261,9 +268,9 @@ void Picking_test_async(void)
 
 void Picking_test_integer_target(void)
 {
-	const float identity[16] = {1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1};
-	uint32_t skipped = 77;
-	uint32_t result = 0;
+	const float identity[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+	uint32_t    skipped      = 77;
+	uint32_t    result       = 0;
 	add_quad(0, UINT32_C(0xf1234567), 255);
 	add_quad(1, skipped, 255);
 	add_quad(2, 55, 0);
@@ -304,15 +311,15 @@ void Picking_test_integer_target(void)
 	test_assert(egg_pick_target_read(target, 32, 32, &result));
 	test_assert(result == 44);
 
-	const unsigned char *atlas = EgDraws_Font_GetBitmap();
-	int transparent = 1;
+	const unsigned char *atlas       = EgDraws_Font_GetBitmap();
+	int                  transparent = 1;
 	while (transparent < EG_DRAWS_ATLAS_WIDTH * EG_DRAWS_ATLAS_HEIGHT && atlas[transparent] != 0) {
 		++transparent;
 	}
 	test_assert(transparent < EG_DRAWS_ATLAS_WIDTH * EG_DRAWS_ATLAS_HEIGHT);
 	add_quad(4, 88, 255);
-	ecs_vec_t *layer = ecs_vec_get_t(&layers, ecs_vec_t, 4);
-	EgDraws_Vertex *v = ecs_vec_first_t(layer, EgDraws_Vertex);
+	ecs_vec_t      *layer = ecs_vec_get_t(&layers, ecs_vec_t, 4);
+	EgDraws_Vertex *v     = ecs_vec_first_t(layer, EgDraws_Vertex);
 	for (int i = 0; i < 6; ++i) {
 		v[i].uv[0] = ((transparent % EG_DRAWS_ATLAS_WIDTH) + 0.5f) / EG_DRAWS_ATLAS_WIDTH;
 		v[i].uv[1] = ((transparent / EG_DRAWS_ATLAS_WIDTH) + 0.5f) / EG_DRAWS_ATLAS_HEIGHT;
@@ -328,10 +335,10 @@ void Picking_test_integer_target(void)
 	ecs_vec_t *second_layer = ecs_vec_append_t(NULL, &second_layers, ecs_vec_t);
 	ecs_vec_init_t(NULL, second_layer, EgDraws_Vertex, 0);
 	EgDraws_Vertex *second_vertices = ecs_vec_grow_t(NULL, second_layer, EgDraws_Vertex, 6);
-	ecs_vec_t *first_layer = ecs_vec_get_t(&layers, ecs_vec_t, 0);
+	ecs_vec_t      *first_layer     = ecs_vec_get_t(&layers, ecs_vec_t, 0);
 	memcpy(second_vertices, ecs_vec_first(first_layer), 6 * sizeof(*second_vertices));
 	for (int i = 0; i < 6; ++i) {
-		second_vertices[i].pick_id = 49;
+		second_vertices[i].pick_id     = 49;
 		second_vertices[i].position[1] = second_vertices[i].position[1] > 0 ? 0.8f : 0.2f;
 	}
 	test_assert(egg_pick_draw_layers(target, second, &second_layers, identity, selected, &skipped));
@@ -351,12 +358,12 @@ void Picking_test_integer_target(void)
 static void add_pixel(int layer_index, uint32_t id, int x, int y)
 {
 	add_quad(layer_index, id, 255);
-	ecs_vec_t *layer = ecs_vec_get_t(&layers, ecs_vec_t, layer_index);
-	EgDraws_Vertex *v = ecs_vec_first_t(layer, EgDraws_Vertex) + ecs_vec_count(layer) - 6;
-	float left = (float)x / 32.0f - 1.0f;
-	float right = (float)(x + 1) / 32.0f - 1.0f;
-	float bottom = (float)y / 32.0f - 1.0f;
-	float top = (float)(y + 1) / 32.0f - 1.0f;
+	ecs_vec_t      *layer  = ecs_vec_get_t(&layers, ecs_vec_t, layer_index);
+	EgDraws_Vertex *v      = ecs_vec_first_t(layer, EgDraws_Vertex) + ecs_vec_count(layer) - 6;
+	float           left   = (float)x / 32.0f - 1.0f;
+	float           right  = (float)(x + 1) / 32.0f - 1.0f;
+	float           bottom = (float)y / 32.0f - 1.0f;
+	float           top    = (float)(y + 1) / 32.0f - 1.0f;
 	for (int i = 0; i < 6; ++i) {
 		v[i].position[0] = v[i].position[0] < 0 ? left : right;
 		v[i].position[1] = v[i].position[1] < 0 ? bottom : top;
@@ -365,8 +372,8 @@ static void add_pixel(int layer_index, uint32_t id, int x, int y)
 
 void Picking_test_region(void)
 {
-	const float identity[16] = {1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1};
-	uint32_t skipped = 77, result = 0;
+	const float identity[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+	uint32_t    skipped = 77, result = 0;
 	// Input (32,31) corresponds to OpenGL pixel (32,32).
 	add_pixel(0, 11, 31, 32);
 	add_pixel(1, 22, 33, 32);
@@ -403,27 +410,34 @@ void Picking_test_region(void)
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, (GLuint)old_draw);
 	egg_render_t *second = egg_render_init();
 	test_assert(second != NULL);
-	ecs_vec_t second_layers = {0};
-	ecs_vec_t *second_layer = ecs_vec_append_t(NULL, &second_layers, ecs_vec_t);
+	ecs_vec_t  second_layers = {0};
+	ecs_vec_t *second_layer  = ecs_vec_append_t(NULL, &second_layers, ecs_vec_t);
 	ecs_vec_init_t(NULL, second_layer, EgDraws_Vertex, 0);
 	EgDraws_Vertex *second_vertices = ecs_vec_grow_t(NULL, second_layer, EgDraws_Vertex, 6);
-	ecs_vec_t *first_layer = ecs_vec_get_t(&layers, ecs_vec_t, 0);
+	ecs_vec_t      *first_layer     = ecs_vec_get_t(&layers, ecs_vec_t, 0);
 	memcpy(second_vertices, ecs_vec_first(first_layer), 6 * sizeof(*second_vertices));
-	for (int i = 0; i < 6; ++i) second_vertices[i].pick_id = 66;
+	for (int i = 0; i < 6; ++i)
+		second_vertices[i].pick_id = 66;
 	test_assert(egg_pick_draw_layers(target, second, &second_layers, identity, selected, &skipped));
 	test_assert(egg_pick_target_read_region(target, &result));
 	test_int(result, 66); // Later draw context wins an equal-distance tie.
 	ecs_vec_fini_t(NULL, second_layer, EgDraws_Vertex);
 	ecs_vec_fini_t(NULL, &second_layers, ecs_vec_t);
 	egg_render_destroy(second);
-	GLint box[4], viewport[4];
+	GLint     box[4], viewport[4];
 	GLboolean mask[4];
 	glGetIntegerv(GL_SCISSOR_BOX, box);
 	glGetIntegerv(GL_VIEWPORT, viewport);
 	glGetBooleanv(GL_COLOR_WRITEMASK, mask);
 	test_assert(glIsEnabled(GL_SCISSOR_TEST));
-	test_int(box[0], 4); test_int(box[1], 5); test_int(box[2], 6); test_int(box[3], 7);
-	test_int(viewport[0], 2); test_int(viewport[1], 3); test_int(viewport[2], 10); test_int(viewport[3], 11);
+	test_int(box[0], 4);
+	test_int(box[1], 5);
+	test_int(box[2], 6);
+	test_int(box[3], 7);
+	test_int(viewport[0], 2);
+	test_int(viewport[1], 3);
+	test_int(viewport[2], 10);
+	test_int(viewport[3], 11);
 	test_assert(!mask[0] && mask[1] && !mask[2] && mask[3]);
 	glGetBooleani_v(GL_COLOR_WRITEMASK, 1, mask);
 	test_assert(mask[0] && !mask[1] && mask[2] && !mask[3]);
@@ -449,7 +463,7 @@ void Picking_test_region(void)
 	add_pixel(3, 56, 63, 63);
 	add_pixel(3, 57, 0, 0);
 	add_pixel(3, 58, 63, 0);
-	const int corners[3][3] = {{63,0,56}, {0,63,57}, {63,63,58}};
+	const int corners[3][3] = {{63, 0, 56}, {0, 63, 57}, {63, 63, 58}};
 	for (int i = 0; i < 3; ++i) {
 		test_assert(egg_pick_target_begin_region(target, 64, 64, corners[i][0], corners[i][1]));
 		test_assert(egg_pick_draw_layers(target, renderer, &layers, identity, selected, &skipped));

@@ -17,34 +17,23 @@ void Picking_test_async(void);
 void Picking_test_benchmark(void);
 
 bake_test_case Picking_testcases[] = {
-    {
-        "test_integer_target",
-        Picking_test_integer_target
-    },
-    {
-        "test_region",
-        Picking_test_region
-    },
-    {
-        "test_async",
-        Picking_test_async
-    },
-    {
-        "test_benchmark",
-        Picking_test_benchmark
-    }
-};
+{"test_integer_target",
+Picking_test_integer_target},
+{"test_region",
+Picking_test_region},
+{"test_async",
+Picking_test_async},
+{"test_benchmark",
+Picking_test_benchmark}};
 
 static bake_test_suite suites[] = {
-    {
-        "Picking",
-        Picking_setup,
-        Picking_teardown,
-        4,
-        Picking_testcases
-    }
-};
+{"Picking",
+Picking_setup,
+Picking_teardown,
+4,
+Picking_testcases}};
 
-int main(int argc, char *argv[]) {
-    return bake_test_run("egg_test", argc, argv, suites, 1);
+int main(int argc, char *argv[])
+{
+	return bake_test_run("egg_test", argc, argv, suites, 1);
 }

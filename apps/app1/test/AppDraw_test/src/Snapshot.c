@@ -5,19 +5,19 @@
 #include <EgWindowsSdlGl.h>
 #include "../../../src/AppDraw.c"
 
-static ecs_world_t *world;
-static ecs_entity_t entity;
+static ecs_world_t  *world;
+static ecs_entity_t  entity;
 static EgDraws_List *list;
-static const float identity[16] = {1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1};
-static int generic_frames, generic_begins, generic_ends;
-static int renderer_cleanups;
+static const float   identity[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
+static int           generic_frames, generic_begins, generic_ends;
+static int           renderer_cleanups;
 static SDL_GLContext expected_cleanup_context;
-static bool cleanup_failure_after_destroy;
+static bool          cleanup_failure_after_destroy;
 
 static bool supports_async(void)
 {
 	return SDL_GL_ExtensionSupported("GL_ARB_gpu_shader_int64") &&
-		SDL_GL_ExtensionSupported("GL_NV_shader_atomic_int64");
+	       SDL_GL_ExtensionSupported("GL_NV_shader_atomic_int64");
 }
 
 static void report_async_skip(void)
@@ -54,8 +54,8 @@ static bool failing_cleanup(void *window, void *context, void (*destroy)(void *)
 
 static void generic_frame_begin(ecs_world_t *w, ecs_entity_t window)
 {
-	const EgWindowsWindow *native = ecs_get(w, window, EgWindowsWindow);
-	const EgWindowsOpenGLContext *gl = ecs_get(w, window, EgWindowsOpenGLContext);
+	const EgWindowsWindow        *native = ecs_get(w, window, EgWindowsWindow);
+	const EgWindowsOpenGLContext *gl     = ecs_get(w, window, EgWindowsOpenGLContext);
 	test_assert(native && gl);
 	test_assert(SDL_GL_GetCurrentWindow() == native->object);
 	test_assert(SDL_GL_GetCurrentContext() == gl->gl_context);
@@ -65,8 +65,8 @@ static void generic_frame_begin(ecs_world_t *w, ecs_entity_t window)
 
 static void generic_frame_end(ecs_world_t *w, ecs_entity_t window)
 {
-	const EgWindowsWindow *native = ecs_get(w, window, EgWindowsWindow);
-	const EgWindowsOpenGLContext *gl = ecs_get(w, window, EgWindowsOpenGLContext);
+	const EgWindowsWindow        *native = ecs_get(w, window, EgWindowsWindow);
+	const EgWindowsOpenGLContext *gl     = ecs_get(w, window, EgWindowsOpenGLContext);
 	test_assert(native && gl);
 	test_assert(SDL_GL_GetCurrentWindow() == native->object);
 	test_assert(SDL_GL_GetCurrentContext() == gl->gl_context);
@@ -100,7 +100,7 @@ void Snapshot_setup(void)
 	EgDraws_Vertex *v = ecs_vec_grow_t(NULL, layer, EgDraws_Vertex, 3);
 	test_assert(v != NULL);
 	for (int i = 0; i < 3; ++i) {
-		v[i] = (EgDraws_Vertex){.position = {(float)i, 0}, .rgba = {255,255,255,255}, .pick_id = (uint32_t)entity};
+		v[i] = (EgDraws_Vertex){.position = {(float)i, 0}, .rgba = {255, 255, 255, 255}, .pick_id = (uint32_t)entity};
 	}
 }
 
@@ -117,16 +117,17 @@ static void complete_pick(ecs_entity_t window, egg_render_t *renderer)
 	AppDrawPickFrame_draw(world, state, renderer, list, identity);
 	AppDrawPickFrame_end(world, window);
 	AppDrawPickFrame_complete(world, window, true);
-	state = ecs_get_mut(world, window, AppDrawPickState);
+	state       = ecs_get_mut(world, window, AppDrawPickState);
 	uint64_t id = 0, frame = 0;
-	int ready = 0;
+	int      ready = 0;
 	for (int i = 0; i < 1000 && !ready; ++i) {
 		ready = egg_pick_async_poll(state->async, &id, &frame);
-		if (!ready) SDL_Delay(1);
+		if (!ready)
+			SDL_Delay(1);
 	}
 	test_int(ready, 1);
 	state->picked = id;
-	state->frame = (int64_t)frame;
+	state->frame  = (int64_t)frame;
 	state->cached = true;
 }
 
@@ -136,8 +137,8 @@ void Snapshot_test_publish_and_invalidate(void)
 	ecs_add_id(world, window, AppDrawGpuPicking);
 	ecs_set(world, window, AppDrawPickState, {.frame = -1});
 	AppDrawPickState *state = ecs_get_mut(world, window, AppDrawPickState);
-	state->cached = true;
-	state->picked = entity;
+	state->cached           = true;
+	state->picked           = entity;
 	AppDrawPickFrame_complete(world, window, false);
 	test_assert(state->cached && state->picked == entity);
 	AppDrawPickFrame_begin(world, window);
@@ -193,13 +194,16 @@ void Snapshot_test_on_demand(void)
 	ecs_set(world, e_window, EgWindowsOpenGLContext, {.gl_context = context, .cleanup = EgWindowsSdlGlCleanup});
 	ecs_add_id(world, e_window, AppDrawGpuPicking);
 	ecs_set(world, e_window, AppDrawPickState,
-		{.frame = -1});
+	{.frame = -1});
 	ecs_singleton_set(world, EgButtonsState, {{0}});
-	ecs_vec_t *layer = ecs_vec_get_t(&list->layers, ecs_vec_t, 0);
-	EgDraws_Vertex *v = ecs_vec_first_t(layer, EgDraws_Vertex);
-	v[0].position[0] = -1; v[0].position[1] = -1;
-	v[1].position[0] = 1; v[1].position[1] = -1;
-	v[2].position[0] = 0; v[2].position[1] = 1;
+	ecs_vec_t      *layer = ecs_vec_get_t(&list->layers, ecs_vec_t, 0);
+	EgDraws_Vertex *v     = ecs_vec_first_t(layer, EgDraws_Vertex);
+	v[0].position[0]      = -1;
+	v[0].position[1]      = -1;
+	v[1].position[0]      = 1;
+	v[1].position[1]      = -1;
+	v[2].position[0]      = 0;
+	v[2].position[1]      = 1;
 	for (int i = 0; i < 3; ++i) {
 		v[i].uv[0] = 0.5f / EG_DRAWS_ATLAS_WIDTH;
 		v[i].uv[1] = 0.5f / EG_DRAWS_ATLAS_HEIGHT;
@@ -214,9 +218,9 @@ void Snapshot_test_on_demand(void)
 	test_assert(SDL_GetMouseFocus() == window);
 	EgWindowsSdlUpdateState(world);
 	complete_pick(e_window, renderer);
-	state = ecs_get_mut(world, e_window, AppDrawPickState);
+	state               = ecs_get_mut(world, e_window, AppDrawPickState);
 	ecs_entity_t result = 0;
-	float x = 0, y = 0;
+	float        x = 0, y = 0;
 	test_assert(AppDraw_PickMouse(world, &result, &x, &y, NULL));
 	test_assert(result == entity);
 	test_assert(state->cached);
@@ -225,27 +229,30 @@ void Snapshot_test_on_demand(void)
 	ecs_add_id(world, top, EgUiScriptEventsTarget);
 	AppDrawPickFrame_begin(world, e_window);
 	AppDrawPickFrame_draw(world, state, renderer, list, identity);
-	for (int i = 0; i < 3; ++i) v[i].pick_id = (uint32_t)top;
+	for (int i = 0; i < 3; ++i)
+		v[i].pick_id = (uint32_t)top;
 	AppDrawPickFrame_draw(world, state, renderer, list, identity);
 	AppDrawPickFrame_end(world, e_window);
 	AppDrawPickFrame_complete(world, e_window, true);
 	uint64_t id = 0, frame = 0;
-	int ready = 0;
+	int      ready = 0;
 	for (int i = 0; i < 1000 && !ready; ++i) {
 		ready = egg_pick_async_poll(state->async, &id, &frame);
-		if (!ready) SDL_Delay(1);
+		if (!ready)
+			SDL_Delay(1);
 	}
 	test_int(ready, 1);
 	state->picked = id;
-	state->frame = (int64_t)frame;
+	state->frame  = (int64_t)frame;
 	state->cached = true;
 	test_assert(AppDraw_PickMouse(world, &result, &x, &y, NULL));
 	test_assert(result == top);
-	for (int i = 0; i < 3; ++i) v[i].pick_id = (uint32_t)entity;
+	for (int i = 0; i < 3; ++i)
+		v[i].pick_id = (uint32_t)entity;
 	complete_pick(e_window, renderer);
 
 	EgWindowsOpenGLContext *gl = ecs_get_mut(world, e_window, EgWindowsOpenGLContext);
-	gl->gl_context = NULL;
+	gl->gl_context             = NULL;
 	test_assert(AppDraw_PickMouse(world, &result, &x, &y, NULL));
 	test_assert(result == 0 && !state->cached);
 	gl->gl_context = context;
@@ -284,11 +291,13 @@ void Snapshot_test_on_demand(void)
 	ecs_add_id(world, entity, EgUiScriptEventsTarget);
 	test_assert(AppDraw_PickMouse(world, &result, &x, &y, NULL));
 	test_assert(result == 0);
-	for (int i = 0; i < 3; ++i) v[i].pick_id = (uint32_t)entity;
+	for (int i = 0; i < 3; ++i)
+		v[i].pick_id = (uint32_t)entity;
 	complete_pick(e_window, renderer);
 	test_assert(AppDraw_PickMouse(world, &result, &x, &y, NULL));
 	test_assert(result == entity);
-	for (int i = 0; i < 3; ++i) v[i].position[0] += 4;
+	for (int i = 0; i < 3; ++i)
+		v[i].position[0] += 4;
 	complete_pick(e_window, renderer);
 	test_assert(AppDraw_PickMouse(world, &result, &x, &y, NULL));
 	test_assert(result == 0);
@@ -306,18 +315,18 @@ void Snapshot_test_on_demand(void)
 	test_assert(AppDraw_PickMouse(world, &result, &x, &y, NULL));
 	test_assert(result == 0);
 	test_assert(!state->cached);
-	state->cached = true;
+	state->cached  = true;
 	state->drawing = true;
 	AppDrawPickFrame_complete(world, e_window, false);
 	test_assert(state->cached && !state->drawing);
 	AppDrawPickFrame_complete(world, e_window, true);
 	test_assert(state->cached);
 
-	SDL_Window *current_window = SDL_GL_GetCurrentWindow();
+	SDL_Window   *current_window  = SDL_GL_GetCurrentWindow();
 	SDL_GLContext current_context = SDL_GL_GetCurrentContext();
 	ecs_remove(world, e_window, AppDrawPickState);
 	test_assert(SDL_GL_GetCurrentWindow() == current_window &&
-		SDL_GL_GetCurrentContext() == current_context);
+	            SDL_GL_GetCurrentContext() == current_context);
 	egg_render_destroy(renderer);
 	SDL_GL_DestroyContext(context);
 	SDL_DestroyWindow(window);
@@ -352,20 +361,31 @@ void Snapshot_test_pick_target_lifecycle(void)
 		ecs_set(w, e, EgWindowsOpenGLContext, {.gl_context = context, .cleanup = tracked_cleanup});
 		ecs_set(w, e, AppDrawPickState, {.frame = -1});
 		AppDrawPickState *state = ecs_get_mut(w, e, AppDrawPickState);
-		state->async = egg_pick_async_create();
+		state->async            = egg_pick_async_create();
 		test_assert(state->async != NULL);
 		test_int(egg_pick_async_begin(state->async, 32, 32, 1), 1);
 		test_assert(egg_pick_async_end(state->async));
 		egg_pick_async_complete(state->async, true);
-		renderer_cleanups = 0;
+		renderer_cleanups        = 0;
 		expected_cleanup_context = context;
 		test_assert(SDL_GL_MakeCurrent(NULL, NULL));
 		switch (mode) {
-		case 0: ecs_remove(w, e, AppDrawPickState); break;
-		case 1: ecs_remove(w, e, EgWindowsOpenGLContext); break;
-		case 2: ecs_remove(w, e, EgWindowsWindow); break;
-		case 3: ecs_delete(w, e); break;
-		case 4: ecs_fini(w); w = NULL; break;
+		case 0:
+			ecs_remove(w, e, AppDrawPickState);
+			break;
+		case 1:
+			ecs_remove(w, e, EgWindowsOpenGLContext);
+			break;
+		case 2:
+			ecs_remove(w, e, EgWindowsWindow);
+			break;
+		case 3:
+			ecs_delete(w, e);
+			break;
+		case 4:
+			ecs_fini(w);
+			w = NULL;
+			break;
 		}
 		test_int(renderer_cleanups, 1);
 		test_assert(!SDL_GL_GetCurrentWindow() && !SDL_GL_GetCurrentContext());
@@ -373,7 +393,8 @@ void Snapshot_test_pick_target_lifecycle(void)
 			state = ecs_get_mut(w, e, AppDrawPickState);
 			test_assert(state && !state->async);
 		}
-		if (w) ecs_fini(w);
+		if (w)
+			ecs_fini(w);
 		test_int(renderer_cleanups, 1);
 		SDL_GL_DestroyContext(context);
 		SDL_DestroyWindow(window);
@@ -412,9 +433,11 @@ void Snapshot_test_renderer_lifecycle(void)
 		test_assert(renderer);
 		ecs_add(w, draw, EgDraws_List);
 		ecs_set(w, draw, AppDrawContext, {.render = renderer});
-		if (mode == 2) ecs_add_id(w, intermediate, EcsDisabled);
-		if (mode == 3) ecs_add_id(w, draw, EcsDisabled);
-		renderer_cleanups = 0;
+		if (mode == 2)
+			ecs_add_id(w, intermediate, EcsDisabled);
+		if (mode == 3)
+			ecs_add_id(w, draw, EcsDisabled);
+		renderer_cleanups        = 0;
 		expected_cleanup_context = context;
 		test_assert(SDL_GL_MakeCurrent(other, other_context));
 		switch (mode) {
@@ -422,11 +445,22 @@ void Snapshot_test_renderer_lifecycle(void)
 			ecs_remove(w, draw, AppDrawContext);
 			test_assert(ecs_has(w, draw, EgDraws_List));
 			break;
-		case 1: ecs_delete(w, draw); break;
-		case 2: ecs_remove(w, window, EgWindowsOpenGLContext); break;
-		case 3: ecs_remove(w, window, EgWindowsWindow); break;
-		case 4: ecs_delete(w, window); break;
-		case 5: ecs_fini(w); w = NULL; break;
+		case 1:
+			ecs_delete(w, draw);
+			break;
+		case 2:
+			ecs_remove(w, window, EgWindowsOpenGLContext);
+			break;
+		case 3:
+			ecs_remove(w, window, EgWindowsWindow);
+			break;
+		case 4:
+			ecs_delete(w, window);
+			break;
+		case 5:
+			ecs_fini(w);
+			w = NULL;
+			break;
 		}
 		test_int(renderer_cleanups, 1);
 		test_assert(SDL_GL_GetCurrentWindow() == other);
@@ -435,7 +469,8 @@ void Snapshot_test_renderer_lifecycle(void)
 			const AppDrawContext *remaining = ecs_get(w, draw, AppDrawContext);
 			test_assert(remaining && !remaining->render);
 		}
-		if (w) ecs_fini(w);
+		if (w)
+			ecs_fini(w);
 		test_int(renderer_cleanups, 1);
 		SDL_GL_DestroyContext(context);
 		SDL_DestroyWindow(native);
@@ -454,7 +489,7 @@ void Snapshot_test_renderer_lifecycle(void)
 	AppDrawPickState pick = {.async = egg_pick_async_create()};
 	test_assert(draw.render && pick.async);
 	EgWindowsOpenGLContext failing = {.gl_context = other_context, .cleanup = failing_cleanup};
-	cleanup_failure_after_destroy = false;
+	cleanup_failure_after_destroy  = false;
 	AppDrawContext_destroy_renderer(&draw, other, &failing);
 	AppDrawPickState_destroy_target(&pick, other, &failing);
 	test_assert(draw.render && pick.async);
@@ -492,7 +527,7 @@ void Snapshot_test_drag_window_bounds(void)
 	SDL_WarpMouseInWindow(window, 24, 28);
 	SDL_PumpEvents();
 	test_assert(ecs_progress(world, 0));
-	const EgWindowsInputState *focus = ecs_singleton_get(world, EgWindowsInputState);
+	const EgWindowsInputState  *focus        = ecs_singleton_get(world, EgWindowsInputState);
 	const EgWindowsWindowState *window_state = ecs_get(world, e_window, EgWindowsWindowState);
 	test_assert(focus && focus->mouse_window == e_window && focus->mouse_focus);
 	test_assert(window_state && window_state->valid && window_state->mouse_focus);
@@ -507,7 +542,7 @@ void Snapshot_test_drag_window_bounds(void)
 	test_assert(AppDraw_CaptureValid(world, NULL));
 
 	ecs_entity_t target = entity;
-	float x = 0, y = 0;
+	float        x = 0, y = 0;
 	test_assert(AppDraw_PickMouse(world, &target, &x, &y, NULL));
 	test_assert(target == 0);
 	test_flt(x, 32);
@@ -528,7 +563,7 @@ void Snapshot_test_drag_window_bounds(void)
 	test_assert(!AppDraw_InsideWindow(32, -1, 64, 64));
 	test_assert(!AppDraw_InsideWindow(32, 64, 64, 64));
 	EgWindowsWindowState *outside = ecs_get_mut(world, e_window, EgWindowsWindowState);
-	outside->mouse_x = 64;
+	outside->mouse_x              = 64;
 	test_assert(!AppDraw_CaptureValid(world, NULL));
 	outside->mouse_x = 32;
 	test_assert(AppDraw_CaptureValid(world, NULL));
@@ -551,17 +586,20 @@ void Snapshot_test_multiple_windows(void)
 	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4));
 	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3));
 	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE));
-	SDL_Window *windows[2];
+	SDL_Window   *windows[2];
 	SDL_GLContext contexts[2];
 	egg_render_t *renderers[2];
-	ecs_entity_t window_entities[2], targets[2] = {entity, ecs_new(world)};
+	ecs_entity_t  window_entities[2], targets[2] = {entity, ecs_new(world)};
 	ecs_add_id(world, targets[1], EgUiScriptEventsTarget);
 	ecs_singleton_set(world, EgButtonsState, {{0}});
-	ecs_vec_t *layer = ecs_vec_get_t(&list->layers, ecs_vec_t, 0);
-	EgDraws_Vertex *v = ecs_vec_first_t(layer, EgDraws_Vertex);
-	v[0].position[0] = -1; v[0].position[1] = -1;
-	v[1].position[0] = 1; v[1].position[1] = -1;
-	v[2].position[0] = 0; v[2].position[1] = 1;
+	ecs_vec_t      *layer = ecs_vec_get_t(&list->layers, ecs_vec_t, 0);
+	EgDraws_Vertex *v     = ecs_vec_first_t(layer, EgDraws_Vertex);
+	v[0].position[0]      = -1;
+	v[0].position[1]      = -1;
+	v[1].position[0]      = 1;
+	v[1].position[1]      = -1;
+	v[2].position[0]      = 0;
+	v[2].position[1]      = 1;
 	for (int j = 0; j < 3; ++j) {
 		v[j].uv[0] = 0.5f / EG_DRAWS_ATLAS_WIDTH;
 		v[j].uv[1] = 0.5f / EG_DRAWS_ATLAS_HEIGHT;
@@ -585,13 +623,14 @@ void Snapshot_test_multiple_windows(void)
 		ecs_set(world, window_entities[i], EgWindowsOpenGLContext, {.gl_context = contexts[i], .cleanup = EgWindowsSdlGlCleanup});
 		ecs_add_id(world, window_entities[i], AppDrawGpuPicking);
 		ecs_set(world, window_entities[i], AppDrawPickState,
-			{.frame = -1});
+		{.frame = -1});
 	}
 	test_assert(SDL_GL_MakeCurrent(windows[1], contexts[1]));
 	ecs_entity_t result = 0;
-	float x = 0, y = 0;
+	float        x = 0, y = 0;
 	focus_window(windows[0]);
-	for (int j = 0; j < 3; ++j) v[j].pick_id = (uint32_t)targets[0];
+	for (int j = 0; j < 3; ++j)
+		v[j].pick_id = (uint32_t)targets[0];
 	test_assert(SDL_GL_MakeCurrent(windows[0], contexts[0]));
 	complete_pick(window_entities[0], renderers[0]);
 	test_assert(SDL_GL_MakeCurrent(windows[1], contexts[1]));
@@ -602,7 +641,8 @@ void Snapshot_test_multiple_windows(void)
 	focus_window(windows[1]);
 	test_assert(!AppDraw_CaptureValid(world, NULL));
 	AppDraw_CaptureEnd(world, NULL);
-	for (int j = 0; j < 3; ++j) v[j].pick_id = (uint32_t)targets[1];
+	for (int j = 0; j < 3; ++j)
+		v[j].pick_id = (uint32_t)targets[1];
 	complete_pick(window_entities[1], renderers[1]);
 	test_assert(AppDraw_PickMouse(world, &result, &x, &y, NULL));
 	test_assert(result == targets[1]);
@@ -651,16 +691,16 @@ void Snapshot_test_frame_callbacks(void)
 	test_assert(SDL_GL_GetCurrentContext() == NULL);
 	test_assert(SDL_GL_MakeCurrent(window, context));
 	ecs_entity_t e_window = ecs_new(world);
-	ecs_query_t *systems = ecs_query(world, {
-		.terms = {{.id = EcsSystem}},
-		.group_by = EcsChildOf,
-	});
+	ecs_query_t *systems  = ecs_query(world, {
+	                                         .terms    = {{.id = EcsSystem}},
+	                                         .group_by = EcsChildOf,
+                                            });
 	test_assert(systems != NULL);
 	ecs_set(world, e_window, EgWindowsWindow, {.object = window});
 	ecs_set(world, e_window, EgWindowsOpenGLContext, {.gl_context = context, .inner_systems = systems});
 	ecs_set(world, e_window, EgShapesRectangle, {.w = 64, .h = 64});
 	ecs_set(world, e_window, EgWindowsFrameCallback,
-		{.begin = generic_frame_begin, .end = generic_frame_end, .complete = generic_frame_complete});
+	{.begin = generic_frame_begin, .end = generic_frame_end, .complete = generic_frame_complete});
 	generic_frames = generic_begins = generic_ends = 0;
 	test_assert(ecs_progress(world, 0));
 	test_int(generic_begins, 1);
@@ -684,46 +724,42 @@ void Snapshot_test_render_cycle_picking(void)
 	SDL_GLContext context = SDL_GL_CreateContext(native);
 	test_assert(context != NULL);
 	ECS_IMPORT(world, EgCameras);
-	ecs_entity_t window = ecs_new(world);
+	ecs_entity_t window  = ecs_new(world);
 	ecs_query_t *systems = ecs_query(world, {.terms = {{.id = EcsSystem}}, .group_by = EcsChildOf});
 	test_assert(systems != NULL);
 	ecs_set(world, window, EgWindowsWindow, {.object = native});
 	ecs_set(world, window, EgWindowsOpenGLContext,
-		{.gl_context = context, .inner_systems = systems, .cleanup = EgWindowsSdlGlCleanup});
+	{.gl_context = context, .inner_systems = systems, .cleanup = EgWindowsSdlGlCleanup});
 	ecs_set(world, window, EgShapesRectangle, {.w = 64, .h = 64});
 	ecs_add_id(world, window, AppDrawGpuPicking);
 	ecs_set(world, window, AppDrawPickState, {.frame = -1});
 	ecs_set(world, window, EgWindowsFrameCallback,
-		{.begin = AppDrawPickFrame_begin, .end = AppDrawPickFrame_end, .complete = AppDrawPickFrame_complete});
+	{.begin = AppDrawPickFrame_begin, .end = AppDrawPickFrame_end, .complete = AppDrawPickFrame_complete});
 	ecs_entity_t camera = ecs_new(world);
 	ecs_set(world, camera, EgCamerasState,
-		{.pixel_scale = 1, .vp = {{1,0,0,0}, {0,1,0,0}, {0,0,1,0}, {0,0,0,1}}});
+	{.pixel_scale = 1, .vp = {{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}}});
 	ecs_entity_t draw = ecs_new(world);
 	ecs_add_pair(world, draw, EcsChildOf, window);
 	ecs_add_pair(world, draw, EcsDependsOn, camera);
 	ecs_add(world, draw, EgDraws_List);
 	EgDraws_List *draw_list = ecs_get_mut(world, draw, EgDraws_List);
 	test_assert(draw_list != NULL);
-	ecs_vec_t *layer = EgDraws_List_GetLayer(draw_list, 0);
-	EgDraws_Vertex *v = ecs_vec_grow_t(NULL, layer, EgDraws_Vertex, 3);
+	ecs_vec_t      *layer = EgDraws_List_GetLayer(draw_list, 0);
+	EgDraws_Vertex *v     = ecs_vec_grow_t(NULL, layer, EgDraws_Vertex, 3);
 	test_assert(v != NULL);
 	for (int i = 0; i < 3; ++i) {
-		v[i] = (EgDraws_Vertex){.rgba = {255,255,255,255}, .pick_id = (uint32_t)entity,
-			.uv = {0.5f / EG_DRAWS_ATLAS_WIDTH, 0.5f / EG_DRAWS_ATLAS_HEIGHT}};
+		v[i] = (EgDraws_Vertex){.rgba = {255, 255, 255, 255}, .pick_id = (uint32_t)entity, .uv = {0.5f / EG_DRAWS_ATLAS_WIDTH, 0.5f / EG_DRAWS_ATLAS_HEIGHT}};
 	}
-	v[0].position[0] = -1; v[0].position[1] = -1;
-	v[1].position[0] = 1; v[1].position[1] = -1;
-	v[2].position[0] = 0; v[2].position[1] = 1;
+	v[0].position[0] = -1;
+	v[0].position[1] = -1;
+	v[1].position[0] = 1;
+	v[1].position[1] = -1;
+	v[2].position[0] = 0;
+	v[2].position[1] = 1;
 	ecs_set(world, draw, AppDrawContext, {0});
 	ecs_entity_t system = ecs_entity(world, {.name = "RenderCyclePickingTest", .parent = window});
 	ecs_system_init(world, &(ecs_system_desc_t){
-		.entity = system, .callback = Test_Render,
-		.query.terms = {
-			{.id = ecs_childof(window)},
-			{.id = ecs_id(AppDrawContext), .src.id = EcsSelf, .inout = EcsIn},
-			{.id = ecs_id(EgDraws_List), .src.id = EcsSelf, .inout = EcsInOut},
-			{.id = ecs_id(EgCamerasState), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn}
-		}});
+	                       .entity = system, .callback = Test_Render, .query.terms = {{.id = ecs_childof(window)}, {.id = ecs_id(AppDrawContext), .src.id = EcsSelf, .inout = EcsIn}, {.id = ecs_id(EgDraws_List), .src.id = EcsSelf, .inout = EcsInOut}, {.id = ecs_id(EgCamerasState), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn}}});
 	focus_window(native);
 	test_assert(ecs_progress(world, 0));
 	const AppDrawContext *drawn = ecs_get(world, draw, AppDrawContext);
@@ -745,7 +781,7 @@ void Snapshot_test_render_cycle_picking(void)
 	}
 	test_assert(state && state->cached && state->picked == entity);
 	ecs_entity_t result = 0;
-	float x = 0, y = 0;
+	float        x = 0, y = 0;
 	test_assert(AppDraw_PickMouse(world, &result, &x, &y, NULL));
 	test_assert(result == entity);
 	ecs_remove(world, draw, AppDrawContext);

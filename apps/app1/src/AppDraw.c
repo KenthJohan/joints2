@@ -508,7 +508,7 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 	ecs_log(-1, "AppDrawContext_Create: '%s'", ecs_get_name(it->world, e_window));
 
 	for (int i = 0; i < it->count; ++i, ++def) {
-		ecs_entity_t  e    = it->entities[i];
+		ecs_entity_t e = it->entities[i];
 		ecs_add(it->stage, e, EgDraws_List);
 		ecs_set(it->stage, e, AppDrawContext, {NULL});
 
@@ -534,9 +534,9 @@ static void AppDrawContext_Create(ecs_iter_t *it)
 
 static void AppDrawContext_Collect(ecs_iter_t *it)
 {
-	EgDraws_List   *l  = ecs_field_self(it, EgDraws_List, 1);
-	EgDraws_List   *dst = ecs_field_shared(it, EgDraws_List, 2);
-	ecs_entity_t    context = ecs_field_src(it, 0);
+	EgDraws_List *l       = ecs_field_self(it, EgDraws_List, 1);
+	EgDraws_List *dst     = ecs_field_shared(it, EgDraws_List, 2);
+	ecs_entity_t  context = ecs_field_src(it, 0);
 	for (int i = 0; i < it->count; ++i, ++l) {
 		if (it->entities[i] != context) {
 			EgDraws_List_Append(dst, l);
@@ -563,9 +563,9 @@ void AppDrawImport(ecs_world_t *world)
 
 	ecs_observer(world,
 	{.query   = {.terms = {
-	             {.id = ecs_id(AppDrawContext)},
-	             {.id = ecs_id(EgWindowsWindow), .trav = EcsChildOf, .src.id = EcsUp, .inout = EcsIn},
-	             {.id = ecs_id(EgWindowsOpenGLContext), .trav = EcsChildOf, .src.id = EcsUp, .inout = EcsIn}}},
+               {.id = ecs_id(AppDrawContext)},
+               {.id = ecs_id(EgWindowsWindow), .trav = EcsChildOf, .src.id = EcsUp, .inout = EcsIn},
+               {.id = ecs_id(EgWindowsOpenGLContext), .trav = EcsChildOf, .src.id = EcsUp, .inout = EcsIn}}},
 	.events   = {EcsOnRemove},
 	.callback = AppDrawContext_remove});
 

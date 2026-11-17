@@ -39,8 +39,8 @@ void run_managed_file(ecs_world_t *world, const char *file)
 	const EcsScript *script_data = script ? ecs_get(world, script, EcsScript) : NULL;
 	if (!script_data || script_data->error) {
 		fprintf(stderr, "Failed to run managed script file: %s%s%s\n", file,
-			script_data && script_data->error ? ": " : "",
-			script_data && script_data->error ? script_data->error : "");
+		script_data && script_data->error ? ": " : "",
+		script_data && script_data->error ? script_data->error : "");
 		exit(EXIT_FAILURE);
 	}
 }
@@ -125,7 +125,7 @@ int main(int argc, char *argv[])
 			break;
 		}
 		EgButtonsBinding const *binding = ecs_get(world, quit_binding, EgButtonsBinding);
-		EgButtonsState *buttons = ecs_singleton_get_mut(world, EgButtonsState);
+		EgButtonsState         *buttons = ecs_singleton_get_mut(world, EgButtonsState);
 		if (!binding || !buttons) {
 			fprintf(stderr, "Quit binding or button state is missing\n");
 			ecs_fini(world);
