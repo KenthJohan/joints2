@@ -60,8 +60,10 @@ Enabling GPU picking installs app1's script-input `to_local` hook for ancestor
 coordinates. Flecs event hooks are world-wide and this replaces any hooks
 previously registered by the application.
 
-Window focus, mouse coordinates and logical/framebuffer sizes are read from
-`EgWindows` state, refreshed by `EgWindowsSdl` after polling events each frame.
+Window focus, mouse coordinates and logical/framebuffer sizes are stored on
+`EgWindowsWindow` and refreshed by `EgWindowsSdl` after polling events each
+frame. Global pointer focus and the focused window entity remain in the
+`EgWindowsInputState` singleton.
 The SDL GL backend supplies context switching, frame callbacks, and
 context-current resource cleanup through `EgWindows`, so AppDraw does not
 depend on SDL APIs. Renderer and picking resources are created during rendering

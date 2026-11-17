@@ -191,15 +191,13 @@ static void AppDrawPickFrame_begin(ecs_world_t *world, ecs_entity_t window)
 	AppDrawPickState *state = ecs_get_mut(world, window, AppDrawPickState);
 	if (!state)
 		return;
-	state->drawing                            = false;
-	state->ready                              = false;
-	state->failed                             = false;
-	const EgWindowsInputState  *focus         = ecs_singleton_get(world, EgWindowsInputState);
-	const EgWindowsWindowState *window_state  = ecs_get(world, window, EgWindowsWindowState);
-	const EgWindowsWindow      *window_object = ecs_get(world, window, EgWindowsWindow);
+	state->drawing                          = false;
+	state->ready                            = false;
+	state->failed                           = false;
+	const EgWindowsInputState *focus        = ecs_singleton_get(world, EgWindowsInputState);
+	const EgWindowsWindow     *window_state = ecs_get(world, window, EgWindowsWindow);
 	if (!ecs_has_id(world, window, AppDrawGpuPicking) ||
 	    !focus || focus->mouse_window != window || !window_state || !window_state->valid ||
-	    !window_object || window_state->object != window_object->object ||
 	    !window_state->mouse_focus || window_state->hidden || window_state->minimized ||
 	    window_state->width <= 0 || window_state->height <= 0 ||
 	    window_state->pixel_width <= 0 || window_state->pixel_height <= 0 ||
@@ -346,17 +344,15 @@ static bool AppDraw_CaptureValid(ecs_world_t *world, void *ctx)
 	const EgWindowsInputState *focus = ecs_singleton_get(world, EgWindowsInputState);
 	if (!focus || focus->mouse_window != input->capture_window)
 		return false;
-	const EgWindowsWindow      *window = ecs_get(world, input->capture_window, EgWindowsWindow);
-	const EgWindowsWindowState *state  = ecs_get(world, input->capture_window, EgWindowsWindowState);
-	if (!window || window->object != input->capture_object || !state ||
-	    state->object != window->object || !state->valid)
+	const EgWindowsWindow *window = ecs_get(world, input->capture_window, EgWindowsWindow);
+	if (!window || window->object != input->capture_object || !window->valid)
 		return false;
 	if (!ecs_has_id(world, input->capture_window, AppDrawGpuPicking) ||
 	    ecs_has_id(world, input->capture_window, EcsDisabled) ||
 	    ecs_has_id(world, input->capture_window, EgWindowsCloseRequest) ||
-	    !state->mouse_focus || !state->keyboard_focus || state->hidden || state->minimized)
+	    !window->mouse_focus || !window->keyboard_focus || window->hidden || window->minimized)
 		return false;
-	return AppDraw_InsideWindow(state->mouse_x, state->mouse_y, state->width, state->height);
+	return AppDraw_InsideWindow(window->mouse_x, window->mouse_y, window->width, window->height);
 }
 
 static void AppDraw_CaptureEnd(ecs_world_t *world, void *ctx)
@@ -377,9 +373,8 @@ float *screen_x, float *screen_y, void *ctx)
 	ecs_entity_t               window = focus ? focus->mouse_window : 0;
 	if (window && !ecs_is_alive(world, window))
 		window = 0;
-	const EgWindowsWindowState *window_state  = window ? ecs_get(world, window, EgWindowsWindowState) : NULL;
-	const EgWindowsWindow      *window_object = window ? ecs_get(world, window, EgWindowsWindow) : NULL;
-	if (!window_object || !window_state || window_state->object != window_object->object ||
+	const EgWindowsWindow *window_state = window ? ecs_get(world, window, EgWindowsWindow) : NULL;
+	if (!window_state ||
 	    !window_state->mouse_focus || window_state->hidden || window_state->minimized) {
 		window_state = NULL;
 	}
@@ -434,8 +429,7 @@ float *screen_x, float *screen_y, void *ctx)
 	if (!state)
 		return true;
 	const EgWindowsOpenGLContext *gl_context = ecs_get(world, window, EgWindowsOpenGLContext);
-	if (!window_object || !window_object->object || window_state->object != window_object->object ||
-	    !gl_context || !gl_context->gl_context) {
+	if (!window_state->object || !gl_context || !gl_context->gl_context) {
 		state->cached = false;
 		egg_pick_async_invalidate(state->async);
 		return true;

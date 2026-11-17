@@ -1,4 +1,5 @@
 #include <bake_test.h>
+#include <string.h>
 #include <SDL3/SDL.h>
 #include <SDL3/SDL_opengl.h>
 #include <EgWindowsSdl.h>
@@ -13,6 +14,8 @@ static int           generic_frames, generic_begins, generic_ends;
 static int           renderer_cleanups;
 static SDL_GLContext expected_cleanup_context;
 static bool          cleanup_failure_after_destroy;
+
+static void refresh_window_state(void);
 
 static bool supports_async(void)
 {
@@ -216,7 +219,7 @@ void Snapshot_test_on_demand(void)
 		SDL_Delay(10);
 	}
 	test_assert(SDL_GetMouseFocus() == window);
-	EgWindowsSdlUpdateState(world);
+	refresh_window_state();
 	complete_pick(e_window, renderer);
 	state               = ecs_get_mut(world, e_window, AppDrawPickState);
 	ecs_entity_t result = 0;
@@ -262,7 +265,7 @@ void Snapshot_test_on_demand(void)
 
 	SDL_WarpMouseInWindow(window, 2, 32);
 	SDL_PumpEvents();
-	EgWindowsSdlUpdateState(world);
+	refresh_window_state();
 	test_assert(AppDraw_PickMouse(world, &result, &x, &y, NULL));
 	test_assert(result == entity);
 	complete_pick(e_window, renderer);
@@ -270,7 +273,7 @@ void Snapshot_test_on_demand(void)
 	test_assert(result == 0);
 	SDL_WarpMouseInWindow(window, 32, 32);
 	SDL_PumpEvents();
-	EgWindowsSdlUpdateState(world);
+	refresh_window_state();
 	complete_pick(e_window, renderer);
 	ecs_singleton_set(world, EgButtonsState, {.mouse = {[1] = EG_BUTTONS_STATE_HELD}});
 	test_assert(AppDraw_PickMouse(world, &result, &x, &y, NULL));
@@ -311,7 +314,7 @@ void Snapshot_test_on_demand(void)
 	}
 	test_int(width, 96);
 	test_int(height, 96);
-	EgWindowsSdlUpdateState(world);
+	refresh_window_state();
 	test_assert(AppDraw_PickMouse(world, &result, &x, &y, NULL));
 	test_assert(result == 0);
 	test_assert(!state->cached);
@@ -512,7 +515,53 @@ static void focus_window(SDL_Window *window)
 		SDL_Delay(10);
 	}
 	test_assert(SDL_GetMouseFocus() == window);
-	EgWindowsSdlUpdateState(world);
+	refresh_window_state();
+}
+
+static void refresh_window_state(void)
+{
+	ecs_entity_t events_update = 0;
+	ecs_entity_t window_update = 0;
+	ecs_iter_t   systems       = ecs_each_id(world, EcsSystem);
+	ecs_iter_t  *iter          = &systems;
+	while (ecs_each_next(iter)) {
+		for (int32_t i = 0; i < iter->count; ++i) {
+			const char *name = ecs_get_name(world, iter->entities[i]);
+			if (name && !strcmp(name, "System_Events_Update"))
+				events_update = iter->entities[i];
+			else if (name && !strcmp(name, "System_EgWindowsWindow_UpdateState"))
+				window_update = iter->entities[i];
+		}
+		if (events_update && window_update) {
+			ecs_iter_fini(iter);
+			break;
+		}
+	}
+	test_assert(events_update != 0 && window_update != 0);
+	ecs_run(world, events_update, 0, NULL);
+	ecs_run(world, window_update, 0, NULL);
+}
+
+void Snapshot_test_window_state_system(void)
+{
+	test_assert(SDL_Init(SDL_INIT_VIDEO));
+	SDL_Window *window = SDL_CreateWindow("window state system test", 64, 48, 0);
+	test_assert(window != NULL);
+	ecs_entity_t e_window = ecs_new(world);
+	ecs_set(world, e_window, EgWindowsWindow, {.object = window});
+	refresh_window_state();
+	const EgWindowsWindow *state = ecs_get(world, e_window, EgWindowsWindow);
+	test_assert(state && state->valid);
+	test_assert(ecs_progress(world, 0));
+	state = ecs_get(world, e_window, EgWindowsWindow);
+	test_assert(state && state->valid);
+	test_int(state->width, 64);
+	test_int(state->height, 48);
+	test_assert(state->pixel_width > 0 && state->pixel_height > 0);
+	test_assert(ecs_singleton_get(world, EgWindowsInputState) != NULL);
+	ecs_delete(world, e_window);
+	SDL_DestroyWindow(window);
+	SDL_Quit();
 }
 
 void Snapshot_test_drag_window_bounds(void)
@@ -527,8 +576,8 @@ void Snapshot_test_drag_window_bounds(void)
 	SDL_WarpMouseInWindow(window, 24, 28);
 	SDL_PumpEvents();
 	test_assert(ecs_progress(world, 0));
-	const EgWindowsInputState  *focus        = ecs_singleton_get(world, EgWindowsInputState);
-	const EgWindowsWindowState *window_state = ecs_get(world, e_window, EgWindowsWindowState);
+	const EgWindowsInputState *focus        = ecs_singleton_get(world, EgWindowsInputState);
+	const EgWindowsWindow     *window_state = ecs_get(world, e_window, EgWindowsWindow);
 	test_assert(focus && focus->mouse_window == e_window && focus->mouse_focus);
 	test_assert(window_state && window_state->valid && window_state->mouse_focus);
 	test_flt(window_state->mouse_x, 24);
@@ -562,8 +611,8 @@ void Snapshot_test_drag_window_bounds(void)
 	test_assert(!AppDraw_InsideWindow(64, 32, 64, 64));
 	test_assert(!AppDraw_InsideWindow(32, -1, 64, 64));
 	test_assert(!AppDraw_InsideWindow(32, 64, 64, 64));
-	EgWindowsWindowState *outside = ecs_get_mut(world, e_window, EgWindowsWindowState);
-	outside->mouse_x              = 64;
+	EgWindowsWindow *outside = ecs_get_mut(world, e_window, EgWindowsWindow);
+	outside->mouse_x         = 64;
 	test_assert(!AppDraw_CaptureValid(world, NULL));
 	outside->mouse_x = 32;
 	test_assert(AppDraw_CaptureValid(world, NULL));
@@ -572,7 +621,7 @@ void Snapshot_test_drag_window_bounds(void)
 		SDL_PumpEvents();
 		SDL_Delay(10);
 	}
-	EgWindowsSdlUpdateState(world);
+	refresh_window_state();
 	test_assert(!AppDraw_CaptureValid(world, NULL));
 	AppDraw_CaptureEnd(world, NULL);
 	test_assert(!AppDraw_CaptureValid(world, NULL));
