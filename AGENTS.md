@@ -1,3 +1,35 @@
+# AGENTS.md — First-Principles Engineering & Ground-Up Design
+
+## Core Directive
+Do NOT default to minimal, surface-level patches or wrappers around flawed abstractions. When an API, schema, spec, or architecture is broken, inconsistent, or fighting the actual problem, fix the root cause from the ground up.
+
+## 1. First-Principles Analysis (Before Writing Code)
+Before proposing any edit, state your reasoning explicitly in this order:
+1. **The Fundamental Problem:** What is the system actually trying to achieve at the data, state, and invariant level?
+2. **Audit the Existing Spec & API:** Are the current types, endpoints, contracts, or specs broken, misleading, or overly coupled? Do NOT assume existing interfaces are sacred.
+3. **Challenge Assumptions:** List any legacy conventions or workarounds in the current code that exist only to patch an earlier design flaw.
+4. **Delete Before Adding:** Identify dead abstractions, redundant adapters, or flawed specs that should be removed or replaced rather than wrapped.
+
+## 2. Anti-Workaround Rules (Strictly Enforced)
+- **Fix the cause of a bug. Do not add a workaround that hides the symptom.**
+  - Do NOT add defensive null checks, silent fallbacks, `try/catch` swallowers, or special-case `if` branches to mask upstream bugs or broken contracts.
+  - Trace every bug back to the invalid state, broken spec, or flawed API that produced it, and fix it there.
+- **Never paper over a bad API:** Do not write adapter layers, translation shims, or defensive hacks to accommodate a broken internal API or spec. Fix the API and spec directly.
+- **No "minimal diff" bias on broken foundations:** Prefer a clean, breaking internal refactor over a small patch that preserves technical debt.
+- **Single Source of Truth:** If code and specification (OpenAPI, JSON Schema, types, docs) disagree, determine which represents the true domain requirement, fix the spec first, and align all callers and tests to it.
+
+## 3. Execution Workflow
+1. **Prove the Root Cause:** For any bug or design flaw, state in one sentence *why* the invalid state was possible in the first place and how your change makes it impossible.
+2. **Propose the Ground-Up Design:** Briefly outline the clean target architecture/spec and list every file/caller that will be updated.
+3. **Update the Spec & Types First:** Modify the core schemas, interfaces, and API contracts before touching implementation details.
+4. **Refactor Callers & Tests:** Update all consumers cleanly—do not leave deprecated shims or backward-compatibility wrappers unless explicitly requested for an external public API.
+5. **Verify:** Run the full test suite, linter, and typechecker to prove the new design holds end-to-end.
+
+## 4. When to Ask Before Breaking
+- **Proceed autonomously** on internal modules, private APIs, internal specs, and unshipped features.
+- **Ask for confirmation ONLY** before changing public/external versioned APIs, production database schemas with live data, or billing/auth boundaries.
+
+
 # AI Build Notes
 
 ## Compile
@@ -82,4 +114,5 @@ curl -s -X PUT -G localhost:27750/component/<path> \
 - Other endpoints: `GET /component/<path>?component=<name>`, `GET /world`, `GET /components`. `GET /` lists examples.
 - Typical use: compare a source value with the values derived from it, to find where a chain of updates stops.
 - Script templates only react to component changes when the script is loaded as managed (`ecs_script(world, {.filename = ...})`), and C code that writes a component field directly must call `ecs_modified_id` for them to see the change.
+
 

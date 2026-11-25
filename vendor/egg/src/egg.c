@@ -34,21 +34,38 @@ typedef struct egg_render_t {
 	int       initialized;
 } egg_render_t;
 
+/** Number of GPU readback slots, allowing multiple pick frames to be in flight. */
 enum { EGG_PICK_SLOTS = 3 };
+
+/** GPU and CPU state retained until one asynchronous pick has completed. */
 typedef struct {
+	/** Shader-storage buffer containing the GPU-written pick result. */
 	GLuint    buffer;
+	/** Signals when the GPU has finished writing the result, so the CPU can read it safely. */
 	GLsync    fence;
+	/** Maps each rendered primitive's pick order back to its ECS entity. */
 	uint64_t *entities;
-	size_t    count, capacity;
+	/** Number of valid entity mappings; also bounds-checks GPU results. */
+	size_t    count;
+	/** Allocated entry count for the entity map, so it can grow without reallocating every draw. */
+	size_t    capacity;
+	/** Frame associated with this result, used to prefer the newest completed pick. */
 	uint64_t  frame;
+	/** Whether the frame was actually displayed; hidden frames must not yield picks. */
 	bool      displayed;
+	/** Whether this result became stale while in flight and must be discarded. */
 	bool      invalidated;
 } egg_pick_slot_t;
 
+/** State shared by asynchronous picking calls. */
 struct egg_pick_async_t {
+	/** Reusable in-flight slots, avoiding reuse of a buffer before its GPU work completes. */
 	egg_pick_slot_t slots[EGG_PICK_SLOTS];
+	/** Slot currently recording/completing a pick, or -1 when none is active. */
 	int             active;
+	/** Pixel coordinate tested by the picking shader for the active pick. */
 	int             x, y;
+	/** Next primitive order, keeping GPU results aligned with each slot's entity map. */
 	uint32_t        order;
 };
 
