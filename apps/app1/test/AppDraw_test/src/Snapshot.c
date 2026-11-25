@@ -12,8 +12,67 @@ static EgDraws_List *list;
 static const float   identity[16] = {1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
 static int           generic_frames, generic_begins, generic_ends;
 static int           renderer_cleanups;
+static int           unrelated_runs;
+static ecs_entity_t  frame_windows[2];
+static int           frame_results[2], displayed_results[2];
+static bool          invalidate_snapshot;
+static int           failed_executor_runs, failed_executor_completions;
 static SDL_GLContext expected_cleanup_context;
 static bool          cleanup_failure_after_destroy;
+
+static void unrelated_system(ecs_iter_t *it)
+{
+	(void)it;
+	++unrelated_runs;
+}
+
+static void change_color_after_prepare(ecs_iter_t *it)
+{
+	EgDraws_Solid *solids = ecs_field(it, EgDraws_Solid, 0);
+	for (int32_t i = 0; i < it->count; ++i)
+		solids[i].color = 0xffff0000;
+}
+
+static void observed_frame_begin(ecs_world_t *w, ecs_entity_t window)
+{
+	const EgWindowsWindow *native = ecs_get(w, window, EgWindowsWindow);
+	const EgWindowsOpenGLContext *gl = ecs_get(w, window, EgWindowsOpenGLContext);
+	test_assert(native && gl);
+	test_assert(SDL_GL_GetCurrentWindow() == native->object);
+	test_assert(SDL_GL_GetCurrentContext() == gl->gl_context);
+	if (invalidate_snapshot && window == frame_windows[0]) {
+		EgWindowsWindow *mutable_native = ecs_get_mut(w, window, EgWindowsWindow);
+		++mutable_native->pixel_width;
+	}
+}
+
+static void observed_frame_complete(ecs_world_t *w, ecs_entity_t window, bool displayed)
+{
+	(void)w;
+	for (int i = 0; i < 2; ++i) {
+		if (window == frame_windows[i]) {
+			++frame_results[i];
+			if (displayed)
+				++displayed_results[i];
+		}
+	}
+}
+
+static bool invalid_context_execute(ecs_world_t *w, ecs_entity_t window)
+{
+	(void)w;
+	(void)window;
+	++failed_executor_runs;
+	return true;
+}
+
+static void invalid_context_complete(ecs_world_t *w, ecs_entity_t window, bool displayed)
+{
+	(void)w;
+	(void)window;
+	test_assert(!displayed);
+	++failed_executor_completions;
+}
 
 static void refresh_window_state(void);
 
@@ -740,13 +799,8 @@ void Snapshot_test_frame_callbacks(void)
 	test_assert(SDL_GL_GetCurrentContext() == NULL);
 	test_assert(SDL_GL_MakeCurrent(window, context));
 	ecs_entity_t e_window = ecs_new(world);
-	ecs_query_t *systems  = ecs_query(world, {
-	                                         .terms    = {{.id = EcsSystem}},
-	                                         .group_by = EcsChildOf,
-                                            });
-	test_assert(systems != NULL);
 	ecs_set(world, e_window, EgWindowsWindow, {.object = window});
-	ecs_set(world, e_window, EgWindowsOpenGLContext, {.gl_context = context, .inner_systems = systems});
+	ecs_set(world, e_window, EgWindowsOpenGLContext, {.gl_context = context});
 	ecs_set(world, e_window, EgShapesRectangle, {.w = 64, .h = 64});
 	ecs_set(world, e_window, EgWindowsFrameCallback,
 	{.begin = generic_frame_begin, .end = generic_frame_end, .complete = generic_frame_complete});
@@ -756,7 +810,6 @@ void Snapshot_test_frame_callbacks(void)
 	test_int(generic_ends, 1);
 	test_int(generic_frames, 1);
 	ecs_remove(world, e_window, EgWindowsOpenGLContext);
-	ecs_query_fini(systems);
 	SDL_GL_DestroyContext(context);
 	SDL_DestroyWindow(window);
 	SDL_Quit();
@@ -774,50 +827,41 @@ void Snapshot_test_render_cycle_picking(void)
 	test_assert(context != NULL);
 	ECS_IMPORT(world, EgCameras);
 	ecs_entity_t window  = ecs_new(world);
-	ecs_query_t *systems = ecs_query(world, {.terms = {{.id = EcsSystem}}, .group_by = EcsChildOf});
-	test_assert(systems != NULL);
 	ecs_set(world, window, EgWindowsWindow, {.object = native});
 	ecs_set(world, window, EgWindowsOpenGLContext,
-	{.gl_context = context, .inner_systems = systems, .cleanup = EgWindowsSdlGlCleanup});
+	{.gl_context = context, .cleanup = EgWindowsSdlGlCleanup});
+	ecs_set(world, window, AppFrameClear, {.b = 1, .a = 1});
 	ecs_set(world, window, EgShapesRectangle, {.w = 64, .h = 64});
 	ecs_add_id(world, window, AppDrawGpuPicking);
 	ecs_set(world, window, AppDrawPickState, {.frame = -1});
-	ecs_set(world, window, EgWindowsFrameCallback,
-	{.begin = AppDrawPickFrame_begin, .end = AppDrawPickFrame_end, .complete = AppDrawPickFrame_complete});
 	ecs_entity_t camera = ecs_new(world);
 	ecs_set(world, camera, EgCamerasState,
 	{.pixel_scale = 1, .vp = {{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}}});
 	ecs_entity_t draw = ecs_new(world);
 	ecs_add_pair(world, draw, EcsChildOf, window);
-	ecs_add_pair(world, draw, EcsDependsOn, camera);
-	ecs_add(world, draw, EgDraws_List);
-	EgDraws_List *draw_list = ecs_get_mut(world, draw, EgDraws_List);
-	test_assert(draw_list != NULL);
-	ecs_vec_t      *layer = EgDraws_List_GetLayer(draw_list, 0);
-	EgDraws_Vertex *v     = ecs_vec_grow_t(NULL, layer, EgDraws_Vertex, 3);
-	test_assert(v != NULL);
-	for (int i = 0; i < 3; ++i) {
-		v[i] = (EgDraws_Vertex){.rgba = {255, 255, 255, 255}, .pick_id = (uint32_t)entity, .uv = {0.5f / EG_DRAWS_ATLAS_WIDTH, 0.5f / EG_DRAWS_ATLAS_HEIGHT}};
-	}
-	v[0].position[0] = -1;
-	v[0].position[1] = -1;
-	v[1].position[0] = 1;
-	v[1].position[1] = -1;
-	v[2].position[0] = 0;
-	v[2].position[1] = 1;
-	ecs_set(world, draw, AppDrawContext, {0});
-	ecs_entity_t system = ecs_entity(world, {.name = "RenderCyclePickingTest", .parent = window});
-	ecs_system_init(world, &(ecs_system_desc_t){
-	                       .entity = system, .callback = Test_Render, .query.terms = {{.id = ecs_childof(window)}, {.id = ecs_id(AppDrawContext), .src.id = EcsSelf, .inout = EcsIn}, {.id = ecs_id(EgDraws_List), .src.id = EcsSelf, .inout = EcsInOut}, {.id = ecs_id(EgCamerasState), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn}}});
+	ecs_set(world, draw, AppFramePass, {.order = 10});
+	ecs_add_pair(world, draw, AppFrameCamera, camera);
+	ecs_entity_t source = ecs_new(world);
+	ecs_add(world, source, EgDraws_List);
+	ecs_add_pair(world, source, EgDraws_Camera, camera);
+	ecs_add_pair(world, draw, AppFrameSource, source);
+	ecs_add_pair(world, entity, EcsChildOf, source);
+	ecs_set(world, entity, EgDraws_Solid, {.color = 0xffffffff});
+	ecs_set(world, entity, EgShapesRectangle, {.w = 2, .h = 2});
+	ecs_set(world, entity, WorldTransform3, {.matrix = M3_IDENTITY});
 	focus_window(native);
 	test_assert(ecs_progress(world, 0));
+	const AppDrawFrame *compiled = ecs_get(world, window, AppDrawFrame);
+	test_assert(compiled != NULL);
+	test_int(compiled->result, AppFrameReady);
+	test_int(compiled->plan.instruction_count, 3);
+	test_assert(ecs_has(world, window, EgWindowsFrameExecutor));
 	const AppDrawContext *drawn = ecs_get(world, draw, AppDrawContext);
 	test_assert(drawn && drawn->render);
 	const AppDrawPickState *state = ecs_get(world, window, AppDrawPickState);
 	if (!supports_async()) {
 		test_assert(state && state->unavailable && !state->cached);
 		ecs_delete(world, window);
-		ecs_query_fini(systems);
 		SDL_GL_DestroyContext(context);
 		SDL_DestroyWindow(native);
 		SDL_Quit();
@@ -833,7 +877,7 @@ void Snapshot_test_render_cycle_picking(void)
 	float        x = 0, y = 0;
 	test_assert(AppDraw_PickMouse(world, &result, &x, &y, NULL));
 	test_assert(result == entity);
-	ecs_remove(world, draw, AppDrawContext);
+	ecs_remove(world, entity, EgDraws_Solid);
 	for (int i = 0; i < 1000 && state->picked; ++i) {
 		SDL_Delay(1);
 		test_assert(ecs_progress(world, 0));
@@ -841,8 +885,262 @@ void Snapshot_test_render_cycle_picking(void)
 	}
 	test_assert(state->cached && !state->picked);
 	ecs_delete(world, window);
-	ecs_query_fini(systems);
 	SDL_GL_DestroyContext(context);
+	SDL_DestroyWindow(native);
+	SDL_Quit();
+}
+
+void Snapshot_test_frame_plan_two_windows(void)
+{
+	ecs_entity_t windows[2], passes[2][2];
+	SDL_WindowID ids[2];
+	for (int i = 0; i < 2; ++i) {
+		windows[i] = ecs_new(world);
+		frame_windows[i] = windows[i];
+		frame_results[i] = displayed_results[i] = 0;
+		ecs_set(world, windows[i], EgWindowsWindowCreateInfo, {.enable_opengl = true});
+		ecs_set(world, windows[i], EgWindowsOpenGLContextCreate, {0});
+		ecs_set(world, windows[i], EgShapesRectangle, {.w = 64, .h = 64});
+		ecs_set(world, windows[i], AppFrameClear, {.b = 1, .a = 1});
+		ecs_set(world, windows[i], EgWindowsFrameCallback,
+			{.begin = observed_frame_begin, .complete = observed_frame_complete});
+		for (int j = 0; j < 2; ++j) {
+			ecs_entity_t camera = ecs_new(world);
+			ecs_set(world, camera, EgCamerasState,
+				{.pixel_scale = 1, .vp = {{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}}});
+			passes[i][j] = ecs_new_w_pair(world, EcsChildOf, windows[i]);
+			ecs_set(world, passes[i][j], AppFramePass, {.order = j * 10});
+			ecs_add_pair(world, passes[i][j], AppFrameCamera, camera);
+			ecs_entity_t root = ecs_new(world);
+			ecs_add(world, root, EgDraws_List);
+			ecs_add_pair(world, root, EgDraws_Camera, camera);
+			ecs_add_pair(world, passes[i][j], AppFrameSource, root);
+			ecs_entity_t shape = ecs_new_w_pair(world, EcsChildOf, root);
+			ecs_set(world, shape, EgDraws_Solid, {.color = 0xffffffff});
+			ecs_set(world, shape, EgShapesRectangle, {.w = 1, .h = 1});
+			ecs_set(world, shape, WorldTransform3, {.matrix = M3_IDENTITY});
+		}
+	}
+	ecs_entity_t unrelated = ecs_entity(world, {.name = "unrelated_window_child", .parent = windows[0]});
+	ecs_system(world, {.entity = unrelated, .callback = unrelated_system,
+		.query.terms = {{.id = ecs_id(EgWindowsWindow)}}});
+	unrelated_runs = 0;
+	for (int i = 0; i < 2; ++i)
+		test_assert(ecs_progress(world, 0));
+	test_int(unrelated_runs, 0);
+	for (int i = 0; i < 2; ++i) {
+		test_int(frame_results[i], 2);
+		test_int(displayed_results[i], 2);
+		const EgWindowsNativeOwner *owner = ecs_get(world, windows[i], EgWindowsNativeOwner);
+		test_assert(owner && owner->window && owner->context && owner->release);
+		ids[i] = SDL_GetWindowID(owner->window);
+		const AppDrawFrame *frame = ecs_get(world, windows[i], AppDrawFrame);
+		test_assert(frame && frame->result == AppFrameReady);
+		test_int(frame->plan.instruction_count, 4);
+		test_assert(frame->plan.instructions[2].args.draw.pass == passes[i][0]);
+		test_assert(frame->plan.instructions[3].args.draw.pass == passes[i][1]);
+		for (int j = 0; j < 2; ++j) {
+			const AppDrawContext *draw = ecs_get(world, passes[i][j], AppDrawContext);
+			test_assert(draw && draw->render);
+			ecs_vec_t *layer = EgDraws_List_GetLayer(frame->plan.layers[j], 0);
+			test_int(ecs_vec_count(layer), 6);
+		}
+	}
+	ecs_set(world, passes[0][1], AppFramePass, {.order = 0});
+	test_assert(ecs_progress(world, 0));
+	test_int(frame_results[0], 3);
+	test_int(displayed_results[0], 2);
+	test_int(frame_results[1], 3);
+	test_int(displayed_results[1], 3);
+	const AppDrawFrame *invalid = ecs_get(world, windows[0], AppDrawFrame);
+	test_assert(invalid && invalid->result == AppFrameInvalid && !invalid->plan.instructions);
+	ecs_set(world, passes[0][1], AppFramePass, {.order = 10});
+	invalidate_snapshot = true;
+	test_assert(ecs_progress(world, 0));
+	invalidate_snapshot = false;
+	test_int(frame_results[0], 4);
+	test_int(displayed_results[0], 2);
+	test_int(frame_results[1], 4);
+	test_int(displayed_results[1], 4);
+	ecs_remove(world, windows[0], EgWindowsOpenGLContext);
+	test_assert(SDL_GetWindowFromID(ids[0]) == NULL);
+	ecs_delete(world, windows[0]);
+	ecs_delete(world, windows[1]);
+	test_assert(SDL_GetWindowFromID(ids[1]) == NULL);
+}
+
+void Snapshot_test_native_world_fini(void)
+{
+	ecs_world_t *w = ecs_init();
+	ECS_IMPORT(w, EgWindowsSdl);
+	ECS_IMPORT(w, EgWindowsSdlGl);
+	ECS_IMPORT(w, AppDraw);
+	ecs_entity_t window = ecs_new(w);
+	ecs_set(w, window, EgWindowsWindowCreateInfo, {.enable_opengl = true});
+	ecs_set(w, window, EgWindowsOpenGLContextCreate, {0});
+	ecs_set(w, window, EgShapesRectangle, {.w = 64, .h = 64});
+	ecs_set(w, window, AppFrameClear, {.b = 1, .a = 1});
+	ecs_entity_t camera = ecs_new(w);
+	ecs_set(w, camera, EgCamerasState, {
+		.pixel_scale = 1, .vp = {{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}}});
+	ecs_entity_t pass = ecs_new_w_pair(w, EcsChildOf, window);
+	ecs_set(w, pass, AppFramePass, {.order = 1});
+	ecs_add_pair(w, pass, AppFrameCamera, camera);
+	ecs_entity_t root = ecs_new(w);
+	ecs_add(w, root, EgDraws_List);
+	ecs_add_pair(w, root, EgDraws_Camera, camera);
+	ecs_add_pair(w, pass, AppFrameSource, root);
+	test_assert(ecs_progress(w, 0));
+	const EgWindowsNativeOwner *owner = ecs_get(w, window, EgWindowsNativeOwner);
+	test_assert(owner && owner->window && owner->context);
+	SDL_WindowID id = SDL_GetWindowID(owner->window);
+	const AppDrawContext *draw = ecs_get(w, pass, AppDrawContext);
+	test_assert(draw && draw->render);
+	ecs_fini(w);
+	test_assert(SDL_GetWindowFromID(id) == NULL);
+}
+
+void Snapshot_test_frame_snapshot_order(void)
+{
+	ecs_entity_t window = ecs_new(world);
+	ecs_set(world, window, EgWindowsWindowCreateInfo, {.enable_opengl = true});
+	ecs_set(world, window, EgWindowsOpenGLContextCreate, {0});
+	ecs_set(world, window, EgShapesRectangle, {.w = 64, .h = 64});
+	ecs_set(world, window, AppFrameClear, {.b = 1, .a = 1});
+	ecs_entity_t camera = ecs_new(world);
+	ecs_set(world, camera, EgCamerasState, {
+		.pixel_scale = 1, .vp = {{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}}});
+	ecs_entity_t pass = ecs_new_w_pair(world, EcsChildOf, window);
+	ecs_set(world, pass, AppFramePass, {.order = 1});
+	ecs_add_pair(world, pass, AppFrameCamera, camera);
+	ecs_entity_t root = ecs_new(world);
+	ecs_add(world, root, EgDraws_List);
+	ecs_add_pair(world, root, EgDraws_Camera, camera);
+	ecs_add_pair(world, pass, AppFrameSource, root);
+	ecs_entity_t shape = ecs_new_w_pair(world, EcsChildOf, root);
+	ecs_set(world, shape, EgDraws_Solid, {.color = 0xffffffff});
+	ecs_set(world, shape, EgShapesRectangle, {.w = 1, .h = 1});
+	ecs_set(world, shape, WorldTransform3, {.matrix = M3_IDENTITY});
+	ecs_system(world, {.entity = ecs_entity(world, {.name = "ChangeColorAfterPrepare"}),
+		.phase = EcsPreStore, .callback = change_color_after_prepare,
+		.query.terms = {{.id = ecs_id(EgDraws_Solid), .inout = EcsInOut}}});
+	test_assert(ecs_progress(world, 0));
+	const AppDrawFrame *frame = ecs_get(world, window, AppDrawFrame);
+	test_assert(frame && frame->result == AppFrameReady);
+	ecs_vec_t *layer = EgDraws_List_GetLayer(frame->plan.layers[0], 0);
+	const EgDraws_Vertex *vertices = ecs_vec_first_t(layer, EgDraws_Vertex);
+	test_int(ecs_vec_count(layer), 6);
+	test_int(vertices[0].rgba[1], 255);
+	test_assert(ecs_progress(world, 0));
+	frame = ecs_get(world, window, AppDrawFrame);
+	layer = EgDraws_List_GetLayer(frame->plan.layers[0], 0);
+	vertices = ecs_vec_first_t(layer, EgDraws_Vertex);
+	test_int(vertices[0].rgba[0], 255);
+	test_int(vertices[0].rgba[1], 0);
+	test_int(vertices[0].rgba[2], 0);
+	ecs_delete(world, window);
+}
+
+void Snapshot_test_frame_plan_pick_hardware(void)
+{
+	ecs_entity_t window = ecs_new(world);
+	ecs_set(world, window, EgWindowsWindowCreateInfo, {.enable_opengl = true});
+	ecs_set(world, window, EgWindowsOpenGLContextCreate, {0});
+	ecs_set(world, window, EgShapesRectangle, {.w = 64, .h = 64});
+	ecs_set(world, window, AppFrameClear, {.b = 1, .a = 1});
+	ecs_add_id(world, window, AppDrawGpuPicking);
+	ecs_entity_t camera = ecs_new(world);
+	ecs_set(world, camera, EgCamerasState, {
+		.pixel_scale = 1, .vp = {{1, 0, 0, 0}, {0, 1, 0, 0}, {0, 0, 1, 0}, {0, 0, 0, 1}}});
+	ecs_entity_t top = 0;
+	for (int i = 0; i < 2; ++i) {
+		ecs_entity_t pass = ecs_new_w_pair(world, EcsChildOf, window);
+		ecs_set(world, pass, AppFramePass, {.order = i});
+		ecs_add_pair(world, pass, AppFrameCamera, camera);
+		ecs_entity_t root = ecs_new(world);
+		ecs_add(world, root, EgDraws_List);
+		ecs_add_pair(world, root, EgDraws_Camera, camera);
+		ecs_add_pair(world, pass, AppFrameSource, root);
+		ecs_entity_t shape = ecs_new_w_pair(world, EcsChildOf, root);
+		ecs_add_id(world, shape, EgUiScriptEventsTarget);
+		ecs_set(world, shape, EgDraws_Solid, {.color = 0xffffffff});
+		ecs_set(world, shape, EgShapesRectangle, {.w = 2, .h = 2});
+		ecs_set(world, shape, WorldTransform3, {.matrix = M3_IDENTITY});
+		top = shape;
+	}
+	test_assert(ecs_progress(world, 0));
+	EgWindowsWindow *native = ecs_get_mut(world, window, EgWindowsWindow);
+	const EgWindowsOpenGLContext *gl = ecs_get(world, window, EgWindowsOpenGLContext);
+	test_assert(native && gl && SDL_GL_MakeCurrent(native->object, gl->gl_context));
+	if (!supports_async()) {
+		report_async_skip();
+		ecs_delete(world, window);
+		return;
+	}
+	native->valid = true;
+	native->hidden = false;
+	native->minimized = false;
+	native->mouse_focus = true;
+	native->mouse_x = native->width / 2.0f;
+	native->mouse_y = native->height / 2.0f;
+	EgWindowsInputState *input = ecs_singleton_get_mut(world, EgWindowsInputState);
+	input->mouse_window = window;
+	input->mouse_focus = true;
+	const AppDrawFrame *frame = ecs_get(world, window, AppDrawFrame);
+	test_assert(frame && frame->result == AppFrameReady);
+	AppDrawPickState *state = ecs_get_mut(world, window, AppDrawPickState);
+	test_assert(state != NULL);
+	for (int i = 0; i < 1000 && !state->cached; ++i) {
+		test_assert(AppDraw_ExecuteFrame(world, window));
+		bool displayed = SDL_GL_SwapWindow(native->object);
+		test_assert(displayed);
+		AppDrawPickFrame_complete(world, window, displayed);
+		SDL_Delay(1);
+	}
+	test_assert(state->cached);
+	test_assert(state->picked == top);
+	ecs_delete(world, window);
+}
+
+void Snapshot_test_external_window_ownership(void)
+{
+	test_assert(SDL_Init(SDL_INIT_VIDEO));
+	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 4));
+	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 3));
+	test_assert(SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE));
+	SDL_Window *native = SDL_CreateWindow("external native ownership", 64, 64, SDL_WINDOW_OPENGL);
+	test_assert(native != NULL);
+	SDL_WindowID id = SDL_GetWindowID(native);
+	ecs_entity_t window = ecs_new(world);
+	ecs_set(world, window, EgWindowsWindow, {.object = native});
+	ecs_set(world, window, EgWindowsOpenGLContextCreate, {0});
+	ecs_set(world, window, AppFrameClear, {.b = 1, .a = 1});
+	test_assert(ecs_progress(world, 0));
+	const EgWindowsNativeOwner *owner = ecs_get(world, window, EgWindowsNativeOwner);
+	test_assert(owner && owner->window == native && owner->context && !owner->owns_window);
+	ecs_remove(world, window, EgWindowsOpenGLContext);
+	test_assert(SDL_GetWindowFromID(id) == native);
+	ecs_delete(world, window);
+	test_assert(SDL_GetWindowFromID(id) == native);
+	SDL_DestroyWindow(native);
+	SDL_Quit();
+}
+
+void Snapshot_test_missing_context_outcome(void)
+{
+	test_assert(SDL_Init(SDL_INIT_VIDEO));
+	SDL_Window *native = SDL_CreateWindow("missing GL context", 64, 64, SDL_WINDOW_OPENGL);
+	test_assert(native != NULL);
+	ecs_entity_t window = ecs_new(world);
+	ecs_set(world, window, EgWindowsWindow, {.object = native});
+	ecs_set(world, window, EgWindowsOpenGLContext, {.gl_context = NULL});
+	ecs_set(world, window, EgWindowsFrameExecutor,
+		{.execute = invalid_context_execute, .complete = invalid_context_complete});
+	failed_executor_runs = failed_executor_completions = 0;
+	test_assert(ecs_progress(world, 0));
+	test_int(failed_executor_runs, 0);
+	test_int(failed_executor_completions, 1);
+	ecs_delete(world, window);
 	SDL_DestroyWindow(native);
 	SDL_Quit();
 }

@@ -1,4 +1,5 @@
 #include "AppDraw.h"
+#include "AppFramePlan.h"
 #include <EgWindows.h>
 #include <EgCameras.h>
 #include <EgSpatials.h>
@@ -9,9 +10,10 @@
 #include <EgButtons.h>
 #include <ecsx.h>
 #include <egg.h>
+#include <SDL3/SDL_opengl.h>
+#include <string.h>
 
 ECS_COMPONENT_DECLARE(AppDrawContext);
-ECS_COMPONENT_DECLARE(AppDrawContextCreate);
 ECS_TAG_DECLARE(AppDrawGpuPicking);
 
 typedef struct {
@@ -35,6 +37,38 @@ typedef struct {
 
 ECS_COMPONENT_DECLARE(AppDrawPickInput);
 
+typedef struct {
+	AppFramePlan plan;
+	AppFrameResult result;
+} AppDrawFrame;
+
+ECS_COMPONENT_DECLARE(AppDrawFrame);
+
+static void AppDrawFrame_ctor(void *ptr, int32_t count, const ecs_type_info_t *ti)
+{
+	(void)ti;
+	memset(ptr, 0, (size_t)count * sizeof(AppDrawFrame));
+}
+
+static void AppDrawFrame_dtor(void *ptr, int32_t count, const ecs_type_info_t *ti)
+{
+	(void)ti;
+	AppDrawFrame *frames = ptr;
+	for (int32_t i = 0; i < count; ++i)
+		AppFramePlanFini(&frames[i].plan);
+}
+
+static void AppDrawFrame_move(void *dst, void *src, int32_t count, const ecs_type_info_t *ti)
+{
+	(void)ti;
+	AppDrawFrame *to = dst, *from = src;
+	for (int32_t i = 0; i < count; ++i) {
+		AppFramePlanFini(&to[i].plan);
+		to[i] = from[i];
+		from[i] = (AppDrawFrame){0};
+	}
+}
+
 static void AppDrawRenderer_destroy(void *resource)
 {
 	AppDrawContext *draw = resource;
@@ -42,18 +76,20 @@ static void AppDrawRenderer_destroy(void *resource)
 	draw->render = NULL;
 }
 
-static void AppDrawContext_destroy_renderer(AppDrawContext *draw, void *window,
+static bool AppDrawContext_destroy_renderer(AppDrawContext *draw, void *window,
 const EgWindowsOpenGLContext *context)
 {
 	if (!draw || !draw->render)
-		return;
+		return true;
 	if (!window || !context || !context->gl_context || !context->cleanup) {
 		ecs_err("AppDraw: cannot destroy renderer without window and OpenGL context");
-		return;
+		return false;
 	}
 	if (!context->cleanup(window, context->gl_context, AppDrawRenderer_destroy, draw)) {
 		ecs_err("AppDraw: failed to clean up renderer");
+		return false;
 	}
+	return true;
 }
 
 static void AppDrawContext_remove(ecs_iter_t *it)
@@ -72,9 +108,10 @@ static void AppDrawContext_remove(ecs_iter_t *it)
 	}
 }
 
-static void AppDrawWindow_destroy_renderers(ecs_world_t *world, ecs_entity_t window,
+static bool AppDrawWindow_destroy_renderers(ecs_world_t *world, ecs_entity_t window,
 void *native, const EgWindowsOpenGLContext *context)
 {
+	bool ok = true;
 	ecs_iter_t children = ecs_children(world, window);
 	while (ecs_children_next(&children)) {
 		for (int32_t i = 0; i < children.count; ++i) {
@@ -82,10 +119,13 @@ void *native, const EgWindowsOpenGLContext *context)
 			if (ecs_has(world, child, EgWindowsOpenGLContext))
 				continue;
 			AppDrawContext *draw = ecs_get_mut(world, child, AppDrawContext);
-			AppDrawContext_destroy_renderer(draw, native, context);
-			AppDrawWindow_destroy_renderers(world, child, native, context);
+			if (!AppDrawContext_destroy_renderer(draw, native, context))
+				ok = false;
+			if (!AppDrawWindow_destroy_renderers(world, child, native, context))
+				ok = false;
 		}
 	}
+	return ok;
 }
 
 static void AppDrawPickTarget_destroy(void *resource)
@@ -95,18 +135,39 @@ static void AppDrawPickTarget_destroy(void *resource)
 	state->async = NULL;
 }
 
-static void AppDrawPickState_destroy_target(AppDrawPickState *state, void *window,
+static bool AppDrawPickState_destroy_target(AppDrawPickState *state, void *window,
 const EgWindowsOpenGLContext *context)
 {
 	if (!state || !state->async)
-		return;
+		return true;
 	if (!window || !context || !context->gl_context || !context->cleanup) {
 		ecs_err("AppDraw: cannot destroy picking target without window and OpenGL context");
-		return;
+		return false;
 	}
 	if (!context->cleanup(window, context->gl_context, AppDrawPickTarget_destroy, state)) {
 		ecs_err("AppDraw: failed to clean up picking target");
+		return false;
 	}
+	return true;
+}
+
+static bool AppDraw_ReleaseNative(ecs_world_t *world, ecs_entity_t entity,
+void *native, void *native_context)
+{
+	AppDrawFrame *frame = ecs_get_mut(world, entity, AppDrawFrame);
+	if (frame) {
+		AppFramePlanFini(&frame->plan);
+		frame->result = AppFrameInvalid;
+	}
+	const EgWindowsOpenGLContext *context = ecs_get(world, entity, EgWindowsOpenGLContext);
+	if (native_context && (!context || context->gl_context != native_context)) {
+		ecs_err("AppDraw: owning GL context is unavailable during release");
+		return false;
+	}
+	AppDrawPickState *pick = ecs_get_mut(world, entity, AppDrawPickState);
+	bool pick_ok = AppDrawPickState_destroy_target(pick, native, context);
+	bool renderers_ok = AppDrawWindow_destroy_renderers(world, entity, native, context);
+	return pick_ok && renderers_ok;
 }
 
 static void AppDrawPickState_remove(ecs_iter_t *it)
@@ -451,91 +512,118 @@ float *screen_x, float *screen_y, void *ctx)
 	return true;
 }
 
-static void Test_Render(ecs_iter_t *it)
+static bool AppDraw_ExecuteFrame(ecs_world_t *world, ecs_entity_t window)
 {
-	AppDrawContext   *d      = ecs_field_self(it, AppDrawContext, 1);
-	EgDraws_List     *list   = ecs_field_self(it, EgDraws_List, 2);
-	EgCamerasState   *c0     = ecs_field_shared(it, EgCamerasState, 3);
-	ecs_entity_t      window = ecs_pair_second(it->world, ecs_field_id(it, 0));
-	AppDrawPickState *pick   = ecs_has_id(it->world, window, AppDrawGpuPicking) ? ecs_get_mut(it->world, window, AppDrawPickState) : NULL;
-
-	for (int i = 0; i < it->count; ++i, ++d, ++list) {
-		if (!d->render) {
-			d->render = egg_render_init();
-			if (!d->render) {
-				ecs_err("AppDraw: failed to initialize renderer for entity %s",
-				ecs_get_name(it->world, it->entities[i]));
-				if (pick)
-					pick->failed = true;
-				EgDraws_List_Clear(list);
-				ecs_enable(it->world, it->entities[i], false);
-				continue;
+	AppDrawFrame *frame = ecs_get_mut(world, window, AppDrawFrame);
+	const EgWindowsWindow *native = ecs_get(world, window, EgWindowsWindow);
+	const EgWindowsOpenGLContext *context = ecs_get(world, window, EgWindowsOpenGLContext);
+	if (!frame || frame->result != AppFrameReady)
+		return false;
+	AppFramePlan *plan = &frame->plan;
+	if (!native || !context || !native->valid || native->object != plan->native_window ||
+	    context->gl_context != plan->gl_context || native->pixel_width != plan->width ||
+	    native->pixel_height != plan->height) {
+		ecs_err("AppDraw: frame snapshot no longer matches window %llu", (unsigned long long)window);
+		return false;
+	}
+	for (int32_t i = 2; i < plan->instruction_count; ++i) {
+		ecs_entity_t pass = plan->instructions[i].args.draw.pass;
+		if (!ecs_is_alive(world, pass) || ecs_has_id(world, pass, EcsDisabled) ||
+		    ecs_get_parent(world, pass) != window) {
+			ecs_err("AppDraw: render pass %llu is no longer available", (unsigned long long)pass);
+			return false;
+		}
+		AppDrawContext *draw = ecs_get_mut(world, pass, AppDrawContext);
+		if (!draw) {
+			ecs_err("AppDraw: render pass %llu has no renderer state", (unsigned long long)pass);
+			return false;
+		}
+		if (!draw->render) {
+			draw->render = egg_render_init();
+			if (!draw->render) {
+				ecs_err("AppDraw: renderer initialization failed for pass %llu", (unsigned long long)pass);
+				return false;
 			}
 		}
-		AppDrawPickFrame_draw(it->world, pick, d->render, list, (float *)&c0->vp);
-		EgDraws_List_Clear(list);
 	}
+	AppDrawPickFrame_begin(world, window);
+	AppDrawPickState *pick = ecs_has_id(world, window, AppDrawGpuPicking) ?
+		ecs_get_mut(world, window, AppDrawPickState) : NULL;
+	bool ok = true;
+	for (int32_t i = 0; i < plan->instruction_count; ++i) {
+		const AppFrameInstruction *instruction = &plan->instructions[i];
+		switch (instruction->op) {
+		case AppFrameSetViewport:
+			glViewport(instruction->args.viewport.x, instruction->args.viewport.y,
+				instruction->args.viewport.width, instruction->args.viewport.height);
+			break;
+		case AppFrameClearColor:
+			glClearColor(instruction->args.clear.r, instruction->args.clear.g,
+				instruction->args.clear.b, instruction->args.clear.a);
+			glClear(GL_COLOR_BUFFER_BIT);
+			break;
+		case AppFrameDrawLayers: {
+			int32_t index = instruction->args.draw.layers_index;
+			AppDrawContext *draw = ecs_get_mut(world, instruction->args.draw.pass, AppDrawContext);
+			if (index < 0 || index >= plan->layer_count || !draw || !draw->render) {
+				ecs_err("AppDraw: invalid draw instruction");
+				ok = false;
+				break;
+			}
+			AppDrawPickFrame_draw(world, pick, draw->render, plan->layers[index], instruction->args.draw.matrix);
+			if (pick && pick->failed)
+				ok = false;
+			break;
+		}
+		default:
+			ecs_err("AppDraw: invalid frame instruction");
+			ok = false;
+		}
+		if (!ok)
+			break;
+	}
+	AppDrawPickFrame_end(world, window);
+	return ok && (!pick || !pick->failed);
+}
+
+static void AppDrawFrame_Create(ecs_iter_t *it)
+{
+	for (int32_t i = 0; i < it->count; ++i) {
+		ecs_entity_t window = it->entities[i];
+		EgWindowsNativeOwner *owner = ecs_get_mut(it->world, window, EgWindowsNativeOwner);
+		if (ecs_has(it->world, window, EgWindowsFrameExecutor) ||
+		    (owner && owner->release && owner->release != AppDraw_ReleaseNative)) {
+			ecs_err("AppDraw: window %llu already has a frame or resource owner",
+				(unsigned long long)window);
+			continue;
+		}
+		if (owner)
+			owner->release = AppDraw_ReleaseNative;
+		ecs_add(it->stage, window, AppDrawFrame);
+		ecs_set(it->stage, window, EgWindowsFrameExecutor,
+			{.execute = AppDraw_ExecuteFrame, .complete = AppDrawPickFrame_complete});
+	}
+}
+
+static void AppDrawPick_Create(ecs_iter_t *it)
+{
+	for (int32_t i = 0; i < it->count; ++i)
+		ecs_set(it->stage, it->entities[i], AppDrawPickState, {.frame = -1});
+	ecs_script_set_event_hooks(it->world, &(ecs_script_event_hooks_t){.to_local = AppDraw_ToLocal});
 }
 
 static void AppDrawContext_Create(ecs_iter_t *it)
 {
-	AppDrawContextCreate         *def      = ecs_field_self(it, AppDrawContextCreate, 0);
-	ecs_entity_t                  e_window = ecs_field_src(it, 1);
-	EgWindowsWindow const        *window   = ecs_get(it->world, e_window, EgWindowsWindow);
-	const EgWindowsOpenGLContext *context  = ecs_get(it->world, e_window, EgWindowsOpenGLContext);
-	if (!window || !window->object || !context || !context->gl_context || !context->cleanup) {
-		ecs_err("AppDraw: window and OpenGL context with cleanup are required");
-		for (int i = 0; i < it->count; ++i)
-			ecs_enable(it->world, it->entities[i], false);
-		return;
-	}
-	if (ecs_has_id(it->world, e_window, AppDrawGpuPicking)) {
-		if (!ecs_has(it->world, e_window, AppDrawPickState)) {
-			ecs_set(it->world, e_window, AppDrawPickState, {.frame = -1});
-			ecs_set(it->world, e_window, EgWindowsFrameCallback,
-			{.begin = AppDrawPickFrame_begin, .end = AppDrawPickFrame_end, .complete = AppDrawPickFrame_complete});
-			ecs_script_set_event_hooks(it->world, &(ecs_script_event_hooks_t){.to_local = AppDraw_ToLocal});
-		}
-	}
-
-	ecs_log_set_level(0);
-	ecs_log(-1, "AppDrawContext_Create: '%s'", ecs_get_name(it->world, e_window));
-
-	for (int i = 0; i < it->count; ++i, ++def) {
-		ecs_entity_t e = it->entities[i];
-		ecs_add(it->stage, e, EgDraws_List);
-		ecs_set(it->stage, e, AppDrawContext, {NULL});
-
-		// The window system will call this render system using `ecs_run()` every frame
-		// by putting it as a child of the window entity.
-		char name[256];
-		snprintf(name, sizeof(name), "System_%s", ecs_get_name(it->world, e));
-		ecs_entity_t sys = ecs_entity(it->world, {.name = name, .parent = e_window});
-		ecs_log(-1, "create system: '%s'", ecs_get_name(it->world, sys));
-		ecs_system_init(it->world,
-		&(ecs_system_desc_t){
-		.entity      = sys,
-		.callback    = Test_Render,
-		.query.terms = {
-		{.id = ecs_childof(e_window)},
-		{.id = ecs_id(AppDrawContext), .src.id = EcsSelf, .inout = EcsIn},
-		{.id = ecs_id(EgDraws_List), .src.id = EcsSelf, .inout = EcsInOut},
-		{.id = ecs_id(EgCamerasState), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
-		}});
-	}
-	ecs_log_set_level(-1);
+	for (int32_t i = 0; i < it->count; ++i)
+		ecs_set(it->stage, it->entities[i], AppDrawContext, {NULL});
 }
 
-static void AppDrawContext_Collect(ecs_iter_t *it)
+static void AppDrawFrame_Compile(ecs_iter_t *it)
 {
-	EgDraws_List *l       = ecs_field_self(it, EgDraws_List, 1);
-	EgDraws_List *dst     = ecs_field_shared(it, EgDraws_List, 2);
-	ecs_entity_t  context = ecs_field_src(it, 0);
-	for (int i = 0; i < it->count; ++i, ++l) {
-		if (it->entities[i] != context) {
-			EgDraws_List_Append(dst, l);
-		}
-	}
+	AppDrawFrame *frames = ecs_field(it, AppDrawFrame, 0);
+	for (int32_t i = 0; i < it->count; ++i)
+		frames[i].result = AppFramePlanCompile(it->world, it->entities[i],
+			(uint64_t)ecs_get_world_info(it->world)->frame_count_total, &frames[i].plan);
 }
 
 void AppDrawImport(ecs_world_t *world)
@@ -547,13 +635,18 @@ void AppDrawImport(ecs_world_t *world)
 	ECS_IMPORT(world, EgBase);
 	ECS_IMPORT(world, EgUi);
 	ecs_import(world, EgDraws_Import, "EgDraws");
+	ecs_set_name_prefix(world, "AppFrame");
+	AppFramePlanImport(world);
+	ecs_set_name_prefix(world, "AppDraw");
 
 	ECS_COMPONENT_DEFINE(world, AppDrawContext);
-	ECS_COMPONENT_DEFINE(world, AppDrawContextCreate);
+	ECS_COMPONENT_DEFINE(world, AppDrawFrame);
 	ECS_TAG_DEFINE(world, AppDrawGpuPicking);
 	ECS_COMPONENT_DEFINE(world, AppDrawPickState);
 	ECS_COMPONENT_DEFINE(world, AppDrawPickInput);
 	ecs_set_hooks(world, AppDrawPickState, {.move = AppDrawPickState_move});
+	ecs_set_hooks(world, AppDrawFrame, {
+		.ctor = AppDrawFrame_ctor, .dtor = AppDrawFrame_dtor, .move = AppDrawFrame_move});
 
 	ecs_observer(world,
 	{.query   = {.terms = {
@@ -586,12 +679,6 @@ void AppDrawImport(ecs_world_t *world)
 	ecs_singleton_set(world, EgUiScriptEventsPicker, {.pick = AppDraw_PickMouse, .capture_begin = AppDraw_CaptureBegin, .capture_valid = AppDraw_CaptureValid, .capture_end = AppDraw_CaptureEnd});
 
 	ecs_struct(world,
-	{.entity = ecs_id(AppDrawContextCreate),
-	.members = {
-	{.name = "dummy", .type = ecs_id(ecs_i32_t)},
-	}});
-
-	ecs_struct(world,
 	{.entity = ecs_id(AppDrawContext),
 	.members = {
 	{.name = "render", .type = ecs_id(ecs_uptr_t)},
@@ -603,18 +690,46 @@ void AppDrawImport(ecs_world_t *world)
 	.callback    = AppDrawContext_Create,
 	.immediate   = true,
 	.query.terms = {
-	{.id = ecs_id(AppDrawContextCreate), .src.id = EcsSelf, .inout = EcsIn},
+	{.id = ecs_id(AppFramePass), .src.id = EcsSelf, .inout = EcsIn},
 	{.id = ecs_id(EgWindowsOpenGLContext), .trav = EcsChildOf, .src.id = EcsUp, .inout = EcsIn},
 	{.id = ecs_id(AppDrawContext), .oper = EcsNot}, // Adds this
 	}});
 
 	ecs_system(world,
-	{.entity     = ecs_entity(world, {.name = "AppDrawContext_Collect"}),
-	.phase       = EcsPostUpdate,
-	.callback    = AppDrawContext_Collect,
+	{.entity     = ecs_entity(world, {.name = "AppDrawFrame_Create"}),
+	.phase       = EcsOnUpdate,
+	.callback    = AppDrawFrame_Create,
+	.immediate   = true,
 	.query.terms = {
-	{.id = ecs_id(AppDrawContext), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsIn},
-	{.id = ecs_id(EgDraws_List), .src.id = EcsSelf, .inout = EcsIn},
-	{.id = ecs_id(EgDraws_List), .trav = EcsDependsOn, .src.id = EcsUp, .inout = EcsInOut},
+	{.id = ecs_id(AppFrameClear)},
+	{.id = ecs_id(EgWindowsWindow)},
+	{.id = ecs_id(EgWindowsOpenGLContext)},
+	{.id = ecs_id(AppDrawFrame), .oper = EcsNot},
+	}});
+
+	ecs_system(world,
+	{.entity     = ecs_entity(world, {.name = "AppDrawPick_Create"}),
+	.phase       = EcsOnUpdate,
+	.callback    = AppDrawPick_Create,
+	.immediate   = true,
+	.query.terms = {
+	{.id = AppDrawGpuPicking},
+	{.id = ecs_id(EgWindowsOpenGLContext)},
+	{.id = ecs_id(AppDrawPickState), .oper = EcsNot},
+	}});
+
+	ecs_entity_t compile_phase = ecs_entity(world, {.name = "CompilePhase"});
+	ecs_add_id(world, compile_phase, EcsPhase);
+	ecs_add_pair(world, compile_phase, EcsDependsOn, EgDraws_GeometryPhase);
+	ecs_add_pair(world, EcsPreStore, EcsDependsOn, compile_phase);
+	ecs_add_pair(world, EcsOnStore, EcsDependsOn, EcsPreStore);
+	ecs_add_pair(world, EcsPostFrame, EcsDependsOn, EcsOnStore);
+	ecs_system(world,
+	{.entity     = ecs_entity(world, {.name = "AppDrawFrame_Compile"}),
+	.phase       = compile_phase,
+	.callback    = AppDrawFrame_Compile,
+	.immediate   = true,
+	.query.terms = {
+	{.id = ecs_id(AppDrawFrame), .inout = EcsInOut},
 	}});
 }

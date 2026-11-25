@@ -1,5 +1,8 @@
 # app1 GPU picking
 
+For the render topology and ECS-to-frame-plan design, see
+[graphics-framework-spec.md](graphics-framework-spec.md).
+
 `app.draw.GpuPicking` on an OpenGL window enables the experimental EgDraws
 picking pass for that window. Without the tag, the window has no mouse picking;
 there is no CPU fallback. `huds.flecs` contains a `Button2` example.
@@ -64,13 +67,12 @@ Window focus, mouse coordinates and logical/framebuffer sizes are stored on
 `EgWindowsWindow` and refreshed by `EgWindowsSdl` after polling events each
 frame. Global pointer focus and the focused window entity remain in the
 `EgWindowsInputState` singleton.
-The SDL GL backend supplies context switching, frame callbacks, and
-context-current resource cleanup through `EgWindows`, so AppDraw does not
-depend on SDL APIs. Renderer and picking resources are created during rendering
-and cleaned up when their components or owning window/context are removed.
-Other backends must provide the same state and cleanup operation. Native window
-and GL context handles must remain valid until their components are removed;
-they must not be replaced on the same entity.
+The SDL GL backend supplies context switching, frame callbacks, an explicit
+frame executor and context-current resource cleanup through `EgWindows`.
+Renderer and picking resources are created during rendering and released
+before backend-owned SDL contexts and windows are destroyed. Externally
+provided native handles remain externally owned. Native handles must not be
+replaced on a live owner.
 
 The draw list stores only entity indices. A reused index can therefore refer to
 a new entity before draw submission. At submission the full entity ID is saved

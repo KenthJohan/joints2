@@ -14,12 +14,7 @@ enum {
 	APP_DRAW_Z_TEXT       = 3,
 };
 
-typedef struct {
-	ecs_i32_t dummy;
-} AppDrawContextCreate;
-
 extern ECS_COMPONENT_DECLARE(AppDrawContext);
-extern ECS_COMPONENT_DECLARE(AppDrawContextCreate);
 extern ECS_TAG_DECLARE(AppDrawGpuPicking);
 
 void AppDrawImport(ecs_world_t *world);

@@ -1,0 +1,11 @@
+module eg.windows
+
+window1 {
+    drawctx_hud {
+        (app.draw.Source, huds.root2d)
+    }
+
+    drawctx_1 {
+        (app.draw.Source, physics.b2world)
+    }
+}

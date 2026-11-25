@@ -8,10 +8,15 @@
 	},
 	"test": {
 		"testsuites": [{
+			"id": "Plan",
+			"setup": true,
+			"teardown": true,
+			"testcases": ["test_compile_snapshot", "test_reject_invalid", "test_source_camera_and_skip", "test_deleted_references"]
+		}, {
 			"id": "Snapshot",
 			"setup": true,
 			"teardown": true,
-			"testcases": ["test_publish_and_invalidate", "test_live_eligibility", "test_on_demand", "test_pick_target_lifecycle", "test_renderer_lifecycle", "test_multiple_windows", "test_drag_window_bounds", "test_window_state_system", "test_frame_callbacks", "test_render_cycle_picking"]
+			"testcases": ["test_publish_and_invalidate", "test_live_eligibility", "test_on_demand", "test_pick_target_lifecycle", "test_renderer_lifecycle", "test_multiple_windows", "test_drag_window_bounds", "test_window_state_system", "test_frame_callbacks", "test_render_cycle_picking", "test_frame_plan_two_windows", "test_native_world_fini", "test_frame_snapshot_order", "test_frame_plan_pick_hardware", "test_external_window_ownership", "test_missing_context_outcome"]
 		}]
 	},
 	"lang.c": {

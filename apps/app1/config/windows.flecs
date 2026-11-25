@@ -13,16 +13,17 @@ window1 {
     Position2 : {0, 0}
     Rectangle : {1024, 1024}
     OpenGLContextCreate : {0}
+    app.draw.Clear : {r: 0, g: 0, b: 1, a: 1}
 
 
     drawctx_hud {
-        app.draw.ContextCreate : {0}
-        (flecs.core.DependsOn, cameras.cam_hud)
+        app.draw.Pass : {order: 20}
+        (app.draw.Camera, cameras.cam_hud)
     }
     
     drawctx_1 {
-        app.draw.ContextCreate : {0}
-        (flecs.core.DependsOn, cameras.cam0)
+        app.draw.Pass : {order: 10}
+        (app.draw.Camera, cameras.cam0)
     }
 
     mouse {
@@ -35,5 +36,3 @@ window1 {
         eg.windows.Mouse
     }
 }
-
-

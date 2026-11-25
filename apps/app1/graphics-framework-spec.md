@@ -1,11 +1,83 @@
-# app1 graphics framework: current behavior and design review
+# app1 graphics framework: frame plans and historical design review
 
-Status: **as-built investigation with proposals**, not an implemented API.
-This describes the checked-in code plus the current working-tree changes in
-`joints2`. App1 is an experiment for a Flecs graphics framework; this document
-is a starting point for changing the design later, not a request to change code
-now. The [frame timeline](frame-timeline.md) is the starting sketch; where it
-implies an order not established below, this document does not assume it.
+Status: **frame-plan implementation**. The first section describes the current
+design. The later investigation and [frame timeline](frame-timeline.md)
+describe the earlier design and are retained for context.
+
+## Frame-plan contract
+
+In the current implementation, a window owns ordered render-pass entities.
+Each enabled pass requires exactly one camera and at least one source through
+explicit relationships. A window with no passes can still clear. A compiler resolves this
+graph into one frame-local instruction array per window: set the framebuffer
+viewport, clear the color buffer, then draw the prepared layers of each pass.
+The ECS graph remains authoritative; instructions and geometry are derived
+snapshots, not persistent application state.
+
+For example, the configured scene graph has a window with a scene pass referencing
+the physics root and scene camera, followed by a HUD pass referencing the HUD
+root and HUD camera. The resulting plan is:
+
+```text
+SetViewport(window framebuffer rectangle)
+ClearColor(window clear color)
+DrawLayers(scene pass, scene camera matrix, prepared scene layers)
+DrawLayers(HUD pass, HUD camera matrix, prepared HUD layers)
+```
+
+These are high-level operations. OpenGL bindings and uploads are the
+executor's responsibility; context activation, picking and presentation are
+mandatory window-level operations, not freely reorderable instructions.
+
+Scene precedes HUD. Pass orders must be unique within a window. Within a pass,
+layers ascend and primitives on the same layer are ordered by full entity ID,
+then by primitive kind (solid, border, text), across all sources. A source
+whose generated geometry requires incompatible camera-dependent scales cannot
+be shared across those passes. Invalid graphs fail the affected window's frame
+with a diagnostic; they must not present a partial or stale plan.
+An unavailable, hidden, minimized or zero-sized framebuffer skips the frame.
+An invalid window must not prevent other valid windows from rendering.
+
+Geometry and the complete plan are prepared after transforms and before
+script input dispatch; dispatch changes take effect in the next prepared frame.
+The plan captures matrices, dimensions and geometry in storage valid until
+execution finishes. A changed window, context or framebuffer invalidates the
+plan instead of allowing an inconsistent frame.
+Instructions use frame-owned geometry and matrices. Async picking owns its
+submission mapping separately until completion.
+
+The window backend owns the context-current scope and presentation; it invokes
+the explicit plan executor, not arbitrary child systems. Picking surrounds
+execution and keeps the existing asynchronous depth/tie semantics, result
+validation and busy-slot behavior. A skipped pick must not skip visible
+rendering. Unsupported picking remains explicitly unavailable, without a CPU
+fallback. Full entity identity is retained after submission, but the existing
+index-reuse limitation before submission remains until separately resolved.
+
+Window shutdown discards plans and retires picking, destroys GL resources
+while the owning context is current, then destroys the context and native
+window and removes backend bookkeeping. Native handles created by the SDL
+backend are backend-owned; externally supplied handles remain externally owned.
+If cleanup fails, the backend reports the error and does not destroy handles
+whose dependent resources may still be live. If the owner is itself being
+removed or the world is finalizing, that failure can leak those handles because
+there is no remaining owner through which to retry. Replacing native handles
+on a live owner is unsupported and rejected by the executor.
+
+The frame compiler and its data types are in [AppFramePlan.c](src/AppFramePlan.c)
+and [AppFramePlan.h](src/AppFramePlan.h). The configuration declares pass
+order and cameras in [windows.flecs](config/windows.flecs), and links sources
+after their scripts load in [render-links.flecs](config/render-links.flecs).
+Source lists associate their geometry scale with an `eg.draws.Camera` pair.
+Sources with different camera entities can be shared only when their current
+pixel scales match. Disabled passes are omitted; disabled or incomplete
+referenced sources and cameras invalidate the affected frame.
+
+## Historical investigation
+
+The remaining sections describe the design **before** frame-plan
+implementation. Their "current" terminology and audit items are historical;
+they are not the contract for the code above.
 
 ## Fundamental problem
 
@@ -16,7 +88,7 @@ with their owning context current. Flecs systems should express the data flow
 without making the SDL backend know application drawing details or allowing
 unrelated systems to run accidentally inside a window's GL scope.
 
-## Current topology
+## Historical topology
 
 ```mermaid
 flowchart LR
@@ -46,7 +118,7 @@ appends source lists to a context list via `DependsOn`. See
 [windows.flecs](config/windows.flecs), [cameras.flecs](config/cameras.flecs),
 [huds.flecs](config/huds.flecs), and [physics.flecs](config/physics.flecs).
 
-## Current frame
+## Historical frame
 
 The arrows between phases below represent the pipeline's phase sequence, not a
 promise that every operation within a phase is ordered as drawn. In
@@ -127,7 +199,7 @@ pipeline systems. See
 [EgWindowsSdlGl.c](../../vendor/eg/EgWindowsSdlGl/src/EgWindowsSdlGl.c)
 and [AppDraw.c](src/AppDraw.c).
 
-## Current ownership, input and failure contracts
+## Historical ownership, input and failure contracts
 
 | State / resource | Current owner and behavior |
 | --- | --- |

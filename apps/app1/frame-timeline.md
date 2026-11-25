@@ -1,3 +1,7 @@
+This sketch describes the historical pre-frame-plan implementation. See
+[graphics-framework-spec.md](graphics-framework-spec.md) for the current
+render contract.
+
 ```mermaid
 flowchart LR
     subgraph P1["PreUpdate"]
@@ -42,4 +46,4 @@ flowchart LR
     end
 
     P1 --> P2 --> P3 --> P4 --> P5
-``
+```

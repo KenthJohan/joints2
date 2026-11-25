@@ -78,6 +78,7 @@ int main(int argc, char *argv[])
 
 	run_managed_file(world, "config/huds.flecs");
 	run_managed_file(world, "config/physics.flecs");
+	run_file(world, "config/render-links.flecs");
 	run_file(world, "config/keybindings_3d.flecs");
 	run_file(world, "config/keybindings_common.flecs");
 
