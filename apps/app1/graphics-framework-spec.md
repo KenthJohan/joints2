@@ -104,10 +104,10 @@ sequenceDiagram
         W->>A: complete(window, false), if installed
     else Context current
         W->>A: begin(window), if installed
-        A->>G: poll previous pick; optionally begin new pick
+        A->>G: poll previous pick and optionally begin new pick
         W->>W: viewport and clear color buffer
         W->>R: ecs_run each child EcsSystem in window group
-        R->>G: lazy renderer init; draw list and optional pick
+        R->>G: lazy renderer init, draw list and optional pick
         R->>R: clear rendered list
         W->>A: end(window), if installed
         A->>G: finish pick submission if started
